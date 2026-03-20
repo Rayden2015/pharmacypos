@@ -1,0 +1,32 @@
+*.log
+.DS_Store
+/.idea
+/.vscode
+.phpunit.result.cache
+Homestead.json
+Homestead.yaml
+npm-debug.log
+yarn-error.log
+docker-compose.override.yml
+
+# Environment
+.env
+.env.backup
+.env.production
+.env.*.local
+
+# Dependencies
+/node_modules
+/vendor
+
+# Laravel
+/public/hot
+/public/storage
+/public/build
+/storage/*.key
+/bootstrap/cache/*
+!/bootstrap/cache/.gitignore
+
+# Local / server cruft
+php.ini
+.well-known/
