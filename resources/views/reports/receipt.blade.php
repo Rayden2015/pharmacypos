@@ -174,7 +174,7 @@
                             <h2>QTY</h2>
                         </td>
                         <td class="Hours">
-                            <h2>UNIT</h2>
+                            <h2>PRICE</h2>
                         </td>
                         <td class="Hours">
                             <h2>DISC</h2>
@@ -191,7 +191,10 @@
                                 <p class="itemmake">{{ $key + 1 }}.</p>
                             </td>
                             <td class="tableitem">
-                                <p class="itemmake">{{ $receipt->product->product_name }}@if ($receipt->product->alias)<br><span class="text-muted" style="font-size:0.85em">{{ $receipt->product->alias }}</span>@endif</p>
+                                <p class="itemmake">{{ $receipt->product->product_name }}@if ($receipt->product->alias)<br><span class="text-muted" style="font-size:0.85em">{{ $receipt->product->alias }}</span>@endif
+                                    @php $pack = $receipt->packaging_label ?: $receipt->product->packaging_label; @endphp
+                                    @if ($pack)<br><span class="text-muted" style="font-size:0.78em">{{ $pack }}</span>@endif
+                                </p>
                             </td>
                             <td class="tableitem">
                                 <p class="itemtext">{{ $receipt->quantity }}</p>

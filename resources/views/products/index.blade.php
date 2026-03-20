@@ -51,11 +51,12 @@
                                         <th>Product Name</th>
                                         <th>Alias</th>
                                         <th>Description</th>
-                                        <th>Brand</th>
+                                        <th class="text-nowrap">Manufacturer @include('products.partials.manufacturer-help')</th>
                                         <th>Price</th>
                                         <th>Supplier Price</th>
                                         <th class="text-nowrap">On-hand qty @include('products.partials.inventory-help', ['kind' => 'on_hand'])</th>
                                         <th>Form</th>
+                                        <th class="text-nowrap">Packaging @include('products.partials.packaging-help')</th>
                                         <th>Expire Date</th>
                                         <th class="text-nowrap">Low stock alert @include('products.partials.inventory-help', ['kind' => 'alert'])</th>
                                         <th> Actions</th>
@@ -75,6 +76,7 @@
                                             <td>{{ $currencySymbol }}{{ number_format($product->supplierprice, 2) }}</td>
                                             <td>{{ $product->quantity }}</td>
                                             <td>{{ $product->form }}</td>
+                                            <td>{{ $product->packaging_label ?? '—' }}</td>
                                             <td>{{ $product->expiredate }}</td>
                                             <td>
                                                 @if ($product->stock_alert >= $product->quantity)
@@ -163,15 +165,16 @@
                                                                                 <div class="border border-3 p-4 rounded">
                                                                                     <div class="row g-3">
                                                                                         <div class="col-12">
-                                                                                            <label for="brand"
-                                                                                                class="form-label">Product
-                                                                                                Brand</label>
+                                                                                            <label for="brand{{ $product->id }}"
+                                                                                                class="form-label d-inline-flex align-items-center flex-wrap gap-1">Manufacturer
+                                                                                                @include('products.partials.manufacturer-help')</label>
                                                                                             <input type="text"
                                                                                                 class="form-control"
-                                                                                                id="brand"
-                                                                                                placeholder="Enter Product Brand"
+                                                                                                id="brand{{ $product->id }}"
+                                                                                                placeholder="e.g. company that makes this medicine"
                                                                                                 value="{{ $product->brand }}"
-                                                                                                name="brand">
+                                                                                                name="brand"
+                                                                                                autocomplete="organization">
                                                                                         </div>
                                                                                         <div class="col-md-6">
                                                                                             <label for="inputPrice"
@@ -273,6 +276,23 @@
                                                                                                     value="Eye Ointment">Eye
                                                                                                     Ointment</option>
                                                                                             </select>
+                                                                                        </div>
+                                                                                        <div class="col-md-6">
+                                                                                            <label for="unit_of_measure{{ $product->id }}"
+                                                                                                class="form-label d-inline-flex align-items-center flex-wrap gap-1">Unit of measure @include('products.partials.packaging-help')</label>
+                                                                                            @include('products.partials.unit-of-measure-select', [
+                                                                                                'id' => 'unit_of_measure' . $product->id,
+                                                                                                'selected' => $product->unit_of_measure,
+                                                                                            ])
+                                                                                        </div>
+                                                                                        <div class="col-md-6">
+                                                                                            <label for="volume{{ $product->id }}"
+                                                                                                class="form-label">Volume / pack size</label>
+                                                                                            <input type="text" class="form-control"
+                                                                                                id="volume{{ $product->id }}" name="volume"
+                                                                                                maxlength="128"
+                                                                                                value="{{ $product->volume }}"
+                                                                                                placeholder="e.g. 500 ml, 30 tablets">
                                                                                         </div>
 
                                                                                         <div class="col-12">

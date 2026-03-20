@@ -51,9 +51,27 @@ class ProductController extends Controller
      */
     public function store(Request $request)
     {
-        
+        $request->validate([
+            'product_name' => 'required|string|max:255',
+            'brand' => 'required|string|max:255',
+            'alias' => 'nullable|string|max:255',
+            'description' => 'nullable|string',
+            'price' => 'required|numeric|min:0',
+            'supplierprice' => 'nullable|numeric|min:0',
+            'quantity' => 'required|numeric|min:0',
+            'stock_alert' => 'nullable|integer|min:0',
+            'form' => 'required|string|max:100',
+            'unit_of_measure' => 'nullable|string|max:64',
+            'volume' => 'nullable|string|max:128',
+            'expiredate' => 'required|date',
+            'product_img' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120',
+        ], [
+            'product_img.image' => 'The product image must be a valid image file.',
+            'product_img.mimes' => 'Use JPG, PNG, GIF, or WebP for the product image.',
+            'product_img.max' => 'The product image may not be greater than 5 MB.',
+        ]);
 
-        if($request->hasFile('product_img')){
+        if ($request->hasFile('product_img')) {
             //Get file name
             $fileNameWithExt = $request->file('product_img')->getClientOriginalName();
             //File name
@@ -64,14 +82,10 @@ class ProductController extends Controller
             $fileNameToStore = $filename. '_' .time(). '.' .$extension;
 
             $path = $request->file('product_img')->storeAs('public/products', $fileNameToStore);
-        }
-        else{
+        } else {
             $fileNameToStore = 'product.png';
         }
 
-
-
-     
         $products = new Product;
         $products->product_name = $request->product_name;
         $products->alias = $request->input('alias');
@@ -82,6 +96,8 @@ class ProductController extends Controller
         $products->supplierprice = $request->supplierprice;
         $products->stock_alert = $this->normalizedStockAlert($request->input('stock_alert'));
         $products->form = $request->form;
+        $products->unit_of_measure = $request->filled('unit_of_measure') ? $request->unit_of_measure : null;
+        $products->volume = $request->filled('volume') ? trim($request->volume) : null;
         $products->expiredate = $request->expiredate;
         $products->product_img = $fileNameToStore;
         
@@ -123,10 +139,29 @@ class ProductController extends Controller
      */
     public function update(Request $request, $id)
     {
-        // $product->update($request->all());
-        // return redirect()->back()->with('success', 'Product Updated Successfully');
+        $request->validate([
+            'product_name' => 'required|string|max:255',
+            'brand' => 'required|string|max:255',
+            'alias' => 'nullable|string|max:255',
+            'description' => 'nullable|string',
+            'price' => 'required|numeric|min:0',
+            'supplierprice' => 'nullable|numeric|min:0',
+            'quantity' => 'required|numeric|min:0',
+            'stock_alert' => 'nullable|integer|min:0',
+            'form' => 'required|string|max:100',
+            'unit_of_measure' => 'nullable|string|max:64',
+            'volume' => 'nullable|string|max:128',
+            'expiredate' => 'required|date',
+            'product_img' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120',
+        ], [
+            'product_img.image' => 'The product image must be a valid image file.',
+            'product_img.mimes' => 'Use JPG, PNG, GIF, or WebP for the product image.',
+            'product_img.max' => 'The product image may not be greater than 5 MB.',
+        ]);
 
-        if($request->hasFile('product_img')){
+        $products = Product::findOrFail($id);
+
+        if ($request->hasFile('product_img')) {
             //Get file name
             $fileNameWithExt = $request->file('product_img')->getClientOriginalName();
             //File name
@@ -137,15 +172,11 @@ class ProductController extends Controller
             $fileNameToStore = $filename. '_' .time(). '.' .$extension;
 
             $path = $request->file('product_img')->storeAs('public/products', $fileNameToStore);
+        } else {
+            $fileNameToStore = $products->product_img ?: 'product.png';
         }
-        else{
-            $fileNameToStore = 'product.png';
-        }
-
-
 
         $data = $request->input();
-        $products = Product::find($id);
         $products->product_name = $data['product_name'];
         $products->alias = $data['alias'] ?? null;
         $products->description = $data['description'];
@@ -155,6 +186,8 @@ class ProductController extends Controller
         $products->supplierprice = $data['supplierprice'];
         $products->stock_alert = $this->normalizedStockAlert($data['stock_alert'] ?? null, $products->stock_alert);
         $products->form = $data['form'];
+        $products->unit_of_measure = ! empty($data['unit_of_measure']) ? $data['unit_of_measure'] : null;
+        $products->volume = ! empty($data['volume']) ? trim($data['volume']) : null;
         $products->expiredate = $data['expiredate'];
         $products->product_img = $fileNameToStore;
         

@@ -85,6 +85,8 @@ class DemoDataSeeder extends Seeder
                     $detail->unitprice = $unit;
                     $detail->discount = $discPct;
                     $detail->amount = $line;
+                    $detail->unit_of_measure = $p->unit_of_measure;
+                    $detail->volume = $p->volume;
                     $detail->save();
 
                     $detail->created_at = $placed;
@@ -120,23 +122,23 @@ class DemoDataSeeder extends Seeder
     private function seedProducts(): array
     {
         $rows = [
-            ['Amoxicillin 500mg', 'AMX-500', 'Antibiotic (Rx)', 'PharmaCare Ltd', 'Tablet', 18, 12, 120],
-            ['Paracetamol 500mg', 'PAR-500', 'Pain relief / fever', 'Entrance Pharmaceuticals', 'Tablet', 5, 3, 200],
-            ['ORS Sachets', 'ORS-01', 'Oral rehydration', 'HydrateCo', 'Powder', 8, 5, 80],
-            ['Vitamin C 1000mg', 'VIT-C1K', 'Immune support', 'Wellness Brands', 'Tablet', 35, 22, 60],
-            ['Cetirizine 10mg', 'CET-10', 'Allergy relief', 'AllerMed', 'Tablet', 12, 7, 90],
-            ['Artemether-Lumefantrine', 'AL-20', 'Antimalarial pack', 'MalariaFree Inc', 'Tablet', 45, 30, 40],
-            ['Ibuprofen 400mg', 'IBU-400', 'NSAID', 'PainEase', 'Tablet', 15, 9, 100],
-            ['Salbutamol Inhaler', 'SAL-INH', 'Asthma relief', 'RespiPharm', 'Inhaler', 55, 38, 25],
-            ['Omeprazole 20mg', 'OME-20', 'Acid reducer', 'GutHealth Co', 'Capsules', 22, 14, 75],
-            ['Chloramphenicol Eye Drop', 'CHL-EYE', 'Bacterial conjunctivitis', 'OcularMed', 'Eye Drop', 28, 18, 35],
+            ['Amoxicillin 500mg', 'AMX-500', 'Antibiotic (Rx)', 'PharmaCare Ltd', 'Tablet', 18, 12, 120, 'Tablet', '500 mg'],
+            ['Paracetamol 500mg', 'PAR-500', 'Pain relief / fever', 'Entrance Pharmaceuticals', 'Tablet', 5, 3, 200, 'Tablet', '500 mg'],
+            ['ORS Sachets', 'ORS-01', 'Oral rehydration', 'HydrateCo', 'Powder', 8, 5, 80, 'Sachet', '20.5 g'],
+            ['Vitamin C 1000mg', 'VIT-C1K', 'Immune support', 'Wellness Brands', 'Tablet', 35, 22, 60, 'Tablet', '1000 mg'],
+            ['Cetirizine 10mg', 'CET-10', 'Allergy relief', 'AllerMed', 'Tablet', 12, 7, 90, 'Tablet', '10 mg'],
+            ['Artemether-Lumefantrine', 'AL-20', 'Antimalarial pack', 'MalariaFree Inc', 'Tablet', 45, 30, 40, 'Pack', '24 tabs'],
+            ['Ibuprofen 400mg', 'IBU-400', 'NSAID', 'PainEase', 'Tablet', 15, 9, 100, 'Tablet', '400 mg'],
+            ['Salbutamol Inhaler', 'SAL-INH', 'Asthma relief', 'RespiPharm', 'Inhaler', 55, 38, 25, 'Inhaler', '200 doses'],
+            ['Omeprazole 20mg', 'OME-20', 'Acid reducer', 'GutHealth Co', 'Capsules', 22, 14, 75, 'Capsule', '20 mg'],
+            ['Chloramphenicol Eye Drop', 'CHL-EYE', 'Bacterial conjunctivitis', 'OcularMed', 'Eye Drop', 28, 18, 35, 'Bottle', '10 ml'],
         ];
 
         $products = [];
         $exp = Carbon::now()->addYear()->format('Y-m-d');
 
-        foreach ($rows as $i => $r) {
-            [$name, $alias, $desc, $brand, $form, $price, $supplier, $qty] = $r;
+            foreach ($rows as $i => $r) {
+            [$name, $alias, $desc, $brand, $form, $price, $supplier, $qty, $uom, $vol] = $r;
 
             $product = Product::updateOrCreate(
                 ['product_name' => $name],
@@ -145,6 +147,8 @@ class DemoDataSeeder extends Seeder
                     'description' => $desc,
                     'brand' => $brand,
                     'form' => $form,
+                    'unit_of_measure' => $uom,
+                    'volume' => $vol,
                     'expiredate' => $exp,
                     'price' => $price,
                     'supplierprice' => $supplier,

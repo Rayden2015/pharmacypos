@@ -55,7 +55,7 @@
                                     @foreach ($debt as $debt)
                                         <tr>
                                             <td>{{ $loop->iteration }}</td>
-                                            <td>@if ($debt->product){{ $debt->product->product_name }}@if ($debt->product->alias) ({{ $debt->product->alias }})@endif @else Name Not Found @endif</td>
+                                            <td>@if ($debt->product){{ $debt->product->product_name }}@if ($debt->product->alias) ({{ $debt->product->alias }})@endif @php $pl = $debt->packaging_label ?? $debt->product->packaging_label; @endphp @if ($pl)<br><small class="text-muted">{{ $pl }}</small>@endif @else Name Not Found @endif</td>
                                             <td>{{ $currencySymbol }}{{ number_format($debt->amount ?? 0, 2) }}</td>
                                             <td>{{ $debt->created_at }}</td>
                                             <td class="bottomright"></td>
@@ -183,7 +183,7 @@
                         @foreach ($debt as $debt)
                             <tr>
                                 <td>{{ $loop->iteration }}</td>
-                                <td>@if ($debt->product){{ $debt->product->product_name }}@if ($debt->product->alias) ({{ $debt->product->alias }})@endif @else Name Not Found @endif</td>
+                                <td>@if ($debt->product){{ $debt->product->product_name }}@if ($debt->product->alias) ({{ $debt->product->alias }})@endif @php $pl = $debt->packaging_label ?? $debt->product->packaging_label; @endphp @if ($pl)<br><small class="text-muted">{{ $pl }}</small>@endif @else Name Not Found @endif</td>
     
     
                                 <td>{{ $currencySymbol }}{{ number_format($debt->amount ?? 0, 2) }}</td>

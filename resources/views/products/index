@@ -21,14 +21,21 @@
                                                                                 value="{{ $product->alias }}" />
                                                                     </div>
                                                                     <div class="col-12">
-                                                                        <label for="brand" class="form-label">
-                                                                          Brand</label>
-                                                                        
+                                                                        <label for="brand{{ $product->id }}" class="form-label d-inline-flex align-items-center flex-wrap gap-1">
+                                                                          Manufacturer @include('products.partials.manufacturer-help')</label>
                                                                             <input type="name"
                                                                                 class="form-control"
-                                                                                id="brand" name="brand"
-                                                                                placeholder="Enter Brand" value="{{ $product->brand }}"  required/>
-                                                                        
+                                                                                id="brand{{ $product->id }}" name="brand"
+                                                                                placeholder="e.g. company that makes this medicine" value="{{ $product->brand }}"  required/>
+                                                                    </div>
+                                                                    <div class="col-12">
+                                                                        <label class="form-label d-inline-flex align-items-center flex-wrap gap-1">
+                                                                          Unit of measure @include('products.partials.packaging-help')</label>
+                                                                        @include('products.partials.unit-of-measure-select', ['id' => 'unit_of_measure_modal_' . $product->id, 'selected' => $product->unit_of_measure])
+                                                                    </div>
+                                                                    <div class="col-12">
+                                                                        <label for="volume{{ $product->id }}modal" class="form-label">Volume / pack size</label>
+                                                                        <input type="text" class="form-control" id="volume{{ $product->id }}modal" name="volume" maxlength="128" value="{{ $product->volume }}" placeholder="e.g. 500 ml"/>
                                                                     </div>
 
                                                                     <div class="col-12">

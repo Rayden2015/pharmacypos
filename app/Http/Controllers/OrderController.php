@@ -69,15 +69,32 @@ class OrderController extends Controller
             $orders->save();
             $order_id =  $orders->id;  
 
-            //Order Details
-            for($product_id = 0; $product_id < count($request->product_id); $product_id++){
+            // Order details: unit price always from product record (ignore posted price / line total)
+            $productIds = $request->product_id ?? [];
+            $quantities = $request->quantity ?? [];
+            $discounts = $request->discount ?? [];
+            for ($i = 0; $i < count($productIds); $i++) {
+                if (empty($productIds[$i])) {
+                    continue;
+                }
+                $product = Product::find($productIds[$i]);
+                if (! $product) {
+                    continue;
+                }
+                $unitPrice = (float) $product->price;
+                $qty = (float) ($quantities[$i] ?? 0);
+                $disc = (float) ($discounts[$i] ?? 0);
+                $lineTotal = ($qty * $unitPrice) - (($qty * $unitPrice * $disc) / 100);
+
                 $order_details = new Order_detail;
                 $order_details->order_id = $order_id;
-                $order_details->product_id  = $request->product_id[$product_id];
-                $order_details->unitprice  = $request->price[$product_id];
-                $order_details->quantity  = $request->quantity[$product_id];
-                $order_details->discount  = $request->discount[$product_id];
-                $order_details->amount  = $request->total_amount[$product_id];
+                $order_details->product_id = $product->id;
+                $order_details->unitprice = $unitPrice;
+                $order_details->quantity = $qty;
+                $order_details->discount = $disc;
+                $order_details->amount = $lineTotal;
+                $order_details->unit_of_measure = $product->unit_of_measure;
+                $order_details->volume = $product->volume;
                 $order_details->save();
             }
 

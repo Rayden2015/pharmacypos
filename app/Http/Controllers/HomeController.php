@@ -2,9 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use Carbon\Carbon;
-use App\Models\Product;
-use App\Models\Order_detail;
 use App\Http\Controllers\Controller;
 
 class HomeController extends Controller
@@ -26,8 +23,6 @@ class HomeController extends Controller
      */
     public function index()
     {
-        $today_sales = Order_detail::whereDate('created_at','=',Carbon::today())->sum('amount');
-        $total_products = Product::count();
-        return view('dashboard', compact('today_sales','total_products'));
-}
+        return view('dashboard', DashboardController::dashboardViewData());
+    }
 }

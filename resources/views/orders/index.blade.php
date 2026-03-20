@@ -1,6 +1,33 @@
 @extends('layouts.dash')
 @section('content')
 
+    <style>
+        /* POS line table: predictable columns — unit price compact, total emphasized */
+        .orders-pos-table-wrap .orders-pos-table {
+            table-layout: fixed;
+            width: 100%;
+        }
+        .orders-pos-table-wrap .orders-pos-table th,
+        .orders-pos-table-wrap .orders-pos-table td {
+            vertical-align: middle;
+        }
+        .orders-pos-table-wrap .orders-pos-table .form-control,
+        .orders-pos-table-wrap .orders-pos-table .form-select {
+            min-width: 0;
+            width: 100%;
+            padding: 0.28rem 0.45rem;
+            font-size: 0.875rem;
+        }
+        .orders-pos-table-wrap .orders-pos-table .pos-total-input {
+            font-weight: 600;
+            text-align: right;
+        }
+        .orders-pos-table-wrap .select2-container {
+            width: 100% !important;
+            max-width: 100%;
+        }
+    </style>
+
     <!-- Modal -->
     <div class="modal fade" id="printMode" tabindex="-1" aria-hidden="true">
         @include('reports.receipt')
@@ -35,67 +62,82 @@
                                                 class="bx bx-search"></i></span>
                                     </div>
                                     <div class="ms-auto"><a href="javascript:;"
-                                            class="btn btn-primary radius-30 mt-2 mt-lg-0 add_more"><i
-                                                class="bx bxs-plus-square"></i>Add
-                                            New Order</a>
+                                            class="btn btn-primary radius-30 mt-2 mt-lg-0 add_more"
+                                            title="Add another product row to this sale"
+                                            role="button"><i
+                                                class="bx bxs-plus-square"></i> Add line item</a>
                                     </div>
 
                                 </div>
                                 <form action="{{ route('orders.store') }}" method="POST">
                                     @csrf
-                                <div class="table-responsive">
-                                    <table class="table mb-0">
+                                <div class="table-responsive orders-pos-table-wrap">
+                                    <table class="table table-sm mb-0 orders-pos-table">
+                                        <colgroup>
+                                            <col style="width: 3rem;"><!-- # -->
+                                            <col><!-- product -->
+                                            <col style="width: 5rem;"><!-- qty -->
+                                            <col style="width: 6.25rem;"><!-- unit -->
+                                            <col style="width: 4.5rem;"><!-- disc -->
+                                            <col style="width: 8.5rem;"><!-- total -->
+                                            <col style="width: 3.25rem;"><!-- actions -->
+                                        </colgroup>
                                         <thead class="table-light">
                                             <tr>
-
-                                                <th>#</th>
-                                                <th>Product Name</th>
-                                                <th>Quantity</th>
-                                                <th>Price</th>
-                                                <th>Disc %</th>
-                                                <th>Total</th>
-                                                <th>Actions</th>
-
+                                                <th scope="col" class="text-center">#</th>
+                                                <th scope="col">Product</th>
+                                                <th scope="col" class="text-end" title="Quantity sold in the product's unit of measure (e.g. tablets, bottles)">Qty <span class="d-block small text-muted fw-normal" style="font-size: 0.68rem;">(stock UOM)</span></th>
+                                                <th scope="col" class="text-end text-nowrap" title="Unit price from product catalog">Unit</th>
+                                                <th scope="col" class="text-end">%</th>
+                                                <th scope="col" class="text-end">Line total</th>
+                                                <th scope="col" class="text-center"></th>
                                             </tr>
                                         </thead>
                                         <tbody class="addMoreProduct">
                                             <tr>
-
-                                                <td>1</td>
-                                                <td>
+                                                <td class="text-center text-muted small">1</td>
+                                                <td class="align-middle">
                                                     <select name="product_id[]" id="product_id"
-                                                        class="single-select product_id ">
+                                                        class="single-select product_id w-100">
                                                         <option value="">Select item</option>
                                                         @foreach ($products as $product)
                                                             <option data-price="{{ $product->price }}"
                                                                 value="{{ $product->id }}">
-                                                                {{ $product->product_name }}@if ($product->alias) ({{ $product->alias }})@endif
+                                                                {{ $product->product_name }}@if ($product->alias) ({{ $product->alias }})@endif @if ($product->packaging_label) — {{ $product->packaging_label }}@endif
                                                             </option>
                                                         @endforeach
                                                     </select>
                                                 </td>
                                                 <td>
                                                     <input type="number" required name="quantity[]" id="quantity"
-                                                        class="form-control quantity">
+                                                        min="1" step="1"
+                                                        class="form-control quantity text-end">
                                                 </td>
                                                 <td>
                                                     <input type="number" name="price[]" id="price"
-                                                        class="form-control price">
+                                                        class="form-control price bg-light text-end"
+                                                        readonly
+                                                        inputmode="decimal"
+                                                        tabindex="-1"
+                                                        title="Price comes from the product catalog">
                                                 </td>
                                                 <td>
                                                     <input type="number" name="discount[]" id="discount"
-                                                        class="form-control discount">
+                                                        min="0" max="100" step="0.01"
+                                                        class="form-control discount text-end"
+                                                        placeholder="0">
                                                 </td>
                                                 <td>
-                                                    <input type="number" name="total_amount[]" id="total_amount "
-                                                        class="form-control total_amount">
+                                                    <input type="number" name="total_amount[]" id="line_total"
+                                                        class="form-control total_amount pos-total-input bg-light text-end"
+                                                        readonly
+                                                        tabindex="-1"
+                                                        title="Calculated from quantity, unit, and discount">
                                                 </td>
-                                                <td>
-                                                    <a class="btn btn-default"><i class="bx bxs-trash"></i></a>
+                                                <td class="text-center p-0">
+                                                    <a class="btn btn-sm btn-light border-0 delete" href="javascript:void(0)" title="Remove row"><i class="bx bxs-trash"></i></a>
                                                 </td>
-
                                             </tr>
-
                                         </tbody>
                                     </table>
                                 </div>
@@ -203,17 +245,17 @@
 
     <script>
         $('.add_more').on('click', function() {
-            var product = $('.product_id').html();
-            var numberofrow = ($('.addMoreProduct tr').length - 0) + 1;
-            var tr = '<tr><td>' + numberofrow + '</td>' +
-                '<td> <select class="product_id form-select" name="product_id[]">' + product +
-                ' </select></td>' +
-                '<td> <input type="number" name="quantity[]" class="form-control quantity"></td>' +
-                '<td> <input type="number" name="price[]" class="form-control price"></td>' +
-                '<td> <input type="number" name="discount[]" class="form-control discount"></td>' +
-
-                '<td><input type="number" name="total_amount[]" class="form-control total_amount"></td>' +
-                '<td><a class="btn btn-default delete"><i class="bx bxs-trash"></i></a></td>';
+            var product = $('.orders-pos-table .product_id').first().html();
+            var numberofrow = $('.addMoreProduct tr').length + 1;
+            var tr = '<tr>' +
+                '<td class="text-center text-muted small">' + numberofrow + '</td>' +
+                '<td><select class="product_id form-select w-100" name="product_id[]">' + product + '</select></td>' +
+                '<td><input type="number" name="quantity[]" min="1" step="1" class="form-control quantity text-end" required></td>' +
+                '<td><input type="number" name="price[]" class="form-control price bg-light text-end" readonly inputmode="decimal" tabindex="-1" title="Price comes from the product catalog"></td>' +
+                '<td><input type="number" name="discount[]" min="0" max="100" step="0.01" class="form-control discount text-end" placeholder="0"></td>' +
+                '<td><input type="number" name="total_amount[]" class="form-control total_amount pos-total-input bg-light text-end" readonly tabindex="-1" title="Calculated from quantity, unit, and discount"></td>' +
+                '<td class="text-center p-0"><a class="btn btn-sm btn-light border-0 delete" href="javascript:void(0)" title="Remove row"><i class="bx bxs-trash"></i></a></td>' +
+                '</tr>';
             $('.addMoreProduct').append(tr);
         });
         $('.addMoreProduct').delegate('.delete', 'click', function() {
@@ -247,7 +289,7 @@
             $(this).parent().parent().remove();
         })
 
-        $('.addMoreProduct').delegate('.quantity , .discount', 'keyup', function() {
+        $('.addMoreProduct').delegate('.quantity , .discount', 'keyup change', function() {
             var tr = $(this).parent().parent();
             var qty = tr.find('.quantity').val() - 0;
             var disc = tr.find('.discount').val() - 0;

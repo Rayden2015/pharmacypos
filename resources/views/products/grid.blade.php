@@ -44,8 +44,11 @@
                 @if ($product->alias)
                     <p class="small text-muted mb-2">{{ $product->alias }}</p>
                 @endif
+                @if ($product->packaging_label)
+                    <p class="small text-muted mb-2">{{ $product->packaging_label }}</p>
+                @endif
                 <div class="clearfix">
-                    <p class="mb-0 float-start"><strong>{{$product->brand}}</strong></p>
+                    <p class="mb-0 float-start"><strong data-bs-toggle="tooltip" data-bs-placement="top" title="Manufacturer — company that produces this medicine">{{ $product->brand }}</strong></p>
                     <p class="mb-0 float-end fw-bold"><span class="me-2 text-decoration-line-through text-secondary"></span><span>{{ $currencySymbol }}{{ number_format($product->price, 2) }}</span></p>
                 </div>
                 {{-- <div class="d-flex align-items-center mt-3 fs-6">

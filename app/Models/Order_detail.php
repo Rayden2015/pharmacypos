@@ -10,7 +10,19 @@ use Illuminate\Database\Eloquent\Model;
 class Order_detail extends Model
 {
     protected $table = 'order_details';
-    protected $fillable = ['order_id', 'product_id', 'quantity', 'unitprice', 'amount', 'discount'];
+    protected $fillable = [
+        'order_id', 'product_id', 'quantity', 'unitprice', 'amount', 'discount',
+        'unit_of_measure', 'volume',
+    ];
+
+    public function getPackagingLabelAttribute(): ?string
+    {
+        $vol = trim((string) ($this->attributes['volume'] ?? ''));
+        $uom = trim((string) ($this->attributes['unit_of_measure'] ?? ''));
+        $parts = array_values(array_filter([$vol, $uom]));
+
+        return count($parts) ? implode(' · ', $parts) : null;
+    }
 
     public function product()
     {

@@ -98,6 +98,8 @@ class ApplicationFlowsTest extends TestCase
             'supplierprice' => 75,
             'stock_alert' => 10,
             'form' => 'Tablet',
+            'unit_of_measure' => 'Tablet',
+            'volume' => '500 mg',
             'expiredate' => '2030-06-15',
         ]);
 
@@ -108,6 +110,8 @@ class ApplicationFlowsTest extends TestCase
             'brand' => 'TestBrand',
             'quantity' => 50,
             'stock_alert' => 10,
+            'unit_of_measure' => 'Tablet',
+            'volume' => '500 mg',
         ]);
     }
 

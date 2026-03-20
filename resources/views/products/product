@@ -52,14 +52,21 @@
                                                                                 placeholder="Alternate name or SKU (optional)" />
                                                                     </div>
                                                                     <div class="col-md-6">
-                                                                        <label  class="form-label">
-                                                                          Brand</label>
-                                                                       
+                                                                        <label class="form-label d-inline-flex align-items-center flex-wrap gap-1">
+                                                                          Manufacturer @include('products.partials.manufacturer-help')</label>
                                                                             <input type="text"
                                                                                 class="form-control border-start-0"
                                                                                 id="brand" name="brand"
-                                                                                placeholder="Enter Brand" required/>
-                                                                       
+                                                                                placeholder="e.g. company that makes this medicine" required/>
+                                                                    </div>
+                                                                    <div class="col-md-6">
+                                                                        <label class="form-label d-inline-flex align-items-center flex-wrap gap-1">
+                                                                          Unit of measure @include('products.partials.packaging-help')</label>
+                                                                        @include('products.partials.unit-of-measure-select')
+                                                                    </div>
+                                                                    <div class="col-md-6">
+                                                                        <label for="volume" class="form-label">Volume / pack size</label>
+                                                                        <input type="text" class="form-control border-start-0" id="volume" name="volume" maxlength="128" placeholder="e.g. 500 ml"/>
                                                                     </div>
 
                                                                     <div class="col-md-6">
