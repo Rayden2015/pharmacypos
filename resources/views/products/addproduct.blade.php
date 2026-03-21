@@ -81,21 +81,33 @@
                                     <div class="border border-3 p-4 rounded">
                                         <div class="row g-3">
                                             <div class="col-12">
-                                                <label for="brand" class="form-label d-inline-flex align-items-center flex-wrap gap-1">
+                                                <label for="manufacturer_id" class="form-label d-inline-flex align-items-center flex-wrap gap-1">
                                                     Manufacturer
                                                     @include('products.partials.manufacturer-help')
                                                 </label>
-                                                <input type="text" class="form-control @error('brand') is-invalid @enderror" id="brand"
-                                                    placeholder="e.g. company that makes this medicine"
-                                                    name="brand"
-                                                    value="{{ old('brand') }}"
-                                                    required maxlength="255"
-                                                    autocomplete="organization"
-                                                    aria-describedby="brand-help-hint">
-                                                @error('brand')
+                                                <select name="manufacturer_id" id="manufacturer_id" class="form-select @error('manufacturer_id') is-invalid @enderror" required>
+                                                    <option value="" disabled {{ old('manufacturer_id') ? '' : 'selected' }} hidden>Select manufacturer</option>
+                                                    @foreach ($manufacturers as $m)
+                                                        <option value="{{ $m->id }}" {{ (string) old('manufacturer_id') === (string) $m->id ? 'selected' : '' }}>{{ $m->name }}</option>
+                                                    @endforeach
+                                                </select>
+                                                @error('manufacturer_id')
                                                     <div class="invalid-feedback d-block">{{ $message }}</div>
                                                 @enderror
-                                                <div id="brand-help-hint" class="form-text">Who produced this product—not necessarily who you buy it from.</div>
+                                                <div class="form-text">Producer of this medicine. <a href="{{ route('manufacturers.create') }}">Add manufacturer</a> if missing.</div>
+                                            </div>
+                                            <div class="col-12">
+                                                <label for="preferred_supplier_id" class="form-label">Preferred supplier <span class="text-muted fw-normal">(optional)</span></label>
+                                                <select name="preferred_supplier_id" id="preferred_supplier_id" class="form-select @error('preferred_supplier_id') is-invalid @enderror">
+                                                    <option value="">— None —</option>
+                                                    @foreach ($suppliers as $s)
+                                                        <option value="{{ $s->id }}" {{ (string) old('preferred_supplier_id') === (string) $s->id ? 'selected' : '' }}>{{ $s->supplier_name }}</option>
+                                                    @endforeach
+                                                </select>
+                                                @error('preferred_supplier_id')
+                                                    <div class="invalid-feedback d-block">{{ $message }}</div>
+                                                @enderror
+                                                <div class="form-text">Usual wholesaler for reorders (separate from <strong>Receive stock</strong> supplier per delivery). <a href="{{ route('suppliers.create') }}">Add supplier</a>.</div>
                                             </div>
                                             <div class="col-md-6">
                                                 <label for="Price" class="form-label">Selling Price</label>
@@ -106,12 +118,13 @@
                                                 @enderror
                                             </div>
                                             <div class="col-md-6">
-                                                <label for="inputCompareatprice" class="form-label">Supplier Price</label>
+                                                <label for="inputCompareatprice" class="form-label">Cost price <span class="text-muted fw-normal">(purchase unit)</span></label>
                                                 <input type="number" class="form-control @error('supplierprice') is-invalid @enderror" id="inputCompareatprice"
                                                     name="supplierprice" value="{{ old('supplierprice') }}" placeholder="0.00" min="0" step="0.01" inputmode="decimal">
                                                 @error('supplierprice')
                                                     <div class="invalid-feedback d-block">{{ $message }}</div>
                                                 @enderror
+                                                <div class="form-text">Your typical buy price per unit (not the supplier company name).</div>
                                             </div>
                                             <div class="col-md-6">
                                                 <label for="quantity" class="form-label d-inline-flex align-items-center flex-wrap gap-1">

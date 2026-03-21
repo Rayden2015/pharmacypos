@@ -3,6 +3,7 @@
 namespace Tests\Feature\Pharmacy;
 
 use App\Models\InventoryMovement;
+use App\Models\Manufacturer;
 use App\Models\Product;
 use App\Models\StockReceipt;
 use App\Models\User;
@@ -38,7 +39,7 @@ class StockReceiptTest extends TestCase
         $product = Product::create([
             'product_name' => 'Receipt SKU '.uniqid('', true),
             'description' => 'd',
-            'brand' => 'Co',
+            'manufacturer_id' => Manufacturer::firstOrCreate(['name' => 'Co'], ['name' => 'Co'])->id,
             'price' => 10,
             'supplierprice' => 5,
             'quantity' => 100,
@@ -78,7 +79,7 @@ class StockReceiptTest extends TestCase
         $product = Product::create([
             'product_name' => 'Prefill '.uniqid('', true),
             'description' => 'd',
-            'brand' => 'Co',
+            'manufacturer_id' => Manufacturer::firstOrCreate(['name' => 'Co'], ['name' => 'Co'])->id,
             'price' => 10,
             'supplierprice' => 5,
             'quantity' => 5,

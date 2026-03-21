@@ -58,7 +58,7 @@
                                         <th>Description</th>
                                         <th class="text-nowrap">Manufacturer @include('products.partials.manufacturer-help')</th>
                                         <th>Price</th>
-                                        <th>Supplier Price</th>
+                                        <th>Cost price</th>
                                         <th class="text-nowrap">On-hand qty @include('products.partials.inventory-help', ['kind' => 'on_hand'])</th>
                                         <th>Form</th>
                                         <th class="text-nowrap">Packaging @include('products.partials.packaging-help')</th>
@@ -76,7 +76,7 @@
                                             <td><a href="#" class="btn btn-info btn-sm text-light" data-bs-toggle="modal"
                                                     data-bs-target="#description{{ $product->id }}"><i
                                                         class="bx bxs-search text-light"></i>View</a></td>
-                                            <td>{{ $product->brand }}</td>
+                                            <td>{{ $product->manufacturer->name ?? '—' }}</td>
                                             <td>{{ $currencySymbol }}{{ number_format($product->price, 2) }}</td>
                                             <td>{{ $currencySymbol }}{{ number_format($product->supplierprice, 2) }}</td>
                                             <td>{{ $product->quantity }}</td>
@@ -173,16 +173,23 @@
                                                                                 <div class="border border-3 p-4 rounded">
                                                                                     <div class="row g-3">
                                                                                         <div class="col-12">
-                                                                                            <label for="brand{{ $product->id }}"
+                                                                                            <label for="manufacturer_id{{ $product->id }}"
                                                                                                 class="form-label d-inline-flex align-items-center flex-wrap gap-1">Manufacturer
                                                                                                 @include('products.partials.manufacturer-help')</label>
-                                                                                            <input type="text"
-                                                                                                class="form-control"
-                                                                                                id="brand{{ $product->id }}"
-                                                                                                placeholder="e.g. company that makes this medicine"
-                                                                                                value="{{ $product->brand }}"
-                                                                                                name="brand"
-                                                                                                autocomplete="organization">
+                                                                                            <select name="manufacturer_id" id="manufacturer_id{{ $product->id }}" class="form-select" required>
+                                                                                                @foreach ($manufacturers as $m)
+                                                                                                    <option value="{{ $m->id }}" {{ (int) $product->manufacturer_id === (int) $m->id ? 'selected' : '' }}>{{ $m->name }}</option>
+                                                                                                @endforeach
+                                                                                            </select>
+                                                                                        </div>
+                                                                                        <div class="col-12">
+                                                                                            <label for="preferred_supplier_id{{ $product->id }}" class="form-label">Preferred supplier <span class="text-muted fw-normal">(optional)</span></label>
+                                                                                            <select name="preferred_supplier_id" id="preferred_supplier_id{{ $product->id }}" class="form-select">
+                                                                                                <option value="">— None —</option>
+                                                                                                @foreach ($suppliers as $s)
+                                                                                                    <option value="{{ $s->id }}" {{ (int) ($product->preferred_supplier_id ?? 0) === (int) $s->id ? 'selected' : '' }}>{{ $s->supplier_name }}</option>
+                                                                                                @endforeach
+                                                                                            </select>
                                                                                         </div>
                                                                                         <div class="col-md-6">
                                                                                             <label for="inputPrice"
@@ -197,8 +204,7 @@
                                                                                         </div>
                                                                                         <div class="col-md-6">
                                                                                             <label for="inputCompareatprice"
-                                                                                                class="form-label">Supplier
-                                                                                                Price</label>
+                                                                                                class="form-label">Cost price (purchase unit)</label>
                                                                                             <input type="number"
                                                                                                 class="form-control"
                                                                                                 value="{{ $product->supplierprice }}"

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\EndToEnd;
 
+use App\Models\Manufacturer;
 use App\Models\Setting;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -88,11 +89,12 @@ class ApplicationFlowsTest extends TestCase
     {
         $user = $this->makeAdmin();
         $name = 'E2E Test Product '.uniqid('', true);
+        $m = Manufacturer::create(['name' => 'TestBrand '.uniqid('', true)]);
 
         $response = $this->actingAs($user)->post(route('products.store'), [
             'product_name' => $name,
             'description' => 'Created by feature test',
-            'brand' => 'TestBrand',
+            'manufacturer_id' => $m->id,
             'price' => 100,
             'quantity' => 50,
             'supplierprice' => 75,
@@ -107,7 +109,7 @@ class ApplicationFlowsTest extends TestCase
 
         $this->assertDatabaseHas('products', [
             'product_name' => $name,
-            'brand' => 'TestBrand',
+            'manufacturer_id' => $m->id,
             'quantity' => 50,
             'stock_alert' => 10,
             'unit_of_measure' => 'Tablet',

@@ -14,6 +14,11 @@ use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\StockReceiptController;
 use App\Http\Controllers\InventoryController;
+use App\Http\Controllers\SiteController;
+use App\Http\Controllers\CrossSiteDashboardController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ManufacturerController;
+use App\Http\Controllers\PrescriptionController;
 
 /*
 |--------------------------------------------------------------------------
@@ -35,14 +40,17 @@ Route::get('/home', [HomeController::class, 'index'])->name('home');
 
 
 
-Route::get('showuser', [PagesController::class, 'showusers']);
+Route::get('showuser', [UserController::class, 'manageUsers'])->name('users.manage');
+Route::get('pharmacy/showuser', [UserController::class, 'manageUsers'])->name('pharmacy.showuser');
 Route::get('addproduct', [PagesController::class, 'addproduct']);
 Route::get('grid', [PagesController::class, 'grid']);
 
 
 Auth::routes();
 
-Route::get('dashboard', [App\Http\Controllers\DashboardController::class, 'index'])->name('dashboard');
+Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
+Route::get('dashboard/export', [DashboardController::class, 'exportCsv'])->name('dashboard.export');
+Route::get('dashboard/cross-site', [CrossSiteDashboardController::class, 'index'])->name('dashboard.cross-site');
 
 Route::resource('orders', OrderController::class);
 Route::resource('report', OrderDetailController::class);
@@ -58,12 +66,23 @@ Route::get('inventory/manage-stock', [InventoryController::class, 'manageStock']
 Route::get('inventory/stock-adjustment', [InventoryController::class, 'createStockAdjustment'])->name('inventory.stock-adjustment.create');
 Route::post('inventory/stock-adjustment', [InventoryController::class, 'storeStockAdjustment'])->name('inventory.stock-adjustment.store');
 Route::get('inventory/stock-transfer', [InventoryController::class, 'stockTransfer'])->name('inventory.stock-transfer');
+Route::post('inventory/stock-transfer', [InventoryController::class, 'storeStockTransfer'])->name('inventory.stock-transfer.store');
+
+Route::post('sites/switch', [SiteController::class, 'switch'])->name('sites.switch');
+Route::resource('sites', SiteController::class)->except(['show']);
 Route::get('inventory/catalog/categories', [InventoryController::class, 'catalogCategories'])->name('inventory.catalog.categories');
 Route::get('inventory/catalog/brands', [InventoryController::class, 'catalogBrands'])->name('inventory.catalog.brands');
 Route::get('inventory/catalog/units', [InventoryController::class, 'catalogUnits'])->name('inventory.catalog.units');
+Route::get('inventory/expiry-tracking', [InventoryController::class, 'expiryTracking'])->name('inventory.expiry-tracking');
+Route::get('inventory/batches', [InventoryController::class, 'batchManagement'])->name('inventory.batches');
+
+Route::get('pharmacy/prescriptions', [PrescriptionController::class, 'index'])->name('pharmacy.prescriptions');
+Route::post('pharmacy/prescriptions', [PrescriptionController::class, 'store'])->name('pharmacy.prescriptions.store');
+Route::patch('pharmacy/prescriptions/{prescription}', [PrescriptionController::class, 'update'])->name('pharmacy.prescriptions.update');
 
 Route::resource('products', ProductController::class);
-Route::resource('suppliers', SupplierController::class);
+Route::resource('manufacturers', ManufacturerController::class)->except(['show']);
+Route::resource('suppliers', SupplierController::class)->except(['show']);
 Route::resource('users', UserController::class);
 
 

@@ -3,9 +3,11 @@
 namespace Tests\Feature\Pharmacy;
 
 use App\Http\Controllers\DashboardController;
+use App\Models\Manufacturer;
 use App\Models\Order;
 use App\Models\Order_detail;
 use App\Models\Product;
+use App\Models\Site;
 use App\Models\StockReceipt;
 use App\Models\Transaction;
 use App\Models\User;
@@ -23,7 +25,7 @@ class DashboardTest extends TestCase
         $this->withoutMiddleware(\App\Http\Middleware\VerifyCsrfToken::class);
     }
 
-    private function makeUser(string $name = 'Dash User'): User
+    private function makeUser(string $name = 'Dash User', bool $superAdmin = false): User
     {
         return User::create([
             'name' => $name,
@@ -31,6 +33,7 @@ class DashboardTest extends TestCase
             'password' => bcrypt('secret'),
             'confirm_password' => bcrypt('secret'),
             'is_admin' => 1,
+            'is_super_admin' => $superAdmin,
             'mobile' => '0244222000',
             'status' => '1',
         ]);
@@ -38,9 +41,11 @@ class DashboardTest extends TestCase
 
     private function baseProductAttributes(): array
     {
+        $m = Manufacturer::firstOrCreate(['name' => 'BrandCo'], ['name' => 'BrandCo']);
+
         return [
             'description' => 'd',
-            'brand' => 'BrandCo',
+            'manufacturer_id' => $m->id,
             'price' => 25,
             'supplierprice' => 10,
             'form' => 'Tablet',
@@ -54,6 +59,17 @@ class DashboardTest extends TestCase
         $this->get(route('dashboard'))->assertRedirect(route('login'));
     }
 
+    public function test_dashboard_csv_export_is_authenticated(): void
+    {
+        $this->get(route('dashboard.export'))->assertRedirect(route('login'));
+
+        $user = $this->makeUser();
+        $this->actingAs($user)
+            ->get(route('dashboard.export'))
+            ->assertOk()
+            ->assertHeader('content-type', 'text/csv; charset=UTF-8');
+    }
+
     public function test_authenticated_dashboard_and_home_render_successfully(): void
     {
         $user = $this->makeUser('Alex Admin');
@@ -64,17 +80,16 @@ class DashboardTest extends TestCase
                 ->assertOk()
                 ->assertSee('Welcome, Alex Admin', false)
                 ->assertSee('Quick actions', false)
-                ->assertSee('Sales vs purchase (last 7 days)', false)
+                ->assertSee('Sales vs purchase', false)
                 ->assertSee('Low stock products', false)
                 ->assertSee('Recent activity', false)
                 ->assertSee('Total sales (MTD)', false)
-                ->assertSee('Total sales return', false)
+                ->assertSee('Sales / purchase returns', false)
                 ->assertSee('Total purchase (MTD)', false)
-                ->assertSee('Total purchase return', false)
                 ->assertSee('Today\'s sales', false)
                 ->assertSee('POS orders today', false)
                 ->assertSee('Payments today', false)
-                ->assertSee('Low stock SKUs', false)
+                ->assertSee('Low stock alerts', false)
                 ->assertSee('dashSalesPurchaseChart', false);
         }
     }
@@ -117,6 +132,7 @@ class DashboardTest extends TestCase
         $order = new Order;
         $order->name = 'Walk-in Customer';
         $order->mobile = '0244000000';
+        $order->site_id = Site::defaultId();
         $order->save();
 
         Order_detail::create([
@@ -163,6 +179,7 @@ class DashboardTest extends TestCase
         StockReceipt::create([
             'product_id' => $product->id,
             'user_id' => $user->id,
+            'site_id' => Site::defaultId(),
             'quantity' => 5,
             'batch_number' => 'B1',
             'expiry_date' => null,
@@ -211,6 +228,7 @@ class DashboardTest extends TestCase
         $order = new Order;
         $order->name = 'Cust';
         $order->mobile = '1';
+        $order->site_id = Site::defaultId();
         $order->save();
 
         Order_detail::create([
@@ -225,6 +243,7 @@ class DashboardTest extends TestCase
         StockReceipt::create([
             'product_id' => $p->id,
             'user_id' => $user->id,
+            'site_id' => Site::defaultId(),
             'quantity' => 2,
             'received_at' => Carbon::now()->startOfMonth()->addDays(3)->toDateString(),
             'batch_number' => null,
@@ -260,6 +279,49 @@ class DashboardTest extends TestCase
             ->assertSee(route('products.index'), false);
     }
 
+    public function test_dashboard_invoice_due_uses_recorded_balances(): void
+    {
+        $user = $this->makeUser();
+
+        $product = Product::create(array_merge($this->baseProductAttributes(), [
+            'product_name' => 'Credit Sale SKU',
+            'quantity' => 100,
+            'stock_alert' => 5,
+            'price' => 20,
+        ]));
+
+        $order = new Order;
+        $order->name = 'Credit Customer';
+        $order->mobile = '0244999999';
+        $order->site_id = Site::defaultId();
+        $order->save();
+
+        Order_detail::create([
+            'order_id' => $order->id,
+            'product_id' => $product->id,
+            'quantity' => 1,
+            'unitprice' => 20,
+            'amount' => 20,
+            'discount' => 0,
+        ]);
+
+        Transaction::create([
+            'order_id' => $order->id,
+            'user_id' => $user->id,
+            'transaction_amount' => 20,
+            'paid_amount' => 5,
+            'balance' => 15,
+            'payment_method' => 'Cash',
+            'transaction_date' => Carbon::today()->toDateString(),
+        ]);
+
+        $d = DashboardController::dashboardViewData();
+
+        $this->assertSame(15.0, $d['invoice_due']);
+        $this->assertSame(15.0, $d['ar_open_total']);
+        $this->assertSame(1, $d['transactions_with_balance_mtd']);
+    }
+
     public function test_dashboard_expiry_watch_inventory_value_and_avg_sale(): void
     {
         $user = $this->makeUser();
@@ -279,6 +341,7 @@ class DashboardTest extends TestCase
         $order = new Order;
         $order->name = 'Avg Test';
         $order->mobile = '0';
+        $order->site_id = Site::defaultId();
         $order->save();
 
         Order_detail::create([
@@ -303,5 +366,63 @@ class DashboardTest extends TestCase
             ->assertOk()
             ->assertSee('Expiry watch (90 days)', false)
             ->assertSee('Est. inventory value', false);
+    }
+
+    public function test_super_admin_dashboard_all_sites_aggregates_sales_across_branches(): void
+    {
+        $siteA = Site::query()->where('is_default', true)->first();
+        $this->assertNotNull($siteA);
+        $siteB = Site::create([
+            'name' => 'North Branch',
+            'code' => 'NORTH',
+            'is_active' => true,
+            'is_default' => false,
+        ]);
+
+        $super = $this->makeUser('Super Admin', true);
+        $product = Product::create(array_merge($this->baseProductAttributes(), [
+            'product_name' => 'Multi-Site SKU',
+            'quantity' => 100,
+            'stock_alert' => 5,
+        ]));
+
+        foreach ([[$siteA->id, 10.0], [$siteB->id, 25.0]] as [$siteId, $amount]) {
+            $order = new Order;
+            $order->name = 'Walk-in';
+            $order->mobile = '0';
+            $order->site_id = $siteId;
+            $order->save();
+
+            Order_detail::create([
+                'order_id' => $order->id,
+                'product_id' => $product->id,
+                'quantity' => 1,
+                'unitprice' => $amount,
+                'amount' => $amount,
+                'discount' => 0,
+            ]);
+        }
+
+        $this->actingAs($super)
+            ->withSession(['current_site_id' => $siteA->id, 'dashboard_all_sites' => false])
+            ->get(route('dashboard'))
+            ->assertOk()
+            ->assertSee(number_format(10, 2), false);
+
+        $this->actingAs($super)
+            ->withSession(['current_site_id' => $siteA->id, 'dashboard_all_sites' => true])
+            ->get(route('dashboard'))
+            ->assertOk()
+            ->assertSee(number_format(35, 2), false)
+            ->assertSee('Dashboard metrics:', false)
+            ->assertSee('All sites', false);
+    }
+
+    public function test_non_super_admin_cannot_switch_dashboard_to_all_sites(): void
+    {
+        $user = $this->makeUser();
+        $this->actingAs($user)
+            ->post(route('sites.switch'), ['site_id' => 'all'])
+            ->assertForbidden();
     }
 }

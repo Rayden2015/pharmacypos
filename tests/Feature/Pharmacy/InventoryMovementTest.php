@@ -3,6 +3,7 @@
 namespace Tests\Feature\Pharmacy;
 
 use App\Models\InventoryMovement;
+use App\Models\Manufacturer;
 use App\Models\Product;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -35,10 +36,11 @@ class InventoryMovementTest extends TestCase
     {
         $user = $this->makeAdmin();
         $name = 'Stock Product '.uniqid('', true);
+        $mId = Manufacturer::firstOrCreate(['name' => 'Co'], ['name' => 'Co'])->id;
 
         $this->actingAs($user)->post(route('products.store'), [
             'product_name' => $name,
-            'brand' => 'Co',
+            'manufacturer_id' => $mId,
             'description' => 'd',
             'price' => 10,
             'supplierprice' => 6,
@@ -64,7 +66,7 @@ class InventoryMovementTest extends TestCase
         $product = Product::create([
             'product_name' => 'Adj '.uniqid('', true),
             'description' => 'd',
-            'brand' => 'Co',
+            'manufacturer_id' => Manufacturer::firstOrCreate(['name' => 'Co'], ['name' => 'Co'])->id,
             'price' => 10,
             'supplierprice' => 5,
             'quantity' => 100,
@@ -76,7 +78,8 @@ class InventoryMovementTest extends TestCase
 
         $this->actingAs($user)->from(route('products.index'))->put(route('products.update', $product->id), [
             'product_name' => $product->product_name,
-            'brand' => $product->brand,
+            'manufacturer_id' => $product->manufacturer_id,
+            'preferred_supplier_id' => $product->preferred_supplier_id,
             'description' => $product->description,
             'price' => $product->price,
             'supplierprice' => $product->supplierprice,
@@ -103,7 +106,7 @@ class InventoryMovementTest extends TestCase
         $product = Product::create([
             'product_name' => 'Hist '.uniqid('', true),
             'description' => 'd',
-            'brand' => 'Co',
+            'manufacturer_id' => Manufacturer::firstOrCreate(['name' => 'Co'], ['name' => 'Co'])->id,
             'price' => 10,
             'supplierprice' => 5,
             'quantity' => 10,

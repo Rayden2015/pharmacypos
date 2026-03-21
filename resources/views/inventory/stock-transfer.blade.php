@@ -14,17 +14,77 @@
                         </nav>
                     </div>
                 </div>
+
+                @include('inc.msg')
+
                 <div class="card">
-                    <div class="card-body p-5 text-center">
-                        <div class="mb-3">
-                            <i class="bx bx-git-compare text-muted" style="font-size: 3rem;"></i>
+                    <div class="card-body p-4">
+                        <div class="d-flex flex-wrap align-items-start justify-content-between gap-2 mb-3">
+                            <div>
+                                <h5 class="card-title mb-1">Move stock between branches</h5>
+                                <p class="text-muted small mb-0">
+                                    Quantity is removed from the source site and added to the destination. Totals on the product record stay in sync with the sum across all sites.
+                                </p>
+                            </div>
+                            <a href="{{ route('sites.index') }}" class="btn btn-outline-secondary btn-sm">Manage sites</a>
                         </div>
-                        <h5 class="fw-semibold">Multi-location transfers</h5>
-                        <p class="text-muted mx-auto mb-4" style="max-width: 32rem;">
-                            This pharmacy app currently tracks a single store stock level. Stock transfers between warehouses or branches
-                            (move quantity from Location A to B) can be added when you run multiple locations.
-                        </p>
-                        <a href="{{ route('inventory.manage-stock') }}" class="btn btn-primary">Back to manage stock</a>
+
+                        @if ($errors->any())
+                            <div class="alert alert-danger">
+                                <ul class="mb-0 small">@foreach ($errors->all() as $e)<li>{{ $e }}</li>@endforeach</ul>
+                            </div>
+                        @endif
+
+                        <form method="post" action="{{ route('inventory.stock-transfer.store') }}">
+                            @csrf
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">From site <span class="text-danger">*</span></label>
+                                    <select name="from_site_id" class="form-select" required>
+                                        <option value="">— Select —</option>
+                                        @foreach ($sites as $s)
+                                            <option value="{{ $s->id }}" {{ (string) old('from_site_id') === (string) $s->id ? 'selected' : '' }}>
+                                                {{ $s->name }}@if($s->code) ({{ $s->code }})@endif
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">To site <span class="text-danger">*</span></label>
+                                    <select name="to_site_id" class="form-select" required>
+                                        <option value="">— Select —</option>
+                                        @foreach ($sites as $s)
+                                            <option value="{{ $s->id }}" {{ (string) old('to_site_id') === (string) $s->id ? 'selected' : '' }}>
+                                                {{ $s->name }}@if($s->code) ({{ $s->code }})@endif
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="col-md-8">
+                                    <label class="form-label">Product <span class="text-danger">*</span></label>
+                                    <select name="product_id" class="single-select w-100" required data-placeholder="Select product">
+                                        <option value=""></option>
+                                        @foreach ($products as $p)
+                                            <option value="{{ $p->id }}" {{ (string) old('product_id') === (string) $p->id ? 'selected' : '' }}>
+                                                {{ $p->product_name }} — total on hand {{ $p->quantity }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Quantity <span class="text-danger">*</span></label>
+                                    <input type="number" name="quantity" class="form-control" min="1" step="1" value="{{ old('quantity') }}" required>
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label">Note</label>
+                                    <textarea name="note" class="form-control" rows="2" maxlength="500" placeholder="Optional reference for this transfer">{{ old('note') }}</textarea>
+                                </div>
+                            </div>
+                            <div class="mt-4 d-flex flex-wrap gap-2">
+                                <button type="submit" class="btn btn-primary px-4"><i class="bx bx-transfer"></i> Complete transfer</button>
+                                <a href="{{ route('inventory.manage-stock') }}" class="btn btn-light">Back to manage stock</a>
+                            </div>
+                        </form>
                     </div>
                 </div>
             </div>

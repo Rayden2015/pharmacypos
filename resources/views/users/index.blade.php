@@ -156,6 +156,43 @@
 
                                         </div>
 
+                                        @if(auth()->user()->isSuperAdmin())
+                                            <div class="col-12">
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" name="is_super_admin" value="1" id="create_is_super_admin" {{ old('is_super_admin') ? 'checked' : '' }}>
+                                                    <label class="form-check-label" for="create_is_super_admin">Super admin (system-wide access)</label>
+                                                </div>
+                                                <small class="text-muted d-block mb-2">Only for true system administrators. Leave unchecked for normal staff, then choose their branch below.</small>
+                                            </div>
+
+                                            <div class="col-md-6">
+                                                <label class="form-label">Site / branch <span class="text-danger">*</span></label>
+                                                <select name="site_id" id="create_user_site_id" class="form-select">
+                                                    <option value="">— Global (no branch; use with Super admin only) —</option>
+                                                    @foreach ($sites as $s)
+                                                        <option value="{{ $s->id }}" {{ (string) old('site_id', \App\Support\CurrentSite::id()) === (string) $s->id ? 'selected' : '' }}>{{ $s->name }}@if($s->code) ({{ $s->code }})@endif</option>
+                                                    @endforeach
+                                                </select>
+                                                <small class="text-muted">Pick which branch this employee belongs to. For a <strong>global</strong> super admin account, check “Super admin” and choose “Global” here. For branch staff, leave “Super admin” unchecked and select the site.</small>
+                                            </div>
+                                        @else
+                                            <div class="col-md-6">
+                                                <label class="form-label">Site / branch</label>
+                                                @php
+                                                    $currentSiteId = \App\Support\CurrentSite::id();
+                                                @endphp
+                                                <select class="form-select" disabled aria-readonly="true">
+                                                    @foreach ($sites as $s)
+                                                        @if((int) $s->id === (int) $currentSiteId)
+                                                            <option selected>{{ $s->name }}@if($s->code) ({{ $s->code }})@endif</option>
+                                                        @endif
+                                                    @endforeach
+                                                </select>
+                                                <input type="hidden" name="site_id" value="{{ $currentSiteId }}">
+                                                <small class="text-muted">New users are created for your <strong>active site</strong> (header switcher). Switch sites there to add people at another branch.</small>
+                                            </div>
+                                        @endif
+
                                         <div class="col-12">
                                             <label for="inputPhoneNo" class="form-label">User
                                                 Image</label>

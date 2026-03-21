@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\Auditable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -9,9 +10,12 @@ use Illuminate\Support\Str;
 
 class StockReceipt extends Model
 {
+    use Auditable;
+
     protected $fillable = [
         'product_id',
         'user_id',
+        'site_id',
         'quantity',
         'batch_number',
         'expiry_date',
@@ -40,6 +44,11 @@ class StockReceipt extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function site(): BelongsTo
+    {
+        return $this->belongsTo(Site::class);
     }
 
     public function inventoryMovement(): HasOne

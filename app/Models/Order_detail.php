@@ -2,13 +2,14 @@
 
 namespace App\Models;
 
-
-
+use App\Models\Concerns\Auditable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Order_detail extends Model
 {
+    use Auditable;
+
     protected $table = 'order_details';
     protected $fillable = [
         'order_id', 'product_id', 'quantity', 'unitprice', 'amount', 'discount',

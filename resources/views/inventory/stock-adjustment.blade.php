@@ -31,6 +31,17 @@
                             @csrf
                             <div class="row g-3">
                                 <div class="col-md-6">
+                                    <label class="form-label">Site / branch <span class="text-danger">*</span></label>
+                                    <select name="site_id" class="form-select" required>
+                                        @foreach ($sites as $s)
+                                            <option value="{{ $s->id }}" {{ (string) old('site_id', $defaultSiteId) === (string) $s->id ? 'selected' : '' }}>
+                                                {{ $s->name }}@if($s->code) ({{ $s->code }})@endif
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    <small class="text-muted">Adjusts on-hand at this location only. Use the site switcher in the header to set your default POS / receive site.</small>
+                                </div>
+                                <div class="col-md-6">
                                     <label class="form-label">Product <span class="text-danger">*</span></label>
                                     <select name="product_id" class="single-select w-100" required data-placeholder="Select product">
                                         <option value=""></option>

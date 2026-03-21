@@ -2,13 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-
+use App\Models\Site;
 use App\Models\User;
-use Illuminate\Support\Facades\Auth;
+use App\Support\CurrentSite;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\DB;
 
 
 class UserController extends Controller
@@ -33,9 +32,30 @@ class UserController extends Controller
      */
     public function index()
     {
-        $users = User::paginate(5);
+        $users = User::query()
+            ->forCurrentSiteContext()
+            ->orderBy('name')
+            ->paginate(5);
 
-        return view('users.index', ['users' => $users]);
+        $sites = Site::query()->where('is_active', true)->orderBy('name')->get(['id', 'name', 'code']);
+
+        return view('users.index', compact('users', 'sites'));
+    }
+
+    /**
+     * Employee list (manage users). Available at /showuser and /pharmacy/showuser.
+     */
+    public function manageUsers()
+    {
+        $users = User::query()
+            ->forCurrentSiteContext()
+            ->with('site:id,name,code')
+            ->orderBy('name')
+            ->paginate(15);
+
+        $sites = Site::query()->where('is_active', true)->orderBy('name')->get(['id', 'name', 'code']);
+
+        return view('users.showuser', compact('users', 'sites'));
     }
 
     public function profile()
@@ -61,63 +81,71 @@ class UserController extends Controller
      */
     public function store(Request $request)
     {
+        $viewer = $request->user();
 
-        $this->validate($request, [
+        $rules = [
             'name' => 'required',
             'email' => 'required',
             'mobile' => ['required', 'string', 'min:10', 'max:10'],
-           
             'address' => 'required',
             'is_admin' => 'required',
             'status' => 'required',
             'password' => 'required|min:6|max:20',
             'confirm_password' => 'required|same:password',
-            // 'user_img' => 'image|nullable|max:2042|required',
-        ]);
-        
+            'is_super_admin' => 'nullable|boolean',
+        ];
 
-        if($request->hasFile('user_img')){
-            //Get file name
-            $fileNameWithExt = $request->file('user_img')->getClientOriginalName();
-            //File name
-            $filename = pathinfo($fileNameWithExt, PATHINFO_FILENAME);
-
-            $extension = $request->file('user_img')->getClientOriginalExtension();
-
-            $fileNameToStore = $filename. '_' .time(). '.' .$extension;
-
-            $path = $request->file('user_img')->storeAs('public/users', $fileNameToStore);
+        if ($viewer->isSuperAdmin() && ! $request->boolean('is_super_admin')) {
+            $rules['site_id'] = 'required|exists:sites,id';
+        } else {
+            $rules['site_id'] = 'nullable|exists:sites,id';
         }
-        else{
+
+        $this->validate($request, $rules);
+
+        if (User::query()->where('email', strtolower($request->input('email')))->exists()) {
+            return redirect()->back()->with('error', 'User Registration Failed, Email Already Exists!');
+        }
+
+        if ($request->hasFile('user_img')) {
+            $fileNameWithExt = $request->file('user_img')->getClientOriginalName();
+            $filename = pathinfo($fileNameWithExt, PATHINFO_FILENAME);
+            $extension = $request->file('user_img')->getClientOriginalExtension();
+            $fileNameToStore = $filename.'_'.time().'.'.$extension;
+            $request->file('user_img')->storeAs('public/users', $fileNameToStore);
+        } else {
             $fileNameToStore = 'user.png';
         }
 
+        $makeSuper = $viewer->isSuperAdmin() && $request->boolean('is_super_admin');
 
-        $result = DB::table('users')
-            ->where('email', $request->input('email'))
-            ->get();
-
-        $res = json_decode($result, true);
-        print_r($res);
-
-        if (sizeof($res) == 0) {
         $data = $request->input();
         $user = new User;
         $user->name = ucwords($data['name']);
         $user->email = strtolower($data['email']);
         $user->password = Hash::make($request['password']);
         $user->confirm_password = Hash::make($request['confirm_password']);
-        $user->mobile =$request->mobile;
+        $user->mobile = $request->mobile;
         $user->address = ucwords($data['address']);
-        $user->status =$request->status;
+        $user->status = $request->status;
         $user->is_admin = $request->is_admin;
         $user->user_img = $fileNameToStore;
-        
-        $user ->save();
-        return redirect('showuser')->with('success', 'User Created Successfully');
+
+        if ($makeSuper) {
+            $user->is_super_admin = true;
+            $user->site_id = $request->filled('site_id') ? (int) $request->site_id : null;
+        } else {
+            $user->is_super_admin = false;
+            if ($viewer->isSuperAdmin()) {
+                $user->site_id = (int) $request->input('site_id');
+            } else {
+                $user->site_id = (int) CurrentSite::id();
+            }
         }
-        
-        return redirect()->back()->with('error', 'User Registration Failed, Email Already Exists!');
+
+        $user->save();
+
+        return redirect()->route('pharmacy.showuser')->with('success', 'User Created Successfully');
     }
 
     /**
@@ -139,9 +167,16 @@ class UserController extends Controller
      */
     public function edit($id)
     {
-        $user = User::find($id);
-        Storage::delete('public/users/'.$user->user_img );
-        return view('users.index')->with('users', $user);
+        User::query()->forCurrentSiteContext()->findOrFail($id);
+
+        $users = User::query()
+            ->forCurrentSiteContext()
+            ->orderBy('name')
+            ->paginate(5);
+
+        $sites = Site::query()->where('is_active', true)->orderBy('name')->get(['id', 'name', 'code']);
+
+        return view('users.index', compact('users', 'sites'));
     }
 
     /**
@@ -153,7 +188,8 @@ class UserController extends Controller
      */
     public function update(Request $request, $id)
     {
-
+        $user = User::findOrFail($id);
+        $this->authorizeUserAccess($user);
 
         $this->validate($request, [
             'name' => 'required',
@@ -162,13 +198,12 @@ class UserController extends Controller
             'address' => 'required',
             'is_admin' => 'required',
             'status' => 'required',
-            // 'password' => 'required|min:8|max:10',
-            // 'confirm_password' => 'same:password',
             'user_img' => 'image|nullable|max:2042',
+            'is_super_admin' => 'nullable|boolean',
+            'site_id' => 'nullable|exists:sites,id',
         ]);
-        
 
-        if($request->hasFile('user_img')){
+        if ($request->hasFile('user_img')) {
             //Get file name
             $fileNameWithExt = $request->file('user_img')->getClientOriginalName();
             //File name
@@ -178,38 +213,39 @@ class UserController extends Controller
 
             $fileNameToStore = $filename. '_' .time(). '.' .$extension;
 
-            $path = $request->file('user_img')->storeAs('public/users', $fileNameToStore);
-        }
-        else{
-            $fileNameToStore = 'user.png';
+            $request->file('user_img')->storeAs('public/users', $fileNameToStore);
+        } else {
+            $fileNameToStore = $user->user_img;
         }
 
         $data = $request->input();
-        $user = User::find($id);
         $user->name = ucwords($data['name']);
         $user->email = strtolower($data['email']);
         $user->mobile = $data['mobile'];
         $user->address = ucwords($data['address']);
         $user->is_admin = $data['is_admin'];
         $user->status = $data['status'];
-        if($data['password']) {
-            if($data['password'] == $data['confirm_password']) {
-                $user['password'] = Hash::make($data['password']);
-                $user['confirm_password'] = Hash::make($data['confirm_password']);
+        if (! empty($data['password'])) {
+            if ($data['password'] === ($data['confirm_password'] ?? '')) {
+                $user->password = Hash::make($data['password']);
+                $user->confirm_password = Hash::make($data['confirm_password']);
             }
         }
         $user->user_img = $fileNameToStore;
 
-
-        
+        $viewer = $request->user();
+        if ($viewer->isSuperAdmin()) {
+            $user->is_super_admin = $request->boolean('is_super_admin');
+            if ($user->is_super_admin) {
+                $user->site_id = $request->filled('site_id') ? (int) $request->site_id : null;
+            } else {
+                $user->site_id = $request->filled('site_id') ? (int) $request->site_id : CurrentSite::id();
+            }
+        }
 
         $user->save();
-        return redirect()->back()->with('success', 'User Updated Successfully');
-        if(!$user){
-            return back()->with('error', 'User Not Found');
-        }
-        
 
+        return redirect()->back()->with('success', 'User Updated Successfully');
     }
 
     /**
@@ -220,14 +256,32 @@ class UserController extends Controller
      */
     public function destroy($id)
     {
-        $user = User::find($id);
-        if(!$user){
-            return back()->with('error', 'User Not Found');
+        $user = User::findOrFail($id);
+        $this->authorizeUserAccess($user);
+
+        if (! auth()->user()->isSuperAdmin() && $user->isSuperAdmin()) {
+            abort(403);
         }
-        if($user->user_img != 'user.png'){
-            Storage::delete('public/users/'.$user->user_img );
+        if ($user->id === auth()->id()) {
+            return back()->with('error', 'You cannot delete your own account here.');
+        }
+
+        if ($user->user_img != 'user.png') {
+            Storage::delete('public/users/'.$user->user_img);
         }
         $user->delete();
+
         return back()->with('success', 'User Deleted Successfully');
+    }
+
+    private function authorizeUserAccess(User $target): void
+    {
+        $viewer = auth()->user();
+        if ($viewer->isSuperAdmin()) {
+            return;
+        }
+        if ((int) $target->site_id !== (int) CurrentSite::id()) {
+            abort(403);
+        }
     }
 }

@@ -23,6 +23,14 @@
                     <div class="menu-title">Dashboard</div>
                 </a>
             </li>
+            @if (auth()->check() && auth()->user()->isSuperAdmin())
+            <li>
+                <a href="{{ route('dashboard.cross-site') }}">
+                    <div class="parent-icon"><i class='bx bx-git-compare'></i></div>
+                    <div class="menu-title">Cross-site</div>
+                </a>
+            </li>
+            @endif
             <li>
                 <a href="{{ route('orders.index') }}">
                     <div class="parent-icon"><i class='bx bx-edit'></i></div>
@@ -34,17 +42,29 @@
             <li>
                 <a href="javascript:;" class="has-arrow">
                     <div class="parent-icon"><i class='bx bx-package'></i></div>
-                    <div class="menu-title">Products</div>
+                    <div class="menu-title">Medicines &amp; catalog</div>
                 </a>
                 <ul>
-                    <li><a href="{{ route('products.index') }}"><i class="bx bx-right-arrow-alt"></i>Products</a></li>
-                    <li><a href="{{ url('addproduct') }}"><i class="bx bx-right-arrow-alt"></i>Create product</a></li>
-                    <li><a href="{{ route('inventory.low-stock') }}"><i class="bx bx-right-arrow-alt"></i>Low stocks</a></li>
+                    <li><a href="{{ route('products.index') }}"><i class="bx bx-right-arrow-alt"></i>Medicine list</a></li>
+                    <li><a href="{{ url('addproduct') }}"><i class="bx bx-right-arrow-alt"></i>Create medicine</a></li>
+                    <li><a href="{{ route('inventory.low-stock') }}"><i class="bx bx-right-arrow-alt"></i>Low stock</a></li>
+                    <li><a href="{{ route('inventory.batches') }}"><i class="bx bx-right-arrow-alt"></i>Batch management</a></li>
+                    <li><a href="{{ route('inventory.expiry-tracking') }}"><i class="bx bx-right-arrow-alt"></i>Expiry tracking</a></li>
+                    <li><a href="{{ route('inventory.receipts.index') }}"><i class="bx bx-right-arrow-alt"></i>Inventory logs (receipts)</a></li>
                     <li><a href="{{ route('inventory.catalog.categories') }}"><i class="bx bx-right-arrow-alt"></i>Category</a></li>
-                    <li><a href="{{ route('inventory.catalog.brands') }}"><i class="bx bx-right-arrow-alt"></i>Brands</a></li>
+                    <li><a href="{{ route('manufacturers.index') }}"><i class="bx bx-right-arrow-alt"></i>Manufacturers</a></li>
+                    <li><a href="{{ route('suppliers.index') }}"><i class="bx bx-right-arrow-alt"></i>Suppliers</a></li>
                     <li><a href="{{ route('inventory.catalog.units') }}"><i class="bx bx-right-arrow-alt"></i>Units</a></li>
                     <li><a href="{{ url('grid') }}"><i class="bx bx-right-arrow-alt"></i>Grid view</a></li>
                 </ul>
+            </li>
+
+            <li class="menu-label">Prescriptions</li>
+            <li>
+                <a href="{{ route('pharmacy.prescriptions') }}">
+                    <div class="parent-icon"><i class='bx bx-file'></i></div>
+                    <div class="menu-title">Prescriptions</div>
+                </a>
             </li>
 
             <li class="menu-label">Stock</li>
@@ -64,6 +84,12 @@
                 <a href="{{ route('inventory.stock-transfer') }}">
                     <div class="parent-icon"><i class='bx bx-transfer'></i></div>
                     <div class="menu-title">Stock transfer</div>
+                </a>
+            </li>
+            <li>
+                <a href="{{ route('sites.index') }}">
+                    <div class="parent-icon"><i class='bx bx-buildings'></i></div>
+                    <div class="menu-title">Sites / branches</div>
                 </a>
             </li>
 
@@ -110,13 +136,6 @@
                 </a>
             </li>
 
-            <li>
-                <a href="#">
-                    <div class="parent-icon"><i class='bx bx-chart'></i>
-                    </div>
-                    <div class="menu-title">Suppliers</div>
-                </a>
-            </li>
 
             <li>
                 <a href="#">
@@ -154,7 +173,7 @@
                     </a>
                 </li>
                 <li>
-                    <a href="showuser">
+                    <a href="{{ route('pharmacy.showuser') }}">
                         <i class="bx bx-right-arrow-alt"></i> Manage users
                     </a>
                 </li>
@@ -179,6 +198,24 @@
                 <div class="d-none d-md-flex align-items-center gap-2 ms-3 flex-shrink-0">
                     <a href="{{ route('orders.index') }}" class="btn btn-primary btn-sm px-3">POS</a>
                     <a href="{{ route('inventory.receive.create') }}" class="btn btn-success btn-sm px-3">Receive</a>
+                    @if (isset($sitesForSwitcher) && $sitesForSwitcher->count() > 0)
+                        <form method="post" action="{{ route('sites.switch') }}" class="d-flex align-items-center gap-1 mb-0">
+                            @csrf
+                            <label class="small text-muted mb-0 d-none d-lg-inline">Site</label>
+                            <select name="site_id" class="form-select form-select-sm" style="min-width: 9rem; max-width: 16rem;" title="Active branch for POS &amp; stock; super admins can choose All sites for dashboard totals" onchange="this.form.submit()">
+                                @if (!empty($showDashboardAllSitesOption))
+                                    <option value="all" {{ !empty($dashboardAllSites) ? 'selected' : '' }}>
+                                        All sites (dashboard)
+                                    </option>
+                                @endif
+                                @foreach ($sitesForSwitcher as $s)
+                                    <option value="{{ $s->id }}" {{ empty($dashboardAllSites) && (int) ($currentSiteId ?? 0) === (int) $s->id ? 'selected' : '' }}>
+                                        {{ $s->name }}@if($s->code) · {{ $s->code }}@endif
+                                    </option>
+                                @endforeach
+                            </select>
+                        </form>
+                    @endif
                 </div>
                 <div class="top-menu ms-auto">
                     <ul class="navbar-nav align-items-center">

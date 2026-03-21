@@ -53,6 +53,20 @@
                                     <div class="border rounded p-4 h-100">
                                         <h6 class="text-uppercase text-muted small mb-3">Item &amp; quantity</h6>
                                         <div class="mb-3">
+                                            <label for="site_id" class="form-label">Receive into site / branch</label>
+                                            <select name="site_id" id="site_id" class="form-select @error('site_id') is-invalid @enderror">
+                                                @foreach ($sites as $site)
+                                                    <option value="{{ $site->id }}" {{ (string) old('site_id', $defaultSiteId) === (string) $site->id ? 'selected' : '' }}>
+                                                        {{ $site->name }}@if($site->code) ({{ $site->code }})@endif
+                                                    </option>
+                                                @endforeach
+                                            </select>
+                                            <small class="text-muted">Matches the active site in the header unless you pick another branch.</small>
+                                            @error('site_id')
+                                                <div class="invalid-feedback d-block">{{ $message }}</div>
+                                            @enderror
+                                        </div>
+                                        <div class="mb-3">
                                             <label for="product_id" class="form-label">Product <span class="text-danger">*</span></label>
                                             <select name="product_id" id="product_id" class="single-select w-100 @error('product_id') is-invalid @enderror"
                                                 data-placeholder="Search or select product" required>

@@ -2,13 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Order;
-use App\Models\Order_detail;
-use App\Models\Product;
-use App\Models\StockReceipt;
-use App\Models\Transaction;
-use Carbon\Carbon;
-use Illuminate\Support\Facades\DB;
+use App\Support\CurrentSite;
+use App\Support\DashboardMetrics;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class DashboardController extends Controller
 {
@@ -23,108 +20,48 @@ class DashboardController extends Controller
     }
 
     /**
-     * Metrics for the POS dashboard view (shared with /home).
-     *
-     * @return array<string, float|int>
+     * Percent change vs prior period (avoids div-by-zero).
      */
+    public static function percentChange(float $current, float $previous): ?float
+    {
+        if ($previous <= 0.0) {
+            return $current > 0.0 ? 100.0 : null;
+        }
+
+        return round((($current - $previous) / $previous) * 100, 1);
+    }
+
     public static function dashboardViewData(): array
     {
-        $today = Carbon::today();
-        $startOfMonth = Carbon::now()->startOfMonth();
+        return DashboardMetrics::build();
+    }
 
-        $today_sales = (float) Order_detail::whereDate('created_at', $today)->sum('amount');
-        $orders_today = Order::whereDate('created_at', $today)->count();
-        $total_products = Product::count();
-        $low_stock_count = Product::query()
-            ->whereNotNull('stock_alert')
-            ->whereColumn('quantity', '<=', 'stock_alert')
-            ->count();
-        $month_sales = (float) Order_detail::where('created_at', '>=', $startOfMonth)->sum('amount');
-        $payments_today = (float) Transaction::whereDate('transaction_date', $today)->sum('paid_amount');
-        $expiring_soon_count = Product::query()
-            ->whereNotNull('expiredate')
-            ->whereDate('expiredate', '>', $today)
-            ->whereDate('expiredate', '<=', $today->copy()->addDays(90))
-            ->count();
-        $inventory_retail_value = (float) (Product::query()
-            ->selectRaw('COALESCE(SUM(COALESCE(quantity, 0) * COALESCE(price, 0)), 0) as v')
-            ->value('v') ?? 0);
-        $avg_order_value_today = $orders_today > 0
-            ? $today_sales / $orders_today
-            : 0.0;
+    /**
+     * CSV export of dashboard summary (POS / inventory snapshot).
+     */
+    public function exportCsv(Request $request): StreamedResponse
+    {
+        $data = self::dashboardViewData();
+        $filename = 'pharmacy-dashboard-'.now()->format('Y-m-d-His').'.csv';
 
-        $first_low_stock = Product::query()
-            ->whereNotNull('stock_alert')
-            ->whereColumn('quantity', '<=', 'stock_alert')
-            ->orderBy('quantity')
-            ->first(['id', 'product_name', 'quantity', 'stock_alert']);
-
-        $low_stock_table = Product::query()
-            ->whereNotNull('stock_alert')
-            ->whereColumn('quantity', '<=', 'stock_alert')
-            ->orderBy('quantity')
-            ->limit(10)
-            ->get(['id', 'product_name', 'alias', 'quantity', 'stock_alert']);
-
-        $total_sales_return = 0.0;
-        $total_purchase_return = 0.0;
-
-        $purchase_mtd = (float) DB::table('stock_receipts')
-            ->join('products', 'products.id', '=', 'stock_receipts.product_id')
-            ->where('stock_receipts.received_at', '>=', $startOfMonth)
-            ->sum(DB::raw('stock_receipts.quantity * COALESCE(products.supplierprice, 0)'));
-
-        $recent_orders = Order::query()->latest()->limit(8)->get();
-        foreach ($recent_orders as $o) {
-            $o->order_total = (float) Order_detail::where('order_id', $o->id)->sum('amount');
-        }
-
-        $recent_receipts = StockReceipt::query()
-            ->with(['product:id,product_name,supplierprice', 'supplier:id,supplier_name'])
-            ->latest('received_at')
-            ->latest('id')
-            ->limit(8)
-            ->get();
-
-        foreach ($recent_receipts as $r) {
-            $r->line_value = $r->quantity * (float) ($r->product->supplierprice ?? 0);
-        }
-
-        $chart_labels = [];
-        $chart_sales = [];
-        $chart_purchases = [];
-        for ($i = 6; $i >= 0; $i--) {
-            $d = Carbon::today()->subDays($i);
-            $chart_labels[] = $d->format('M j');
-            $chart_sales[] = round((float) Order_detail::whereDate('created_at', $d)->sum('amount'), 2);
-            $p = (float) DB::table('stock_receipts')
-                ->join('products', 'products.id', '=', 'stock_receipts.product_id')
-                ->whereDate('stock_receipts.received_at', $d)
-                ->sum(DB::raw('stock_receipts.quantity * COALESCE(products.supplierprice, 0)'));
-            $chart_purchases[] = round($p, 2);
-        }
-
-        return compact(
-            'today_sales',
-            'orders_today',
-            'total_products',
-            'low_stock_count',
-            'month_sales',
-            'payments_today',
-            'expiring_soon_count',
-            'inventory_retail_value',
-            'avg_order_value_today',
-            'first_low_stock',
-            'low_stock_table',
-            'total_sales_return',
-            'total_purchase_return',
-            'purchase_mtd',
-            'recent_orders',
-            'recent_receipts',
-            'chart_labels',
-            'chart_sales',
-            'chart_purchases',
-        );
+        return response()->streamDownload(function () use ($data) {
+            $out = fopen('php://output', 'w');
+            fputcsv($out, ['Metric', 'Value']);
+            fputcsv($out, ['Generated at', now()->toDateTimeString()]);
+            fputcsv($out, ['Today sales', $data['today_sales']]);
+            fputcsv($out, ['Month sales (MTD)', $data['month_sales']]);
+            fputcsv($out, ['Purchase MTD (cost)', $data['purchase_mtd']]);
+            fputcsv($out, ['Products in catalog', $data['total_products']]);
+            fputcsv($out, ['Low stock SKUs', $data['low_stock_count']]);
+            fputcsv($out, ['Prescriptions (last 30 days)', $data['prescriptions_last_30'] ?? 0]);
+            fputcsv($out, ['Open AR (all balances)', $data['ar_open_total'] ?? 0]);
+            fputcsv($out, ['Out of stock', $data['stock_out_count']]);
+            fputcsv($out, ['Expired batches (products)', $data['expired_count']]);
+            fputcsv($out, ['Est. inventory retail value', $data['inventory_retail_value']]);
+            fclose($out);
+        }, $filename, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+        ]);
     }
 
     /**
@@ -136,6 +73,10 @@ class DashboardController extends Controller
     {
         return view('dashboard', array_merge(self::dashboardViewData(), [
             'welcome_name' => auth()->user()->name ?? 'Admin',
+            'dashboard_all_sites' => CurrentSite::dashboardAllSites(),
+            'dashboard_site_label' => CurrentSite::dashboardAllSites()
+                ? 'All sites'
+                : optional(\App\Models\Site::find(CurrentSite::id()))->name ?? 'This site',
         ]));
     }
 }

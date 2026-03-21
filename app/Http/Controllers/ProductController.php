@@ -3,10 +3,16 @@
 namespace App\Http\Controllers;
 
 use App\Models\InventoryMovement;
+use App\Models\Manufacturer;
 use App\Models\Product;
+use App\Models\ProductSiteStock;
+use App\Models\Site;
+use App\Models\Supplier;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class ProductController extends Controller
 {
@@ -29,10 +35,23 @@ class ProductController extends Controller
      */
     public function index()
     {
-        $product = Product::paginate(5);
+        $products = Product::with(['manufacturer', 'preferredSupplier'])->paginate(5);
 
-        return view('products.index')->with('products', $product);
-        
+        return view('products.index', array_merge(
+            ['products' => $products],
+            $this->catalogSelects()
+        ));
+    }
+
+    /**
+     * @return array{manufacturers: \Illuminate\Support\Collection, suppliers: \Illuminate\Support\Collection}
+     */
+    private function catalogSelects(): array
+    {
+        return [
+            'manufacturers' => Manufacturer::query()->orderBy('name')->get(['id', 'name']),
+            'suppliers' => Supplier::query()->orderBy('supplier_name')->get(['id', 'supplier_name']),
+        ];
     }
 
     /**
@@ -55,7 +74,8 @@ class ProductController extends Controller
     {
         $request->validate([
             'product_name' => 'required|string|max:255',
-            'brand' => 'required|string|max:255',
+            'manufacturer_id' => 'required|exists:manufacturers,id',
+            'preferred_supplier_id' => 'nullable|exists:suppliers,id',
             'alias' => 'nullable|string|max:255',
             'description' => 'nullable|string',
             'price' => 'required|numeric|min:0',
@@ -92,7 +112,10 @@ class ProductController extends Controller
         $products->product_name = $request->product_name;
         $products->alias = $request->input('alias');
         $products->description = $request->description;
-        $products->brand =$request->brand;
+        $products->manufacturer_id = (int) $request->manufacturer_id;
+        $products->preferred_supplier_id = $request->filled('preferred_supplier_id')
+            ? (int) $request->preferred_supplier_id
+            : null;
         $products->price =$request->price;
         $products->quantity =$request->quantity;
         $products->supplierprice = $request->supplierprice;
@@ -105,10 +128,16 @@ class ProductController extends Controller
         
         $products->save();
 
-        $this->recordInventoryMovement($products, null, (int) $products->quantity, 'initial');
+        $this->recordInventoryMovement(
+            $products,
+            null,
+            (int) $products->quantity,
+            'initial',
+            null,
+            Site::defaultId()
+        );
 
         return redirect('/products')->with('success', 'Product Added Successfully');
-        return redirect()->back()->with('error', 'Product Registration Failed!');
     }
 
     /**
@@ -159,7 +188,8 @@ class ProductController extends Controller
     {
         $request->validate([
             'product_name' => 'required|string|max:255',
-            'brand' => 'required|string|max:255',
+            'manufacturer_id' => 'required|exists:manufacturers,id',
+            'preferred_supplier_id' => 'nullable|exists:suppliers,id',
             'alias' => 'nullable|string|max:255',
             'description' => 'nullable|string',
             'price' => 'required|numeric|min:0',
@@ -179,7 +209,6 @@ class ProductController extends Controller
         ]);
 
         $products = Product::findOrFail($id);
-        $quantityBefore = (int) $products->quantity;
 
         if ($request->hasFile('product_img')) {
             //Get file name
@@ -197,35 +226,72 @@ class ProductController extends Controller
         }
 
         $data = $request->input();
-        $products->product_name = $data['product_name'];
-        $products->alias = $data['alias'] ?? null;
-        $products->description = $data['description'];
-        $products->brand =$data['brand'];
-        $products->price =$data['price'];
-        $products->quantity =$data['quantity'];
-        $products->supplierprice = $data['supplierprice'];
-        $products->stock_alert = $this->normalizedStockAlert($data['stock_alert'] ?? null, $products->stock_alert);
-        $products->form = $data['form'];
-        $products->unit_of_measure = ! empty($data['unit_of_measure']) ? $data['unit_of_measure'] : null;
-        $products->volume = ! empty($data['volume']) ? trim($data['volume']) : null;
-        $products->expiredate = $data['expiredate'];
-        $products->product_img = $fileNameToStore;
         $quantityAfter = (int) $data['quantity'];
+        $productTotalBefore = (int) $products->quantity;
+        $delta = $quantityAfter - $productTotalBefore;
+        $defaultSiteId = Site::defaultId();
 
-        $products->save();
+        DB::transaction(function () use ($data, $products, $delta, $defaultSiteId, $fileNameToStore, $request) {
+            if ($delta !== 0) {
+                $pss = ProductSiteStock::query()
+                    ->where('product_id', $products->id)
+                    ->where('site_id', $defaultSiteId)
+                    ->lockForUpdate()
+                    ->first();
 
-        if ($quantityBefore !== $quantityAfter) {
-            $this->recordInventoryMovement(
-                $products,
-                $quantityBefore,
-                $quantityAfter,
-                'adjustment',
-                $request->input('inventory_note')
-            );
-        }
+                if (! $pss) {
+                    $pss = ProductSiteStock::create([
+                        'product_id' => $products->id,
+                        'site_id' => $defaultSiteId,
+                        'quantity' => 0,
+                    ]);
+                }
+
+                $beforeSite = (int) $pss->quantity;
+                $afterSite = $beforeSite + $delta;
+
+                if ($afterSite < 0) {
+                    throw ValidationException::withMessages([
+                        'quantity' => 'Cannot reduce total below what other branches hold. Adjust the default branch stock or transfer stock first.',
+                    ]);
+                }
+
+                $pss->quantity = $afterSite;
+                $pss->save();
+
+                Product::syncQuantityFromSiteStocks($products->id);
+                $products->refresh();
+
+                $this->recordInventoryMovement(
+                    $products,
+                    $beforeSite,
+                    $afterSite,
+                    'adjustment',
+                    $request->input('inventory_note'),
+                    $defaultSiteId
+                );
+            }
+
+            $products->product_name = $data['product_name'];
+            $products->alias = $data['alias'] ?? null;
+            $products->description = $data['description'];
+            $products->manufacturer_id = (int) $data['manufacturer_id'];
+            $products->preferred_supplier_id = ! empty($data['preferred_supplier_id'])
+                ? (int) $data['preferred_supplier_id']
+                : null;
+            $products->price = $data['price'];
+            $products->supplierprice = $data['supplierprice'];
+            $products->stock_alert = $this->normalizedStockAlert($data['stock_alert'] ?? null, $products->stock_alert);
+            $products->form = $data['form'];
+            $products->unit_of_measure = ! empty($data['unit_of_measure']) ? $data['unit_of_measure'] : null;
+            $products->volume = ! empty($data['volume']) ? trim($data['volume']) : null;
+            $products->expiredate = $data['expiredate'];
+            $products->product_img = $fileNameToStore;
+
+            $products->save();
+        });
 
         return redirect()->back()->with('success', 'Product Updated Successfully');
-        return redirect()->back()->with('error', 'Product Registration Failed!');
     }
 
     /**
@@ -262,7 +328,9 @@ class ProductController extends Controller
         ?int $quantityBefore,
         int $quantityAfter,
         string $changeType,
-        ?string $note = null
+        ?string $note = null,
+        ?int $siteId = null,
+        ?int $stockTransferId = null
     ): void {
         $delta = $quantityBefore === null
             ? $quantityAfter
@@ -270,6 +338,7 @@ class ProductController extends Controller
 
         InventoryMovement::create([
             'product_id' => $product->id,
+            'site_id' => $siteId,
             'user_id' => auth()->id(),
             'quantity_before' => $quantityBefore,
             'quantity_delta' => $delta,
@@ -278,6 +347,7 @@ class ProductController extends Controller
             'note' => $note !== null && trim($note) !== ''
                 ? Str::limit(trim($note), 500)
                 : null,
+            'stock_transfer_id' => $stockTransferId,
         ]);
     }
 }

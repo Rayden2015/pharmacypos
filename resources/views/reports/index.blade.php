@@ -108,7 +108,7 @@
                 @include('inc.msg')
                 <div class="card">
                     <div class="card-body">
-                        <form action="periodic" method="GET">
+                        <form action="{{ route('reports.periodic') }}" method="GET">
                             <div class="row">
     
                                 {{-- <div class="form-inline">
@@ -128,13 +128,11 @@
                                 </div> --}}
     
                                 <div class="input-group mb-3">
-                                    <input type="date" class="form-control noprint" name="start_date" required>
-                                    <input type="date" class="form-control noprint" name="end_date" required>
+                                    <input type="date" class="form-control noprint" name="start_date" value="{{ $start_date }}" required aria-label="Start date">
+                                    <input type="date" class="form-control noprint" name="end_date" value="{{ $end_date }}" required aria-label="End date">
                                     <button class="btn btn-primary ml-2 noprint" type="submit">Generate</button>
     
-                                    <a href="{{ route('reports.periodic') }}" class="btn btn-primary pull-left ml-4 noprint">
-                                        <h6>Reset</h6>
-                                    </a>
+                                    <a href="{{ route('reports.periodic') }}" class="btn btn-outline-secondary pull-left ml-4 noprint">Today</a>
     
                                     {{-- <a href="{{ url('buses/'.$currentURL) }}" target="_blank">  Get user detail </a> --}}
                                 </div>
@@ -143,20 +141,13 @@
                             </div>
                         </form>
     
-                        <form action="periodicprint" method="GET">
+                        <form action="{{ route('reports.periodicprint') }}" method="GET" target="_blank">
                             <div class="row">
                                 <div class="input-group mb-3">
-                                    <input type="date" class="form-control noprint" name="start_date" required>
-                                    <input type="date" class="form-control noprint" name="end_date" required>
-                                    {{-- <button class="btn btn-primary ml-2" target="_blank" type="submit">Print</button> --}}
-                                    <button type="submit" class="btn btn-primary"
-                                    formenctype="text/plan"
-                                    formtarget="_blank">
-                              submit
-                          </button>
-                                    <a  href="{{ route('reports.periodic') }}"  class="btn btn-primary pull-left ml-4 noprint">
-                                        <h6>Reset</h6>
-                                    </a>
+                                    <input type="date" class="form-control noprint" name="start_date" value="{{ $start_date }}" required aria-label="Print start date">
+                                    <input type="date" class="form-control noprint" name="end_date" value="{{ $end_date }}" required aria-label="Print end date">
+                                    <button type="submit" class="btn btn-primary noprint">Print</button>
+                                    <a href="{{ route('reports.periodic') }}" class="btn btn-outline-secondary pull-left ml-4 noprint">Today</a>
     
                                     {{-- <a href="{{ url('buses/'.$currentURL) }}" target="_blank">  Get user detail </a> --}}
                                 </div>

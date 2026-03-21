@@ -2,6 +2,8 @@
 
 namespace Tests\Feature\Pharmacy;
 
+use App\Models\InventoryMovement;
+use App\Models\Manufacturer;
 use App\Models\Order_detail;
 use App\Models\Product;
 use App\Models\User;
@@ -43,14 +45,15 @@ class ProductValidationDashboardOrderTest extends TestCase
             ->assertSee('Quick actions', false);
     }
 
-    public function test_product_store_requires_brand_and_expire_date(): void
+    public function test_product_store_requires_manufacturer_and_expire_date(): void
     {
         $user = $this->makeAdmin();
         $name = 'Invalid Product '.uniqid('', true);
+        $mId = Manufacturer::firstOrCreate(['name' => 'Co'], ['name' => 'Co'])->id;
 
         $response = $this->actingAs($user)->post(route('products.store'), [
             'product_name' => $name,
-            // brand missing
+            // manufacturer_id missing
             'description' => 'x',
             'price' => 10,
             'quantity' => 1,
@@ -59,11 +62,11 @@ class ProductValidationDashboardOrderTest extends TestCase
             'expiredate' => '2030-01-01',
         ]);
 
-        $response->assertSessionHasErrors(['brand']);
+        $response->assertSessionHasErrors(['manufacturer_id']);
 
         $response2 = $this->actingAs($user)->from(url('addproduct'))->post(route('products.store'), [
             'product_name' => $name.'-2',
-            'brand' => 'Co',
+            'manufacturer_id' => $mId,
             'price' => 10,
             'quantity' => 1,
             'stock_alert' => 5,
@@ -82,7 +85,7 @@ class ProductValidationDashboardOrderTest extends TestCase
 
         $response = $this->actingAs($user)->post(route('products.store'), [
             'product_name' => $name,
-            'brand' => 'Co',
+            'manufacturer_id' => Manufacturer::firstOrCreate(['name' => 'Co'], ['name' => 'Co'])->id,
             'description' => 'd',
             'price' => 10,
             'quantity' => 1,
@@ -104,7 +107,7 @@ class ProductValidationDashboardOrderTest extends TestCase
 
         $response = $this->actingAs($user)->post(route('products.store'), [
             'product_name' => $name,
-            'brand' => 'Co',
+            'manufacturer_id' => Manufacturer::firstOrCreate(['name' => 'Co'], ['name' => 'Co'])->id,
             'description' => 'd',
             'price' => 10,
             'quantity' => 1,
@@ -125,7 +128,7 @@ class ProductValidationDashboardOrderTest extends TestCase
         $product = Product::create([
             'product_name' => 'Snapshot SKU '.uniqid('', true),
             'description' => 'd',
-            'brand' => 'Lab',
+            'manufacturer_id' => Manufacturer::firstOrCreate(['name' => 'Lab'], ['name' => 'Lab'])->id,
             'price' => 25,
             'supplierprice' => 15,
             'quantity' => 200,
@@ -152,5 +155,12 @@ class ProductValidationDashboardOrderTest extends TestCase
         $this->assertNotNull($detail);
         $this->assertSame('Pack', $detail->unit_of_measure);
         $this->assertSame('14 tablets', $detail->volume);
+
+        $product->refresh();
+        $this->assertSame(198, (int) $product->quantity);
+
+        $sale = InventoryMovement::where('product_id', $product->id)->where('change_type', 'sale')->sole();
+        $this->assertSame(-2, $sale->quantity_delta);
+        $this->assertSame(198, $sale->quantity_after);
     }
 }

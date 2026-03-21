@@ -2,8 +2,10 @@
 
 namespace Database\Seeders;
 
+use App\Models\Manufacturer;
 use App\Models\Order;
 use App\Models\Order_detail;
+use App\Models\Prescription;
 use App\Models\Product;
 use App\Models\Transaction;
 use App\Models\User;
@@ -111,9 +113,36 @@ class DemoDataSeeder extends Seeder
                 $transaction->updated_at = $placed;
                 $transaction->save();
             }
+
+            $this->seedDemoPrescriptions($user);
         });
 
         $this->command->info('Demo products and sales seeded (mobile '.self::DEMO_MOBILE.').');
+    }
+
+    private function seedDemoPrescriptions(User $user): void
+    {
+        Prescription::query()->where('rx_number', 'like', 'DEMO-%')->delete();
+
+        $rows = [
+            ['patient_name' => 'Akosua T.', 'patient_phone' => '0244111001', 'rx_number' => 'DEMO-001', 'status' => 'completed', 'notes' => 'Antibiotic course'],
+            ['patient_name' => 'Yaw K.', 'patient_phone' => '0244111002', 'rx_number' => 'DEMO-002', 'status' => 'pending', 'notes' => 'Awaiting stock'],
+            ['patient_name' => 'Efua N.', 'patient_phone' => '0244111003', 'rx_number' => 'DEMO-003', 'status' => 'pending', 'notes' => null],
+            ['patient_name' => 'Kojo P.', 'patient_phone' => '0244111004', 'rx_number' => 'DEMO-004', 'status' => 'cancelled', 'notes' => 'Patient switched to OTC'],
+            ['patient_name' => 'Ama S.', 'patient_phone' => '0244111005', 'rx_number' => 'DEMO-005', 'status' => 'completed', 'notes' => null],
+        ];
+
+        foreach ($rows as $row) {
+            $rx = new Prescription;
+            $rx->patient_name = $row['patient_name'];
+            $rx->patient_phone = $row['patient_phone'];
+            $rx->rx_number = $row['rx_number'];
+            $rx->status = $row['status'];
+            $rx->notes = $row['notes'];
+            $rx->user_id = $user->id;
+            $rx->dispensed_at = $row['status'] === 'completed' ? Carbon::now()->subDays(random_int(0, 3)) : null;
+            $rx->save();
+        }
     }
 
     /**
@@ -140,12 +169,17 @@ class DemoDataSeeder extends Seeder
             foreach ($rows as $i => $r) {
             [$name, $alias, $desc, $brand, $form, $price, $supplier, $qty, $uom, $vol] = $r;
 
+            $manufacturer = Manufacturer::firstOrCreate(
+                ['name' => $brand],
+                ['name' => $brand]
+            );
+
             $product = Product::updateOrCreate(
                 ['product_name' => $name],
                 [
                     'alias' => $alias,
                     'description' => $desc,
-                    'brand' => $brand,
+                    'manufacturer_id' => $manufacturer->id,
                     'form' => $form,
                     'unit_of_measure' => $uom,
                     'volume' => $vol,
@@ -174,5 +208,6 @@ class DemoDataSeeder extends Seeder
         Order_detail::query()->whereIn('order_id', $orderIds)->delete();
         Transaction::query()->whereIn('order_id', $orderIds)->delete();
         Order::query()->whereIn('id', $orderIds)->delete();
+        Prescription::query()->where('rx_number', 'like', 'DEMO-%')->delete();
     }
 }

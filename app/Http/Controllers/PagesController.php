@@ -5,8 +5,10 @@ namespace App\Http\Controllers;
 use Carbon\Carbon;
 use App\Models\User;
 
+use App\Models\Manufacturer;
 use App\Models\Order;
 use App\Models\Product;
+use App\Models\Supplier;
 use Illuminate\Http\Request;
 
 class PagesController extends Controller
@@ -22,20 +24,24 @@ class PagesController extends Controller
         $this->middleware('auth');
     }
 
-    public function showusers(){
-        $user = User::paginate(5);
-        return view('users.showuser', ['users' => $user]);
+    public function showusers()
+    {
+        return redirect()->route('pharmacy.showuser');
     }
 
-    public function addproduct(){
-        
-        return view('products.addproduct');
+    public function addproduct()
+    {
+        return view('products.addproduct', [
+            'manufacturers' => Manufacturer::query()->orderBy('name')->get(['id', 'name']),
+            'suppliers' => Supplier::query()->orderBy('supplier_name')->get(['id', 'supplier_name']),
+        ]);
     }
 
-    public function grid(){
-        $product = Product::paginate(5);
+    public function grid()
+    {
+        $products = Product::with(['manufacturer', 'preferredSupplier'])->paginate(5);
 
-        return view('products.grid')->with('products', $product);
+        return view('products.grid')->with('products', $products);
     }
 
     public function report(Request $request){

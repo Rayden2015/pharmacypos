@@ -38,8 +38,13 @@ class InventoryNavigationTest extends TestCase
         $this->actingAs($user)->get(route('inventory.stock-adjustment.create'))->assertOk();
         $this->actingAs($user)->get(route('inventory.stock-transfer'))->assertOk();
         $this->actingAs($user)->get(route('inventory.catalog.categories'))->assertOk();
-        $this->actingAs($user)->get(route('inventory.catalog.brands'))->assertOk();
+        $this->actingAs($user)->get(route('inventory.catalog.brands'))->assertRedirect(route('manufacturers.index'));
+        $this->actingAs($user)->get(route('manufacturers.index'))->assertOk();
+        $this->actingAs($user)->get(route('suppliers.index'))->assertOk();
         $this->actingAs($user)->get(route('inventory.catalog.units'))->assertOk();
+        $this->actingAs($user)->get(route('inventory.expiry-tracking'))->assertOk();
+        $this->actingAs($user)->get(route('inventory.batches'))->assertOk();
+        $this->actingAs($user)->get(route('pharmacy.prescriptions'))->assertOk();
     }
 
 }

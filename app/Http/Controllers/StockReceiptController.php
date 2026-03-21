@@ -4,8 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\InventoryMovement;
 use App\Models\Product;
+use App\Models\ProductSiteStock;
+use App\Models\Site;
 use App\Models\StockReceipt;
 use App\Models\Supplier;
+use App\Support\CurrentSite;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -37,13 +40,17 @@ class StockReceiptController extends Controller
 
         $prefillProductId = $request->query('product_id');
 
-        return view('stock-receipts.create', compact('products', 'suppliers', 'prefillProductId'));
+        $sites = Site::query()->where('is_active', true)->orderBy('name')->get(['id', 'name', 'code']);
+        $defaultSiteId = CurrentSite::id();
+
+        return view('stock-receipts.create', compact('products', 'suppliers', 'prefillProductId', 'sites', 'defaultSiteId'));
     }
 
     public function store(Request $request)
     {
         $data = $request->validate([
             'product_id' => ['required', 'exists:products,id'],
+            'site_id' => ['nullable', 'exists:sites,id'],
             'quantity' => ['required', 'integer', 'min:1'],
             'batch_number' => ['nullable', 'string', 'max:128'],
             'expiry_date' => ['nullable', 'date'],
@@ -53,10 +60,13 @@ class StockReceiptController extends Controller
             'notes' => ['nullable', 'string', 'max:2000'],
         ]);
 
-        $receipt = DB::transaction(function () use ($data) {
+        $siteId = isset($data['site_id']) ? (int) $data['site_id'] : CurrentSite::id();
+
+        $receipt = DB::transaction(function () use ($data, $siteId) {
             $receipt = StockReceipt::query()->create([
                 'product_id' => (int) $data['product_id'],
                 'user_id' => auth()->id(),
+                'site_id' => $siteId,
                 'quantity' => (int) $data['quantity'],
                 'batch_number' => $data['batch_number'] ?? null,
                 'expiry_date' => $data['expiry_date'] ?? null,
@@ -69,15 +79,37 @@ class StockReceiptController extends Controller
             $receipt->load('supplier');
 
             $product = Product::query()->lockForUpdate()->findOrFail($receipt->product_id);
-            $before = (int) $product->quantity;
+
+            $pss = ProductSiteStock::query()
+                ->where('product_id', $product->id)
+                ->where('site_id', $siteId)
+                ->lockForUpdate()
+                ->first();
+
+            if (! $pss) {
+                $pss = ProductSiteStock::create([
+                    'product_id' => $product->id,
+                    'site_id' => $siteId,
+                    'quantity' => 0,
+                ]);
+                $pss = ProductSiteStock::query()
+                    ->whereKey($pss->id)
+                    ->lockForUpdate()
+                    ->first();
+            }
+
+            $before = (int) $pss->quantity;
             $add = (int) $receipt->quantity;
             $after = $before + $add;
 
-            $product->quantity = $after;
-            $product->save();
+            $pss->quantity = $after;
+            $pss->save();
+
+            Product::syncQuantityFromSiteStocks($product->id);
 
             InventoryMovement::create([
                 'product_id' => $product->id,
+                'site_id' => $siteId,
                 'user_id' => auth()->id(),
                 'quantity_before' => $before,
                 'quantity_delta' => $add,

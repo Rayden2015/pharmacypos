@@ -34,6 +34,7 @@
                                         <th>Email</th>
                                         <th>Mobile</th>
                                         <th>Address</th>
+                                        <th>Site</th>
                                         <th>Position</th>
                                         <th>Status</th>
                                         <th>Action</th>
@@ -50,6 +51,16 @@
                                             <td>{{ $user->email }}</td>
                                             <td>{{ $user->mobile }}</td>
                                             <td>{{ $user->address }}</td>
+                                            <td>
+                                                @if ($user->is_super_admin)
+                                                    <span class="badge bg-warning text-dark">Super</span>
+                                                @endif
+                                                @if ($user->site)
+                                                    <span class="small">{{ $user->site->name }}</span>
+                                                @else
+                                                    <span class="text-muted small">—</span>
+                                                @endif
+                                            </td>
                                             <td>
                                                 @if ($user->is_admin == 1) 
                                                 <span class="badge bg-success">Admin</span>
@@ -184,6 +195,23 @@
                                                                                 INACTIVE</option>
                                                                         </select>
                                                                     </div>
+                                                                    @if(auth()->user()->isSuperAdmin())
+                                                                    <div class="col-12">
+                                                                        <div class="form-check">
+                                                                            <input class="form-check-input" type="checkbox" name="is_super_admin" value="1" id="edit_super_{{ $user->id }}" {{ $user->is_super_admin ? 'checked' : '' }}>
+                                                                            <label class="form-check-label" for="edit_super_{{ $user->id }}">Super admin</label>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div class="col-6">
+                                                                        <label class="form-label">Site / branch</label>
+                                                                        <select name="site_id" class="form-select">
+                                                                            <option value="">— None (global) —</option>
+                                                                            @foreach ($sites as $s)
+                                                                                <option value="{{ $s->id }}" {{ (int) $user->site_id === (int) $s->id ? 'selected' : '' }}>{{ $s->name }}@if($s->code) ({{ $s->code }})@endif</option>
+                                                                            @endforeach
+                                                                        </select>
+                                                                    </div>
+                                                                    @endif
                                                                     <div class="col-6">
                                                                         <label for="inputChoosePassword"
                                                                             class="form-label">Choose Password</label>
