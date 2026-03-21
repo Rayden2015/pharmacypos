@@ -36,8 +36,13 @@
                             class="position-absolute top-50 product-show translate-middle-y"><i
                                 class="bx bx-search"></i></span>
                     </div>
-                    <div class="ms-auto"><a href="grid"
-                        class="btn btn-primary radius-30 mt-2 mt-lg-0 add_more" ><i class="bx bxs-plus-square add_more" ></i>Grid Mode</a>
+                    <div class="ms-auto d-flex flex-wrap gap-2 justify-content-end">
+                        <a href="{{ route('inventory.receive.create') }}"
+                            class="btn btn-success radius-30 mt-2 mt-lg-0"><i class="bx bx-package"></i> Receive stock</a>
+                        <a href="{{ route('inventory.receipts.index') }}"
+                            class="btn btn-outline-secondary radius-30 mt-2 mt-lg-0"><i class="bx bx-list-ul"></i> Receipts</a>
+                        <a href="grid"
+                            class="btn btn-primary radius-30 mt-2 mt-lg-0 add_more"><i class="bx bxs-plus-square add_more"></i>Grid Mode</a>
                     </div>
                   
                 </div>
@@ -87,6 +92,9 @@
 
                                             </td>
                                             <td>
+                                                <a href="{{ route('products.inventory-history', $product) }}"
+                                                    class="btn btn-outline-secondary btn-sm"><i
+                                                        class="bx bx-history"></i> Stock log</a>
                                                 <a href="#" class="btn btn-primary btn-sm" data-bs-toggle="modal"
                                                     data-bs-target="#editProduct{{ $product->id }}"><i
                                                         class="bx bxs-edit"></i>Edit</a>
@@ -208,6 +216,17 @@
                                                                                                 value="{{ $product->quantity }}"
                                                                                                 placeholder="Units in stock now"
                                                                                                 min="0">
+                                                                                        </div>
+                                                                                        <div class="col-12">
+                                                                                            <label for="inventory_note{{ $product->id }}"
+                                                                                                class="form-label">Stock change note (optional)</label>
+                                                                                            <input type="text"
+                                                                                                name="inventory_note"
+                                                                                                id="inventory_note{{ $product->id }}"
+                                                                                                class="form-control"
+                                                                                                maxlength="500"
+                                                                                                placeholder="e.g. Restock +30 from supplier">
+                                                                                            <small class="text-muted">Saved only when on-hand quantity changes.</small>
                                                                                         </div>
                                                                                         <div class="col-md-6">
                                                                                             <label for="stock_alert{{ $product->id }}"

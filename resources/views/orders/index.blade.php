@@ -116,7 +116,7 @@
                                                 <td>
                                                     <input type="number" name="price[]" id="price"
                                                         class="form-control price bg-light text-end"
-                                                        readonly
+                                                        readonly step="0.01" min="0"
                                                         inputmode="decimal"
                                                         tabindex="-1"
                                                         title="Price comes from the product catalog">
@@ -130,7 +130,7 @@
                                                 <td>
                                                     <input type="number" name="total_amount[]" id="line_total"
                                                         class="form-control total_amount pos-total-input bg-light text-end"
-                                                        readonly
+                                                        readonly step="0.01" min="0"
                                                         tabindex="-1"
                                                         title="Calculated from quantity, unit, and discount">
                                                 </td>
@@ -151,7 +151,7 @@
                             <div class="card-body">
                                 <div class="bg-success p-4">
                                     <h2 class="text-center text-white"> Total:
-                                        <b>{{ $currencySymbol }}</b><b class="total"> <input type="hidden"  name="total"> 0.00</b>
+                                        <b>{{ $currencySymbol }}</b><b class="total"><input type="hidden" name="total" value="0"><span class="total-amount">0.00</span></b>
                                     </h2>
                                 </div>
                                 <div class="table-responsive">
@@ -206,11 +206,14 @@
                                     </table>
                                     <div class="pb-4">
                                         <label for="payment"><b>Payment:</b></label>
-                                        <input class="form-control" name="paidAmount" id="paidAmount" type="number" required />
+                                        <input class="form-control" name="paidAmount" id="paidAmount" type="number"
+                                            min="0" step="0.01" inputmode="decimal" required />
                                     </div>
                                     <div class="pb-4">
                                         <label for="change"><b>Change:</b></label>
-                                        <input class="form-control" name="balance" id="balance" type="number" required>
+                                        <input class="form-control" name="balance" id="balance" type="number"
+                                            step="0.01" inputmode="decimal" required
+                                            title="Payment minus total (negative if underpaid); rounded to 2 decimals">
                                     </div>
                                     <div class="pb-4">
                                         <button type="submit" class="btn btn-primary w-100">Save</button>
@@ -251,9 +254,9 @@
                 '<td class="text-center text-muted small">' + numberofrow + '</td>' +
                 '<td><select class="product_id form-select w-100" name="product_id[]">' + product + '</select></td>' +
                 '<td><input type="number" name="quantity[]" min="1" step="1" class="form-control quantity text-end" required></td>' +
-                '<td><input type="number" name="price[]" class="form-control price bg-light text-end" readonly inputmode="decimal" tabindex="-1" title="Price comes from the product catalog"></td>' +
+                '<td><input type="number" name="price[]" class="form-control price bg-light text-end" readonly step="0.01" min="0" inputmode="decimal" tabindex="-1" title="Price comes from the product catalog"></td>' +
                 '<td><input type="number" name="discount[]" min="0" max="100" step="0.01" class="form-control discount text-end" placeholder="0"></td>' +
-                '<td><input type="number" name="total_amount[]" class="form-control total_amount pos-total-input bg-light text-end" readonly tabindex="-1" title="Calculated from quantity, unit, and discount"></td>' +
+                '<td><input type="number" name="total_amount[]" class="form-control total_amount pos-total-input bg-light text-end" readonly step="0.01" min="0" tabindex="-1" title="Calculated from quantity, unit, and discount"></td>' +
                 '<td class="text-center p-0"><a class="btn btn-sm btn-light border-0 delete" href="javascript:void(0)" title="Remove row"><i class="bx bxs-trash"></i></a></td>' +
                 '</tr>';
             $('.addMoreProduct').append(tr);
@@ -263,15 +266,33 @@
         })
 
 
-        function TotalAmount() {
+        function roundMoney(n) {
+            return Math.round((parseFloat(n) || 0) * 100) / 100;
+        }
 
+        function getLineItemsTotal() {
             var total = 0;
-            $('.total_amount').each(function(i, e) {
-                var amount = $(this).val() - 0;
-                total += amount;
+            $('.total_amount').each(function() {
+                total += parseFloat($(this).val()) || 0;
             });
+            return roundMoney(total);
+        }
 
-            $('.total').html(total);
+        function TotalAmount() {
+            var total = getLineItemsTotal();
+            $('.total').find('input[name="total"]').val(total.toFixed(2));
+            $('.total .total-amount').text(total.toFixed(2));
+            updateChange();
+        }
+
+        function updateChange() {
+            var total = getLineItemsTotal();
+            var paid = parseFloat($('#paidAmount').val());
+            if (isNaN(paid)) {
+                paid = 0;
+            }
+            var change = roundMoney(paid - total);
+            $('#balance').val(change.toFixed(2));
         }
 
         $('.addMoreProduct').delegate('.product_id', 'change', function() {
@@ -281,8 +302,8 @@
             var qty = tr.find('.quantity').val() - 0;
             var disc = tr.find('.discount').val() - 0;
             var price = tr.find('.price').val() - 0;
-            var total_amount = (qty * price) - ((qty * price * disc) / 100);
-            tr.find('.total_amount').val(total_amount);
+            var total_amount = roundMoney((qty * price) - ((qty * price * disc) / 100));
+            tr.find('.total_amount').val(total_amount.toFixed(2));
             TotalAmount();
         });
         $('.addMoreProduct').delegate('.delete', 'click', function() {
@@ -294,19 +315,16 @@
             var qty = tr.find('.quantity').val() - 0;
             var disc = tr.find('.discount').val() - 0;
             var price = tr.find('.price').val() - 0;
-            var total_amount = (qty * price) - ((qty * price * disc) / 100);
-            tr.find('.total_amount').val(total_amount);
+            var total_amount = roundMoney((qty * price) - ((qty * price * disc) / 100));
+            tr.find('.total_amount').val(total_amount.toFixed(2));
             TotalAmount();
         })
         $('.addMoreProduct').delegate('.delete', 'click', function() {
             $(this).parent().parent().remove();
         });
 
-        $('#paidAmount').keyup(function(){
-            var total = $('.total').html();
-            var paidAmount = $(this).val(); 
-            var amount = paidAmount - total;
-            $('#balance').val(amount).toFixed(2);
+        $('#paidAmount').on('keyup change input', function() {
+            updateChange();
         });
 
 

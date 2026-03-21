@@ -1,0 +1,104 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\InventoryMovement;
+use App\Models\Product;
+use App\Models\StockReceipt;
+use App\Models\Supplier;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+
+class StockReceiptController extends Controller
+{
+    public function __construct()
+    {
+        $this->middleware('auth');
+    }
+
+    public function index()
+    {
+        $receipts = StockReceipt::query()
+            ->with(['product:id,product_name,alias', 'supplier:id,supplier_name', 'user:id,name'])
+            ->latest('received_at')
+            ->latest('id')
+            ->paginate(50);
+
+        return view('stock-receipts.index', compact('receipts'));
+    }
+
+    public function create(Request $request)
+    {
+        $products = Product::query()
+            ->orderBy('product_name')
+            ->get(['id', 'product_name', 'alias', 'unit_of_measure', 'volume', 'quantity']);
+
+        $suppliers = Supplier::query()->orderBy('supplier_name')->get(['id', 'supplier_name']);
+
+        $prefillProductId = $request->query('product_id');
+
+        return view('stock-receipts.create', compact('products', 'suppliers', 'prefillProductId'));
+    }
+
+    public function store(Request $request)
+    {
+        $data = $request->validate([
+            'product_id' => ['required', 'exists:products,id'],
+            'quantity' => ['required', 'integer', 'min:1'],
+            'batch_number' => ['nullable', 'string', 'max:128'],
+            'expiry_date' => ['nullable', 'date'],
+            'supplier_id' => ['nullable', 'exists:suppliers,id'],
+            'document_reference' => ['nullable', 'string', 'max:128'],
+            'received_at' => ['required', 'date'],
+            'notes' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        $receipt = DB::transaction(function () use ($data) {
+            $receipt = StockReceipt::query()->create([
+                'product_id' => (int) $data['product_id'],
+                'user_id' => auth()->id(),
+                'quantity' => (int) $data['quantity'],
+                'batch_number' => $data['batch_number'] ?? null,
+                'expiry_date' => $data['expiry_date'] ?? null,
+                'supplier_id' => ! empty($data['supplier_id']) ? (int) $data['supplier_id'] : null,
+                'document_reference' => $data['document_reference'] ?? null,
+                'received_at' => $data['received_at'],
+                'notes' => $data['notes'] ?? null,
+            ]);
+
+            $receipt->load('supplier');
+
+            $product = Product::query()->lockForUpdate()->findOrFail($receipt->product_id);
+            $before = (int) $product->quantity;
+            $add = (int) $receipt->quantity;
+            $after = $before + $add;
+
+            $product->quantity = $after;
+            $product->save();
+
+            InventoryMovement::create([
+                'product_id' => $product->id,
+                'user_id' => auth()->id(),
+                'quantity_before' => $before,
+                'quantity_delta' => $add,
+                'quantity_after' => $after,
+                'change_type' => 'receipt',
+                'note' => $receipt->ledgerNote(),
+                'stock_receipt_id' => $receipt->id,
+            ]);
+
+            return $receipt;
+        });
+
+        return redirect()
+            ->route('inventory.receipts.show', $receipt)
+            ->with('success', 'Stock received and on-hand quantity updated.');
+    }
+
+    public function show(StockReceipt $stockReceipt)
+    {
+        $stockReceipt->load(['product', 'supplier', 'user', 'inventoryMovement']);
+
+        return view('stock-receipts.show', compact('stockReceipt'));
+    }
+}

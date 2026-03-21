@@ -30,4 +30,14 @@ class Product extends Model
         return $this->hasMany('App\Models\Order_detail');
     }
 
+    public function inventoryMovements()
+    {
+        return $this->hasMany(InventoryMovement::class);
+    }
+
+    public function stockReceipts()
+    {
+        return $this->hasMany(StockReceipt::class);
+    }
+
 }

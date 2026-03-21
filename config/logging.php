@@ -37,8 +37,18 @@ return [
     'channels' => [
         'stack' => [
             'driver' => 'stack',
-            'channels' => ['single'],
+            'channels' => explode(',', env('LOG_STACK', 'daily_env')),
             'ignore_exceptions' => false,
+        ],
+
+        /*
+        | Daily log file per environment: storage/logs/2026-03-20-local.log
+        | Path is resolved on each bootstrap so the file switches at calendar day.
+        */
+        'daily_env' => [
+            'driver' => 'single',
+            'path' => storage_path('logs/' . date('Y-m-d') . '-' . preg_replace('/[^a-zA-Z0-9._-]/', '-', env('APP_ENV', 'local')) . '.log'),
+            'level' => env('LOG_LEVEL', 'debug'),
         ],
 
         'single' => [

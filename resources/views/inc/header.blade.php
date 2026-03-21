@@ -16,77 +16,85 @@
         <!--navigation-->
         <ul class="metismenu" id="menu">
 
+            <li class="menu-label">Main</li>
             <li>
-                <a href="dashboard" class="">
-                    <div class="parent-icon"><i class='bx bx-home-circle'></i>
-                    </div>
+                <a href="{{ route('dashboard') }}">
+                    <div class="parent-icon"><i class='bx bx-home-circle'></i></div>
                     <div class="menu-title">Dashboard</div>
                 </a>
-                {{-- <ul>
-                    <li> <a href="dashboard"><i class="bx bx-right-arrow-alt"></i>Home</a>
-                    </li>
-                    {{-- <li> <a href="{{ route('users.index') }}"><i class="bx bx-right-arrow-alt"></i>Users</a> --}}
-                    </li>
-                {{-- </ul>  --}}
             </li>
-            {{-- <li class="menu-label">MANAGE</li> --}}
             <li>
                 <a href="{{ route('orders.index') }}">
-                    <div class="parent-icon"><i class='bx bx-edit'></i>
-                    </div>
+                    <div class="parent-icon"><i class='bx bx-edit'></i></div>
                     <div class="menu-title">POS</div>
                 </a>
-                
             </li>
-            <li class="menu-label">INVENTORY</li>
+
+            <li class="menu-label">Inventory</li>
             <li>
                 <a href="javascript:;" class="has-arrow">
-                    <div class="parent-icon"><i class='bx bx-cart'></i>
-                    </div>
+                    <div class="parent-icon"><i class='bx bx-package'></i></div>
                     <div class="menu-title">Products</div>
                 </a>
                 <ul>
-                    <li> 
-                        <a href="{{ route('products.index') }}">
-                            <div class="parent-icon"><i class='bx bx-box'></i></div>
-                            Products
-                        </a>
-                    </li>
-                    <li> 
-                    <a href="addproduct"><i class="bx bx-right-arrow-alt"></i>
-                        Add New Products
-                    </a>
-                    </li>
-                    <li>
-                        <a href="{{ url('grid') }}"><i class="bx bx-right-arrow-alt"></i>Grid view</a>
-                    </li>
+                    <li><a href="{{ route('products.index') }}"><i class="bx bx-right-arrow-alt"></i>Products</a></li>
+                    <li><a href="{{ url('addproduct') }}"><i class="bx bx-right-arrow-alt"></i>Create product</a></li>
+                    <li><a href="{{ route('inventory.low-stock') }}"><i class="bx bx-right-arrow-alt"></i>Low stocks</a></li>
+                    <li><a href="{{ route('inventory.catalog.categories') }}"><i class="bx bx-right-arrow-alt"></i>Category</a></li>
+                    <li><a href="{{ route('inventory.catalog.brands') }}"><i class="bx bx-right-arrow-alt"></i>Brands</a></li>
+                    <li><a href="{{ route('inventory.catalog.units') }}"><i class="bx bx-right-arrow-alt"></i>Units</a></li>
+                    <li><a href="{{ url('grid') }}"><i class="bx bx-right-arrow-alt"></i>Grid view</a></li>
                 </ul>
             </li>
+
+            <li class="menu-label">Stock</li>
             <li>
-                <a href="javascript:;" class="has-arrow">
-                    <div class="parent-icon"><i class='bx bx-chart'></i>
-                    </div>
-                    <div class="menu-title">Reports</div>
+                <a href="{{ route('inventory.manage-stock') }}">
+                    <div class="parent-icon"><i class='bx bx-cube'></i></div>
+                    <div class="menu-title">Manage stock</div>
                 </a>
-                <ul>
-                    <li> 
-                        <a href="{{ route('reports.periodic') }}">
-                            <div class="parent-icon"><i class='bx bx-box'></i></div>
-                            Today's Report
-                        </a>
-                    </li>
-                </ul>
+            </li>
+            <li>
+                <a href="{{ route('inventory.stock-adjustment.create') }}">
+                    <div class="parent-icon"><i class='bx bx-slider-alt'></i></div>
+                    <div class="menu-title">Stock adjustment</div>
+                </a>
+            </li>
+            <li>
+                <a href="{{ route('inventory.stock-transfer') }}">
+                    <div class="parent-icon"><i class='bx bx-transfer'></i></div>
+                    <div class="menu-title">Stock transfer</div>
+                </a>
+            </li>
+
+            <li class="menu-label">Purchases</li>
+            <li>
+                <a href="{{ route('inventory.receive.create') }}">
+                    <div class="parent-icon"><i class='bx bx-down-arrow-circle'></i></div>
+                    <div class="menu-title">Receive stock</div>
+                </a>
+            </li>
+            <li>
+                <a href="{{ route('inventory.receipts.index') }}">
+                    <div class="parent-icon"><i class='bx bx-list-ul'></i></div>
+                    <div class="menu-title">Receipt history</div>
+                </a>
+            </li>
+
+            <li class="menu-label">Sales &amp; reports</li>
+            <li>
+                <a href="{{ route('reports.periodic') }}">
+                    <div class="parent-icon"><i class='bx bx-chart'></i></div>
+                    <div class="menu-title">Today's report</div>
+                </a>
             </li>
             <li>
                 <a href="{{ route('settings.index') }}">
-                    <div class="parent-icon"><i class='bx bx-cog'></i>
-                    </div>
+                    <div class="parent-icon"><i class='bx bx-cog'></i></div>
                     <div class="menu-title">Settings</div>
                 </a>
             </li>
-            
-           
-          
+
             {{-- <li>
                 <a href="{{ route('transactions.index') }}">
                     <div class="parent-icon"><i class='bx bx-money'></i>
@@ -133,25 +141,21 @@
                     </li>
                 </ul>
             </li> --}}
-            <li class="menu-label">USERS</li>
+            <li class="menu-label">Users</li>
             <li>
                 <a href="javascript:;" class="has-arrow">
-                    <div class="parent-icon"><i class='bx bx-user   '></i>
-                    </div>
+                    <div class="parent-icon"><i class='bx bx-user'></i></div>
                     <div class="menu-title">Employee</div>
                 </a>
             <ul>
-                <li> 
+                <li>
                     <a href="{{ route('users.index') }}">
-                        <div class="parent-icon"><i class="bx bx-user-circle"></i>
-                        </div>
-                        Add User
+                        <i class="bx bx-right-arrow-alt"></i> Add user
                     </a>
                 </li>
                 <li>
                     <a href="showuser">
-                        <div class="parent-icon"><i class="bx bx-user-circle"></i></div>
-                        Manage User
+                        <i class="bx bx-right-arrow-alt"></i> Manage users
                     </a>
                 </li>
             </ul>
@@ -171,6 +175,10 @@
                         <input type="text" class="form-control search-control" placeholder="Type to search..."> <span class="position-absolute top-50 search-show translate-middle-y"><i class='bx bx-search'></i></span>
                         <span class="position-absolute top-50 search-close translate-middle-y"><i class='bx bx-x'></i></span>
                     </div>
+                </div>
+                <div class="d-none d-md-flex align-items-center gap-2 ms-3 flex-shrink-0">
+                    <a href="{{ route('orders.index') }}" class="btn btn-primary btn-sm px-3">POS</a>
+                    <a href="{{ route('inventory.receive.create') }}" class="btn btn-success btn-sm px-3">Receive</a>
                 </div>
                 <div class="top-menu ms-auto">
                     <ul class="navbar-nav align-items-center">

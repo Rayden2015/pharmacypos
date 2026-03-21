@@ -23,6 +23,8 @@ class HomeController extends Controller
      */
     public function index()
     {
-        return view('dashboard', DashboardController::dashboardViewData());
+        return view('dashboard', array_merge(DashboardController::dashboardViewData(), [
+            'welcome_name' => auth()->user()->name ?? 'Admin',
+        ]));
     }
 }

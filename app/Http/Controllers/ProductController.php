@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\InventoryMovement;
 use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class ProductController extends Controller
 {
@@ -101,9 +103,25 @@ class ProductController extends Controller
         $products->expiredate = $request->expiredate;
         $products->product_img = $fileNameToStore;
         
-        $products ->save();
+        $products->save();
+
+        $this->recordInventoryMovement($products, null, (int) $products->quantity, 'initial');
+
         return redirect('/products')->with('success', 'Product Added Successfully');
         return redirect()->back()->with('error', 'Product Registration Failed!');
+    }
+
+    /**
+     * Stock ledger for a product (movements in reverse chronological order).
+     */
+    public function inventoryHistory(Product $product)
+    {
+        $movements = $product->inventoryMovements()
+            ->with(['user:id,name', 'stockReceipt'])
+            ->latest()
+            ->paginate(50);
+
+        return view('products.inventory-history', compact('product', 'movements'));
     }
 
     /**
@@ -153,6 +171,7 @@ class ProductController extends Controller
             'volume' => 'nullable|string|max:128',
             'expiredate' => 'required|date',
             'product_img' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120',
+            'inventory_note' => 'nullable|string|max:500',
         ], [
             'product_img.image' => 'The product image must be a valid image file.',
             'product_img.mimes' => 'Use JPG, PNG, GIF, or WebP for the product image.',
@@ -160,6 +179,7 @@ class ProductController extends Controller
         ]);
 
         $products = Product::findOrFail($id);
+        $quantityBefore = (int) $products->quantity;
 
         if ($request->hasFile('product_img')) {
             //Get file name
@@ -190,8 +210,20 @@ class ProductController extends Controller
         $products->volume = ! empty($data['volume']) ? trim($data['volume']) : null;
         $products->expiredate = $data['expiredate'];
         $products->product_img = $fileNameToStore;
-        
-        $products ->save();
+        $quantityAfter = (int) $data['quantity'];
+
+        $products->save();
+
+        if ($quantityBefore !== $quantityAfter) {
+            $this->recordInventoryMovement(
+                $products,
+                $quantityBefore,
+                $quantityAfter,
+                'adjustment',
+                $request->input('inventory_note')
+            );
+        }
+
         return redirect()->back()->with('success', 'Product Updated Successfully');
         return redirect()->back()->with('error', 'Product Registration Failed!');
     }
@@ -223,5 +255,29 @@ class ProductController extends Controller
         }
 
         return (int) $value;
+    }
+
+    private function recordInventoryMovement(
+        Product $product,
+        ?int $quantityBefore,
+        int $quantityAfter,
+        string $changeType,
+        ?string $note = null
+    ): void {
+        $delta = $quantityBefore === null
+            ? $quantityAfter
+            : $quantityAfter - $quantityBefore;
+
+        InventoryMovement::create([
+            'product_id' => $product->id,
+            'user_id' => auth()->id(),
+            'quantity_before' => $quantityBefore,
+            'quantity_delta' => $delta,
+            'quantity_after' => $quantityAfter,
+            'change_type' => $changeType,
+            'note' => $note !== null && trim($note) !== ''
+                ? Str::limit(trim($note), 500)
+                : null,
+        ]);
     }
 }
