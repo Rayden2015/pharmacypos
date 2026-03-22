@@ -12,6 +12,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 class ProductController extends Controller
@@ -72,12 +73,46 @@ class ProductController extends Controller
      */
     public function store(Request $request)
     {
+        if (! $request->filled('sku') || trim((string) $request->input('sku')) === '') {
+            $request->merge(['sku' => null]);
+        }
+
+        $featureExpiry = (string) $request->input('feature_expiry') === '1';
+
         $request->validate([
+            'site_id' => 'required|exists:sites,id',
             'product_name' => 'required|string|max:255',
+            'slug' => 'nullable|string|max:255',
+            'sku' => 'nullable|string|max:64|unique:products,sku',
+            'item_code' => 'nullable|string|max:64',
+            'selling_type' => 'required|in:retail,wholesale',
+            'category' => 'nullable|string|max:128',
+            'sub_category' => 'nullable|string|max:128',
+            'barcode_symbology' => 'nullable|string|max:32',
+            'tax_type' => 'nullable|string|max:32',
+            'discount_type' => 'required|in:none,percent,fixed',
+            'discount_value' => 'nullable|numeric|min:0',
+            'product_type' => 'required|in:single,variable',
+            'warranty_term' => 'nullable|string|max:128',
+            'manufactured_date' => 'nullable|date',
+            'warehouse_note' => 'nullable|string|max:255',
             'manufacturer_id' => 'required|exists:manufacturers,id',
             'preferred_supplier_id' => 'nullable|exists:suppliers,id',
             'alias' => 'nullable|string|max:255',
-            'description' => 'nullable|string',
+            'description' => [
+                'nullable',
+                'string',
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    if ($value === null || $value === '') {
+                        return;
+                    }
+                    $plain = trim(preg_replace('/\s+/', ' ', strip_tags((string) $value)));
+                    $words = $plain === '' ? [] : preg_split('/\s+/u', $plain, -1, PREG_SPLIT_NO_EMPTY);
+                    if (count($words) > 60) {
+                        $fail('Description must be at most 60 words.');
+                    }
+                },
+            ],
             'price' => 'required|numeric|min:0',
             'supplierprice' => 'nullable|numeric|min:0',
             'quantity' => 'required|numeric|min:0',
@@ -85,7 +120,11 @@ class ProductController extends Controller
             'form' => 'required|string|max:100',
             'unit_of_measure' => 'nullable|string|max:64',
             'volume' => 'nullable|string|max:128',
-            'expiredate' => 'required|date',
+            'expiredate' => [
+                Rule::requiredIf(fn () => $featureExpiry),
+                'nullable',
+                'date',
+            ],
             'product_img' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120',
         ], [
             'product_img.image' => 'The product image must be a valid image file.',
@@ -108,36 +147,99 @@ class ProductController extends Controller
             $fileNameToStore = 'product.png';
         }
 
+        $slugBase = Str::slug((string) ($request->input('slug') ?: $request->input('product_name')));
+        $slug = $this->uniqueProductSlug($slugBase !== '' ? $slugBase : 'item');
+
+        $skuInput = $request->input('sku');
+        $sku = $this->uniqueProductSku($skuInput !== null && trim((string) $skuInput) !== '' ? trim((string) $skuInput) : null);
+
+        $expire = $featureExpiry
+            ? (string) $request->input('expiredate')
+            : '2099-12-31';
+
         $products = new Product;
+        $products->initial_site_id = (int) $request->input('site_id');
         $products->product_name = $request->product_name;
+        $products->slug = $slug;
+        $products->sku = $sku;
+        $products->item_code = $request->filled('item_code') ? trim((string) $request->item_code) : null;
+        $products->selling_type = $request->input('selling_type', 'retail');
+        $products->category = $request->input('category');
+        $products->sub_category = $request->input('sub_category');
+        $products->barcode_symbology = $request->input('barcode_symbology') ?: null;
+        $products->tax_type = $request->input('tax_type') ?: null;
+        $products->discount_type = $request->input('discount_type', 'none');
+        $products->discount_value = $request->input('discount_type') !== 'none'
+            ? $request->input('discount_value')
+            : null;
+        $products->product_type = $request->input('product_type', 'single');
+        $products->warranty_term = (string) $request->input('feature_warranty') === '1'
+            ? ($request->input('warranty_term') ?: null)
+            : null;
+        $products->manufactured_date = $request->input('manufactured_date');
+        $products->warehouse_note = $request->input('warehouse_note');
         $products->alias = $request->input('alias');
         $products->description = $request->description;
         $products->manufacturer_id = (int) $request->manufacturer_id;
         $products->preferred_supplier_id = $request->filled('preferred_supplier_id')
             ? (int) $request->preferred_supplier_id
             : null;
-        $products->price =$request->price;
-        $products->quantity =$request->quantity;
+        $products->price = $request->price;
+        $products->quantity = $request->quantity;
         $products->supplierprice = $request->supplierprice;
         $products->stock_alert = $this->normalizedStockAlert($request->input('stock_alert'));
         $products->form = $request->form;
         $products->unit_of_measure = $request->filled('unit_of_measure') ? $request->unit_of_measure : null;
         $products->volume = $request->filled('volume') ? trim($request->volume) : null;
-        $products->expiredate = $request->expiredate;
+        $products->expiredate = $expire;
         $products->product_img = $fileNameToStore;
-        
+
         $products->save();
 
+        $siteId = $products->initial_site_id ?? Site::defaultId();
         $this->recordInventoryMovement(
             $products,
             null,
             (int) $products->quantity,
             'initial',
             null,
-            Site::defaultId()
+            $siteId
         );
 
-        return redirect('/products')->with('success', 'Product Added Successfully');
+        $msg = 'Product Added Successfully';
+        if ($products->product_type === 'variable') {
+            $msg .= ' — Variable product saved as a single SKU; add variants in a future update.';
+        }
+
+        return redirect('/products')->with('success', $msg);
+    }
+
+    private function uniqueProductSlug(string $base): string
+    {
+        $slug = $base !== '' ? $base : 'item';
+        $candidate = $slug;
+        $i = 0;
+        while (Product::query()->where('slug', $candidate)->exists()) {
+            $i++;
+            $candidate = $slug.'-'.$i;
+        }
+
+        return $candidate;
+    }
+
+    private function uniqueProductSku(?string $sku): ?string
+    {
+        if ($sku === null || $sku === '') {
+            return null;
+        }
+        $candidate = $sku;
+        $i = 0;
+        while (Product::query()->where('sku', $candidate)->exists()) {
+            $i++;
+            $candidate = $sku.'-'.$i;
+        }
+
+        return $candidate;
     }
 
     /**

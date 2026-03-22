@@ -6,6 +6,7 @@ use App\Models\InventoryMovement;
 use App\Models\Manufacturer;
 use App\Models\Order_detail;
 use App\Models\Product;
+use App\Models\Site;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -54,6 +55,12 @@ class ProductValidationDashboardOrderTest extends TestCase
         $response = $this->actingAs($user)->post(route('products.store'), [
             'product_name' => $name,
             // manufacturer_id missing
+            'site_id' => Site::defaultId(),
+            'selling_type' => 'retail',
+            'discount_type' => 'none',
+            'product_type' => 'single',
+            'feature_expiry' => '1',
+            'feature_warranty' => '0',
             'description' => 'x',
             'price' => 10,
             'quantity' => 1,
@@ -66,6 +73,12 @@ class ProductValidationDashboardOrderTest extends TestCase
 
         $response2 = $this->actingAs($user)->from(url('addproduct'))->post(route('products.store'), [
             'product_name' => $name.'-2',
+            'site_id' => Site::defaultId(),
+            'selling_type' => 'retail',
+            'discount_type' => 'none',
+            'product_type' => 'single',
+            'feature_expiry' => '1',
+            'feature_warranty' => '0',
             'manufacturer_id' => $mId,
             'price' => 10,
             'quantity' => 1,
@@ -85,6 +98,12 @@ class ProductValidationDashboardOrderTest extends TestCase
 
         $response = $this->actingAs($user)->post(route('products.store'), [
             'product_name' => $name,
+            'site_id' => Site::defaultId(),
+            'selling_type' => 'retail',
+            'discount_type' => 'none',
+            'product_type' => 'single',
+            'feature_expiry' => '1',
+            'feature_warranty' => '0',
             'manufacturer_id' => Manufacturer::firstOrCreate(['name' => 'Co'], ['name' => 'Co'])->id,
             'description' => 'd',
             'price' => 10,
@@ -107,6 +126,12 @@ class ProductValidationDashboardOrderTest extends TestCase
 
         $response = $this->actingAs($user)->post(route('products.store'), [
             'product_name' => $name,
+            'site_id' => Site::defaultId(),
+            'selling_type' => 'retail',
+            'discount_type' => 'none',
+            'product_type' => 'single',
+            'feature_expiry' => '1',
+            'feature_warranty' => '0',
             'manufacturer_id' => Manufacturer::firstOrCreate(['name' => 'Co'], ['name' => 'Co'])->id,
             'description' => 'd',
             'price' => 10,

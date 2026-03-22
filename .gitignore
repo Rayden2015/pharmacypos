@@ -27,6 +27,9 @@ docker-compose.override.yml
 /bootstrap/cache/*
 !/bootstrap/cache/.gitignore
 
+# Dusk (Chrome for Testing; install via scripts/dusk-chromedriver.sh)
+/storage/dusk/chromedriver
+
 # Local / server cruft
 php.ini
 .well-known/

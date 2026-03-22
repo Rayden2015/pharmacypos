@@ -8,7 +8,9 @@ use App\Models\User;
 use App\Models\Manufacturer;
 use App\Models\Order;
 use App\Models\Product;
+use App\Models\Site;
 use App\Models\Supplier;
+use App\Support\CurrentSite;
 use Illuminate\Http\Request;
 
 class PagesController extends Controller
@@ -34,6 +36,9 @@ class PagesController extends Controller
         return view('products.addproduct', [
             'manufacturers' => Manufacturer::query()->orderBy('name')->get(['id', 'name']),
             'suppliers' => Supplier::query()->orderBy('supplier_name')->get(['id', 'supplier_name']),
+            'sites' => Site::query()->where('is_active', true)->orderBy('name')->get(['id', 'name', 'code']),
+            'default_site_id' => CurrentSite::id(),
+            'formCatalog' => config('product_form'),
         ]);
     }
 

@@ -235,107 +235,10 @@ Ready to Build Your POS Platform with AI?
 
 Stop building from scratch. Stop prompting blind. DreamsPOS gives you a production-ready, beautifully designed POS Inventory Management Admin Dashboard – now with a full AI-readiness layer built in. Whether you’re using Cursor, Claude Code, GitHub Copilot, or any other AI coding tool, DreamsPOS gives your AI the context it needs to build fast and build right. Whether you are building for retail, food, laundry, or a multi-store SaaS platform, DreamsPOS has the UI you need – already built, documented, and AI-ready.
 
-View Live Demo and purchase today to get started.
-
-FREE LIFETIME UPDATES
-
-Your DreamsPOS purchase includes free lifetime updates, ensuring continuous improvements, new features, and long term product reliability at no additional cost.
-
-Here are some items I recommend
-
-SmartHR - HRM & CRM Bootstrap Admin Dashboard Template (Html, Angular, Vue) - ThemeForest Item for Sale
-SmartHR - HRM & CRM Bootstrap Admin Dashboard Template (Html, Angular, Vue)
-by dreamstechnologies on ThemeForest
-$35
-        
-SmartHR - HRM & CRM Bootstrap Admin Dashboard Template (Html, Angular, Vue) - ThemeForest Item for Sale
-SmartHR - HRM & CRM Bootstrap Admin Dashboard Template (Html, Angular, Vue)
-by dreamstechnologies on ThemeForest
-$35
-        
-Doccure - Doctor, Clinic and Hospital Appointment Booking Website Template - ThemeForest Item for Sale
-Doccure - Doctor, Clinic and Hospital Appointment Booking Website Template
-by dreamstechnologies on ThemeForest
-$29
-        
-View collection
-
-More items by dreamstechnologies
-
-View author portfolio
-
-Regular License
-$35
- Included: Quality checked by Envato
- Included: Future updates
- Included: 6 months support from the author  
-
-Extend support to 12 months
-$27.13
-$11.63
-Quantity
 
 
- Add to Cart
-Price is in US dollars and excludes tax and handling fees
-Elite author
-Elite Author
-dreamstechnologies
-dreamstechnologies
 
-Elite Author Author Level 10 10 Years of Membership Trendsetter Exclusive Author Milestone Member Collector Level 2 India
-View Portfolio
-Last Update	20 March 2026
-High Resolution	Yes
-Compatible Browsers	Firefox, Safari, Opera, Chrome, Edge
-Compatible With	Angular 14.x.x, ReactJS, Bootstrap 5.x, TypeScript
-ThemeForest Files Included	PHP Files, HTML Files, CSS Files, Sass Files, SCSS Files, JS Files
-Columns	4+
-Documentation	Well Documented
 Layout	Responsive
 Tags	barcode scanner, billing system, cashier module, customer portal, expense tracker, inventory management, invoice system, order tracking, pharmacy pos, pos system, product management, stock control, vendor management
-Created	4 years ago
-© All Rights Reserved dreamstechnologies
-Contact the Envato Market Help Team
-Elements logo
-Your all-in-one
-creative subscription
-ai lab
-AI tools, with the best AI models
-perpetual
-Unlimited downloads on stock assets
-Subscribe to Envato Elements.
-Start now
-Collage of Elements items
-ENVATO MARKET
-Terms
-Licenses
-Market API
-Become an affiliate
-Cookies
-Cookie Settings
-HELP
-Help Center
-Authors
-OUR COMMUNITY
-Community
-Blog
-Meetups
-MEET ENVATO
-About Envato
-Careers
-Privacy Policy
-Do not sell or share my personal information
-Sitemap
-Envato Market
-78,529,771
-items sold
-$1,244,749,927
-community earnings
-Envato Elements  Placeit by Envato  Envato Tuts+  All Products  Sitemap
-Price is in US dollars and excludes tax and handling fees
-© 2026 Envato Pty Ltd. Trademarks and brands are the property of their respective owners.
-    
-by
-Price is in US dollars and excludes tax and handling fees
+
 

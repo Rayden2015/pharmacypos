@@ -58,6 +58,49 @@ class UserController extends Controller
         return view('users.showuser', compact('users', 'sites'));
     }
 
+    /**
+     * Dreams-style card grid for employees (/pharmacy/employees/grid).
+     */
+    public function employeesGrid(Request $request)
+    {
+        $query = User::query()
+            ->forCurrentSiteContext()
+            ->with('site:id,name,code');
+
+        if ($request->filled('search')) {
+            $term = '%'.$request->input('search').'%';
+            $query->where(function ($q) use ($term) {
+                $q->where('name', 'like', $term)
+                    ->orWhere('email', 'like', $term)
+                    ->orWhere('mobile', 'like', $term);
+            });
+        }
+
+        if ($request->query('status') === 'active') {
+            $query->where('status', '1');
+        } elseif ($request->query('status') === 'inactive') {
+            $query->where('status', '2');
+        }
+
+        if ($request->filled('role')) {
+            $query->where('is_admin', $request->input('role'));
+        }
+
+        $statsBase = User::query()->forCurrentSiteContext();
+        $stats = [
+            'total' => (clone $statsBase)->count(),
+            'active' => (clone $statsBase)->where('status', '1')->count(),
+            'inactive' => (clone $statsBase)->where('status', '2')->count(),
+            'new_this_month' => (clone $statsBase)->where('created_at', '>=', now()->startOfMonth())->count(),
+        ];
+
+        $users = $query->orderBy('name')->paginate(12)->withQueryString();
+
+        $sites = Site::query()->where('is_active', true)->orderBy('name')->get(['id', 'name', 'code']);
+
+        return view('users.employees-grid', compact('users', 'sites', 'stats'));
+    }
+
     public function profile()
     {
         return view('users.profile');

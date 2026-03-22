@@ -173,11 +173,35 @@
                     </a>
                 </li>
                 <li>
+                    <a href="{{ route('users.employees.grid') }}">
+                        <i class="bx bx-right-arrow-alt"></i> Employees (grid)
+                    </a>
+                </li>
+                <li>
                     <a href="{{ route('pharmacy.showuser') }}">
-                        <i class="bx bx-right-arrow-alt"></i> Manage users
+                        <i class="bx bx-right-arrow-alt"></i> Manage users (list)
                     </a>
                 </li>
             </ul>
+            </li>
+            <li>
+                <a href="javascript:;" class="has-arrow">
+                    <div class="parent-icon"><i class='bx bx-group'></i></div>
+                    <div class="menu-title">Customers</div>
+                </a>
+                <ul>
+                    <li>
+                        <a href="{{ route('customers.index', ['view' => 'grid']) }}">
+                            <i class="bx bx-right-arrow-alt"></i> Directory (grid)
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ route('customers.index', ['view' => 'list']) }}">
+                            <i class="bx bx-right-arrow-alt"></i> Directory (list)
+                        </a>
+                    </li>
+                </ul>
+            </li>
            
         </ul>
         <!--end navigation-->

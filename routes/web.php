@@ -19,6 +19,7 @@ use App\Http\Controllers\CrossSiteDashboardController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ManufacturerController;
 use App\Http\Controllers\PrescriptionController;
+use App\Http\Controllers\CustomerController;
 
 /*
 |--------------------------------------------------------------------------
@@ -42,6 +43,7 @@ Route::get('/home', [HomeController::class, 'index'])->name('home');
 
 Route::get('showuser', [UserController::class, 'manageUsers'])->name('users.manage');
 Route::get('pharmacy/showuser', [UserController::class, 'manageUsers'])->name('pharmacy.showuser');
+Route::get('pharmacy/employees/grid', [UserController::class, 'employeesGrid'])->name('users.employees.grid');
 Route::get('addproduct', [PagesController::class, 'addproduct']);
 Route::get('grid', [PagesController::class, 'grid']);
 
@@ -84,6 +86,7 @@ Route::resource('products', ProductController::class);
 Route::resource('manufacturers', ManufacturerController::class)->except(['show']);
 Route::resource('suppliers', SupplierController::class)->except(['show']);
 Route::resource('users', UserController::class);
+Route::resource('customers', CustomerController::class)->only(['index', 'store', 'update', 'destroy']);
 
 
 Route::resource('companies', CompanyController::class);

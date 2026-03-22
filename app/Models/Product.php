@@ -13,22 +13,37 @@ class Product extends Model
 
     protected $table = 'products';
 
+    /**
+     * Not persisted: branch where initial stock is posted (see {@see static::created}).
+     */
+    public ?int $initial_site_id = null;
+
     protected static function boot()
     {
         parent::boot();
 
         static::created(function (Product $product) {
-            ProductSiteStock::firstOrCreate(
-                ['product_id' => $product->id, 'site_id' => Site::defaultId()],
+            $siteId = $product->initial_site_id ?? Site::defaultId();
+            ProductSiteStock::updateOrCreate(
+                ['product_id' => $product->id, 'site_id' => $siteId],
                 ['quantity' => max(0, (int) $product->quantity)]
             );
+            static::syncQuantityFromSiteStocks($product->id);
         });
     }
 
     protected $fillable = [
-        'product_name', 'alias', 'description', 'manufacturer_id', 'preferred_supplier_id',
+        'product_name', 'slug', 'sku', 'item_code', 'selling_type', 'category', 'sub_category',
+        'barcode_symbology', 'tax_type', 'discount_type', 'discount_value', 'product_type',
+        'warranty_term', 'manufactured_date', 'warehouse_note',
+        'alias', 'description', 'manufacturer_id', 'preferred_supplier_id',
         'price', 'quantity', 'product_img',
         'supplierprice', 'stock_alert', 'form', 'unit_of_measure', 'volume', 'expiredate',
+    ];
+
+    protected $casts = [
+        'manufactured_date' => 'date',
+        'discount_value' => 'decimal:2',
     ];
 
     public function manufacturer(): BelongsTo

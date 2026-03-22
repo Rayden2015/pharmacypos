@@ -82,7 +82,7 @@ class ApplicationFlowsTest extends TestCase
         $this->actingAs($user)
             ->get(url('addproduct'))
             ->assertOk()
-            ->assertSee('Add New Product', false);
+            ->assertSee('Create product', false);
     }
 
     public function test_authenticated_user_can_create_a_product(): void
@@ -93,6 +93,12 @@ class ApplicationFlowsTest extends TestCase
 
         $response = $this->actingAs($user)->post(route('products.store'), [
             'product_name' => $name,
+            'site_id' => \App\Models\Site::defaultId(),
+            'selling_type' => 'retail',
+            'discount_type' => 'none',
+            'product_type' => 'single',
+            'feature_expiry' => '1',
+            'feature_warranty' => '0',
             'description' => 'Created by feature test',
             'manufacturer_id' => $m->id,
             'price' => 100,

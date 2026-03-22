@@ -5,6 +5,7 @@ namespace Tests\Feature\Pharmacy;
 use App\Models\InventoryMovement;
 use App\Models\Manufacturer;
 use App\Models\Product;
+use App\Models\Site;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -40,6 +41,12 @@ class InventoryMovementTest extends TestCase
 
         $this->actingAs($user)->post(route('products.store'), [
             'product_name' => $name,
+            'site_id' => Site::defaultId(),
+            'selling_type' => 'retail',
+            'discount_type' => 'none',
+            'product_type' => 'single',
+            'feature_expiry' => '1',
+            'feature_warranty' => '0',
             'manufacturer_id' => $mId,
             'description' => 'd',
             'price' => 10,
