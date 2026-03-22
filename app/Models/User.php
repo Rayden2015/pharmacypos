@@ -23,6 +23,9 @@ class User extends Authenticatable
             if ($user->site_id === null && ! $user->is_super_admin) {
                 $user->site_id = Site::defaultId();
             }
+            if ($user->company_id === null && ! $user->is_super_admin) {
+                $user->company_id = Company::defaultId();
+            }
         });
     }
 
@@ -38,6 +41,8 @@ class User extends Authenticatable
         'confirm_password',
         'is_admin',
         'is_super_admin',
+        'company_id',
+        'tenant_role',
         'site_id',
         'mobile',
         'user_img',
@@ -70,6 +75,51 @@ class User extends Authenticatable
     public function site()
     {
         return $this->belongsTo(Site::class);
+    }
+
+    public function company()
+    {
+        return $this->belongsTo(Company::class);
+    }
+
+    /** Platform operator (Dreams POS “Super Admin” sidebar). */
+    public function isPlatformSuperAdmin(): bool
+    {
+        return $this->isSuperAdmin();
+    }
+
+    /** Tenant-level administrator (manages org, branches, billing contact). */
+    public function isTenantAdmin(): bool
+    {
+        return $this->tenant_role === 'tenant_admin';
+    }
+
+    /**
+     * Hierarchy: tenant_admin → branch_manager → supervisor → cashier → officer.
+     * Legacy is_admin: 1 ≈ branch admin, 2 = cashier, 3 = manager maps to branch_manager.
+     */
+    public function hierarchyLabel(): string
+    {
+        if ($this->is_super_admin) {
+            return 'Super admin (platform)';
+        }
+        if ($this->tenant_role) {
+            return match ($this->tenant_role) {
+                'tenant_admin' => 'Tenant admin',
+                'branch_manager' => 'Branch manager',
+                'supervisor' => 'Supervisor',
+                'cashier' => 'Cashier',
+                'officer' => 'Officer',
+                default => $this->tenant_role,
+            };
+        }
+
+        return match ((int) $this->is_admin) {
+            1 => 'Admin (branch)',
+            2 => 'Cashier',
+            3 => 'Manager',
+            default => 'Staff',
+        };
     }
 
     /**

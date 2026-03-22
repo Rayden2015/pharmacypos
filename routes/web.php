@@ -6,7 +6,6 @@ use App\Http\Controllers\HomeController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\PagesController;
-use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\OrderDetailController;
@@ -20,6 +19,12 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ManufacturerController;
 use App\Http\Controllers\PrescriptionController;
 use App\Http\Controllers\CustomerController;
+use App\Http\Controllers\SuperAdmin\DashboardController as SuperAdminDashboardController;
+use App\Http\Controllers\SuperAdmin\DomainPlaceholderController;
+use App\Http\Controllers\SuperAdmin\SubscriptionPackageController;
+use App\Http\Controllers\SuperAdmin\SubscriptionPaymentController;
+use App\Http\Controllers\SuperAdmin\TenantCompanyController;
+use App\Http\Controllers\SuperAdmin\TenantSubscriptionController;
 
 /*
 |--------------------------------------------------------------------------
@@ -89,8 +94,20 @@ Route::resource('users', UserController::class);
 Route::resource('customers', CustomerController::class)->only(['index', 'store', 'update', 'destroy']);
 
 
-Route::resource('companies', CompanyController::class);
 Route::resource('transactions', TransactionController::class);
+
+Route::middleware(['auth', 'superadmin'])->prefix('super-admin')->name('super-admin.')->group(function () {
+    Route::get('/', [SuperAdminDashboardController::class, 'index'])->name('dashboard');
+    Route::get('domain', DomainPlaceholderController::class)->name('domain');
+    Route::resource('companies', TenantCompanyController::class)->except(['show']);
+    Route::resource('packages', SubscriptionPackageController::class)->except(['show']);
+    Route::get('subscriptions', [TenantSubscriptionController::class, 'index'])->name('subscriptions.index');
+    Route::get('subscriptions/create', [TenantSubscriptionController::class, 'create'])->name('subscriptions.create');
+    Route::post('subscriptions', [TenantSubscriptionController::class, 'store'])->name('subscriptions.store');
+    Route::get('purchase-transactions', [SubscriptionPaymentController::class, 'index'])->name('payments.index');
+    Route::get('purchase-transactions/create', [SubscriptionPaymentController::class, 'create'])->name('payments.create');
+    Route::post('purchase-transactions', [SubscriptionPaymentController::class, 'store'])->name('payments.store');
+});
 Route::get('reports/periodic',[App\Http\Controllers\ReportController::class, 'periodic'])->name('reports.periodic');
 Route::get('reports/periodicprint',[App\Http\Controllers\ReportController::class, 'periodicprint'])->name('reports.periodicprint');
 

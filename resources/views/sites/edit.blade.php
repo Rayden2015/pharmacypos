@@ -12,6 +12,16 @@
                         <form method="post" action="{{ route('sites.update', $site) }}">
                             @csrf
                             @method('PUT')
+                            @if (auth()->user()->isSuperAdmin() && isset($companies) && $companies->isNotEmpty())
+                                <div class="mb-3">
+                                    <label class="form-label">Tenant (company) <span class="text-danger">*</span></label>
+                                    <select name="company_id" class="form-select" required>
+                                        @foreach ($companies as $co)
+                                            <option value="{{ $co->id }}" @selected(old('company_id', $site->company_id) == $co->id)>{{ $co->company_name }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            @endif
                             <div class="mb-3">
                                 <label class="form-label">Name <span class="text-danger">*</span></label>
                                 <input type="text" name="name" class="form-control" value="{{ old('name', $site->name) }}" required maxlength="255">

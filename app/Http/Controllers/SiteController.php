@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Company;
 use App\Models\ProductSiteStock;
 use App\Models\Site;
 use App\Support\Audit;
@@ -19,30 +20,48 @@ class SiteController extends Controller
 
     public function index(): View
     {
-        $sites = Site::query()->orderBy('name')->paginate(20);
+        $sites = Site::query()
+            ->forUserTenant(auth()->user())
+            ->orderBy('name')
+            ->paginate(20);
 
         return view('sites.index', compact('sites'));
     }
 
     public function create(): View
     {
-        return view('sites.create');
+        $companies = auth()->user()->isSuperAdmin()
+            ? Company::query()->orderBy('company_name')->get(['id', 'company_name'])
+            : collect();
+
+        return view('sites.create', compact('companies'));
     }
 
     public function store(Request $request): RedirectResponse
     {
-        $data = $request->validate([
+        $viewer = $request->user();
+
+        $rules = [
             'name' => 'required|string|max:255',
             'code' => 'nullable|string|max:32|unique:sites,code',
             'address' => 'nullable|string|max:2000',
             'is_default' => 'nullable|boolean',
-        ]);
+        ];
+        if ($viewer->isSuperAdmin()) {
+            $rules['company_id'] = 'required|exists:companies,id';
+        }
+        $data = $request->validate($rules);
+
+        $companyId = $viewer->isSuperAdmin()
+            ? (int) $data['company_id']
+            : (int) ($viewer->company_id ?? Company::defaultId());
 
         if (! empty($data['is_default'])) {
-            Site::query()->update(['is_default' => false]);
+            Site::query()->where('company_id', $companyId)->update(['is_default' => false]);
         }
 
         Site::create([
+            'company_id' => $companyId,
             'name' => $data['name'],
             'code' => $data['code'] ?? null,
             'address' => $data['address'] ?? null,
@@ -55,24 +74,42 @@ class SiteController extends Controller
 
     public function edit(Site $site): View
     {
-        return view('sites.edit', compact('site'));
+        $this->authorizeSiteAccess($site);
+
+        $companies = auth()->user()->isSuperAdmin()
+            ? Company::query()->orderBy('company_name')->get(['id', 'company_name'])
+            : collect();
+
+        return view('sites.edit', compact('site', 'companies'));
     }
 
     public function update(Request $request, Site $site): RedirectResponse
     {
-        $data = $request->validate([
+        $this->authorizeSiteAccess($site);
+
+        $viewer = $request->user();
+        $rules = [
             'name' => 'required|string|max:255',
             'code' => 'nullable|string|max:32|unique:sites,code,'.$site->id,
             'address' => 'nullable|string|max:2000',
             'is_active' => 'nullable|boolean',
             'is_default' => 'nullable|boolean',
-        ]);
+        ];
+        if ($viewer->isSuperAdmin()) {
+            $rules['company_id'] = 'required|exists:companies,id';
+        }
+        $data = $request->validate($rules);
+
+        $companyId = $viewer->isSuperAdmin()
+            ? (int) $data['company_id']
+            : (int) $site->company_id;
 
         if (! empty($data['is_default'])) {
-            Site::query()->where('id', '!=', $site->id)->update(['is_default' => false]);
+            Site::query()->where('company_id', $companyId)->where('id', '!=', $site->id)->update(['is_default' => false]);
         }
 
         $site->update([
+            'company_id' => $companyId,
             'name' => $data['name'],
             'code' => $data['code'] ?? null,
             'address' => $data['address'] ?? null,
@@ -85,6 +122,8 @@ class SiteController extends Controller
 
     public function destroy(Site $site): RedirectResponse
     {
+        $this->authorizeSiteAccess($site);
+
         if ($site->is_default) {
             return redirect()->route('sites.index')->with('error', 'Cannot delete the default site.');
         }
@@ -130,6 +169,13 @@ class SiteController extends Controller
             'site_id' => 'required|exists:sites,id',
         ]);
 
+        $site = Site::query()->findOrFail((int) $request->site_id);
+        if (! $request->user()->isSuperAdmin()) {
+            if ((int) $site->company_id !== (int) ($request->user()->company_id ?? 0)) {
+                throw new AccessDeniedHttpException('That branch does not belong to your organization.');
+            }
+        }
+
         $previous = session('current_site_id');
         session([
             'current_site_id' => (int) $request->site_id,
@@ -147,5 +193,16 @@ class SiteController extends Controller
         );
 
         return redirect()->back()->with('success', 'Active site updated.');
+    }
+
+    private function authorizeSiteAccess(Site $site): void
+    {
+        $viewer = auth()->user();
+        if ($viewer->isSuperAdmin()) {
+            return;
+        }
+        if ((int) $site->company_id !== (int) ($viewer->company_id ?? 0)) {
+            abort(403);
+        }
     }
 }

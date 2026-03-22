@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Company;
 use App\Models\Site;
 use App\Models\User;
 use App\Support\CurrentSite;
@@ -37,7 +38,7 @@ class UserController extends Controller
             ->orderBy('name')
             ->paginate(5);
 
-        $sites = Site::query()->where('is_active', true)->orderBy('name')->get(['id', 'name', 'code']);
+        $sites = Site::query()->forUserTenant(auth()->user())->where('is_active', true)->orderBy('name')->get(['id', 'name', 'code']);
 
         return view('users.index', compact('users', 'sites'));
     }
@@ -53,7 +54,7 @@ class UserController extends Controller
             ->orderBy('name')
             ->paginate(15);
 
-        $sites = Site::query()->where('is_active', true)->orderBy('name')->get(['id', 'name', 'code']);
+        $sites = Site::query()->forUserTenant(auth()->user())->where('is_active', true)->orderBy('name')->get(['id', 'name', 'code']);
 
         return view('users.showuser', compact('users', 'sites'));
     }
@@ -96,7 +97,7 @@ class UserController extends Controller
 
         $users = $query->orderBy('name')->paginate(12)->withQueryString();
 
-        $sites = Site::query()->where('is_active', true)->orderBy('name')->get(['id', 'name', 'code']);
+        $sites = Site::query()->forUserTenant(auth()->user())->where('is_active', true)->orderBy('name')->get(['id', 'name', 'code']);
 
         return view('users.employees-grid', compact('users', 'sites', 'stats'));
     }
@@ -177,6 +178,7 @@ class UserController extends Controller
         if ($makeSuper) {
             $user->is_super_admin = true;
             $user->site_id = $request->filled('site_id') ? (int) $request->site_id : null;
+            $user->company_id = null;
         } else {
             $user->is_super_admin = false;
             if ($viewer->isSuperAdmin()) {
@@ -184,6 +186,8 @@ class UserController extends Controller
             } else {
                 $user->site_id = (int) CurrentSite::id();
             }
+            $site = Site::query()->find($user->site_id);
+            $user->company_id = $site?->company_id ?? Company::defaultId();
         }
 
         $user->save();
@@ -217,7 +221,7 @@ class UserController extends Controller
             ->orderBy('name')
             ->paginate(5);
 
-        $sites = Site::query()->where('is_active', true)->orderBy('name')->get(['id', 'name', 'code']);
+        $sites = Site::query()->forUserTenant(auth()->user())->where('is_active', true)->orderBy('name')->get(['id', 'name', 'code']);
 
         return view('users.index', compact('users', 'sites'));
     }
@@ -281,8 +285,11 @@ class UserController extends Controller
             $user->is_super_admin = $request->boolean('is_super_admin');
             if ($user->is_super_admin) {
                 $user->site_id = $request->filled('site_id') ? (int) $request->site_id : null;
+                $user->company_id = null;
             } else {
                 $user->site_id = $request->filled('site_id') ? (int) $request->site_id : CurrentSite::id();
+                $site = Site::query()->find($user->site_id);
+                $user->company_id = $site?->company_id ?? Company::defaultId();
             }
         }
 
@@ -322,6 +329,9 @@ class UserController extends Controller
         $viewer = auth()->user();
         if ($viewer->isSuperAdmin()) {
             return;
+        }
+        if ($viewer->company_id && (int) $target->company_id !== (int) $viewer->company_id) {
+            abort(403);
         }
         if ((int) $target->site_id !== (int) CurrentSite::id()) {
             abort(403);

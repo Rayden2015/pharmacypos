@@ -30,6 +30,36 @@
                     <div class="menu-title">Cross-site</div>
                 </a>
             </li>
+            <li class="menu-label">Super Admin</li>
+            <li>
+                <a href="{{ route('super-admin.dashboard') }}">
+                    <div class="parent-icon"><i class='bx bx-shield-quarter'></i></div>
+                    <div class="menu-title">Platform dashboard</div>
+                </a>
+            </li>
+            <li>
+                <a href="javascript:;" class="has-arrow">
+                    <div class="parent-icon"><i class='bx bx-globe'></i></div>
+                    <div class="menu-title">Tenants &amp; billing</div>
+                </a>
+                <ul>
+                    <li>
+                        <a href="{{ route('super-admin.companies.index') }}"><i class="bx bx-right-arrow-alt"></i> Companies (tenants)</a>
+                    </li>
+                    <li>
+                        <a href="{{ route('super-admin.subscriptions.index') }}"><i class="bx bx-right-arrow-alt"></i> Subscriptions</a>
+                    </li>
+                    <li>
+                        <a href="{{ route('super-admin.packages.index') }}"><i class="bx bx-right-arrow-alt"></i> Packages</a>
+                    </li>
+                    <li>
+                        <a href="{{ route('super-admin.domain') }}"><i class="bx bx-right-arrow-alt"></i> Domain</a>
+                    </li>
+                    <li>
+                        <a href="{{ route('super-admin.payments.index') }}"><i class="bx bx-right-arrow-alt"></i> Purchase transactions</a>
+                    </li>
+                </ul>
+            </li>
             @endif
             <li>
                 <a href="{{ route('orders.index') }}">

@@ -21,6 +21,7 @@ class AdminSeeder extends Seeder
                 'password' => bcrypt('secret'),
                 'confirm_password' => bcrypt('secret'),
                 'is_admin' => '1',
+                'is_super_admin' => true,
                 'mobile' => '0123456789',
                 'status' => '1',
             ]
