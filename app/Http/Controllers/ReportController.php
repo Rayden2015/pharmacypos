@@ -6,7 +6,9 @@ use App\Models\Order;
 use App\Models\Order_detail;
 use App\Models\Site;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ReportController extends Controller
 {
@@ -77,6 +79,124 @@ class ReportController extends Controller
      */
     public function sales(Request $request)
     {
+        [$startDate, $endDate] = $this->resolveSalesDateRange($request);
+        $viewer = $request->user();
+        $siteFilter = $request->filled('site_id') ? (int) $request->input('site_id') : null;
+
+        $orders = $this->salesOrdersQuery($request, $startDate, $endDate)
+            ->paginate(25)
+            ->withQueryString();
+
+        $orders->getCollection()->transform(function (Order $order) {
+            return $this->applySalesMetrics($order);
+        });
+
+        $sites = $viewer->isSuperAdmin()
+            ? Site::query()->where('is_active', true)->orderBy('name')->get(['id', 'name', 'code'])
+            : Site::query()->forUserTenant($viewer)->where('is_active', true)->orderBy('name')->get(['id', 'name', 'code']);
+
+        return view('reports.sales', compact(
+            'orders',
+            'sites',
+            'startDate',
+            'endDate',
+            'siteFilter'
+        ));
+    }
+
+    /**
+     * Same filters as the on-screen report; UTF-8 CSV for Excel / sheets.
+     */
+    public function salesExport(Request $request): StreamedResponse
+    {
+        [$startDate, $endDate] = $this->resolveSalesDateRange($request);
+        $filename = sprintf(
+            'sales-report-%s-to-%s.csv',
+            preg_replace('/[^0-9-]/', '', $startDate),
+            preg_replace('/[^0-9-]/', '', $endDate)
+        );
+
+        return response()->streamDownload(function () use ($request, $startDate, $endDate) {
+            $out = fopen('php://output', 'w');
+            fprintf($out, chr(0xEF).chr(0xBB).chr(0xBF));
+            fputcsv($out, [
+                'Invoice',
+                'Date',
+                'Branch',
+                'Customer',
+                'Mobile',
+                'Gross',
+                'Disc %',
+                'Total',
+                'Payment method',
+                'Paid',
+                'Status',
+            ]);
+
+            $this->salesOrdersQuery($request, $startDate, $endDate)
+                ->chunk(500, function ($orders) use ($out) {
+                    foreach ($orders as $order) {
+                        $this->applySalesMetrics($order);
+                        $status = $order->sales_payment_status;
+                        $statusLabel = $this->salesPaymentStatusCsvLabel($status);
+                        $siteName = $order->site ? $order->site->name : '';
+                        $payMethod = $order->transaction ? $order->transaction->payment_method : '';
+                        $paidAmt = $order->transaction ? (float) $order->transaction->paid_amount : 0.0;
+                        fputcsv($out, [
+                            '#ORD-'.str_pad((string) $order->id, 5, '0', STR_PAD_LEFT),
+                            $order->created_at->format('Y-m-d H:i:s'),
+                            $siteName,
+                            $order->name ?? '',
+                            $order->mobile ?? '',
+                            number_format((float) $order->sales_gross, 2, '.', ''),
+                            number_format((float) $order->sales_disc_pct, 1, '.', ''),
+                            number_format((float) $order->sales_net, 2, '.', ''),
+                            $payMethod,
+                            number_format($paidAmt, 2, '.', ''),
+                            $statusLabel,
+                        ]);
+                    }
+                });
+
+            fclose($out);
+        }, $filename, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+        ]);
+    }
+
+    /**
+     * Printable list (all rows in range, no pagination).
+     */
+    public function salesPrint(Request $request)
+    {
+        [$startDate, $endDate] = $this->resolveSalesDateRange($request);
+        $siteFilter = $request->filled('site_id') ? (int) $request->input('site_id') : null;
+
+        $orders = $this->salesOrdersQuery($request, $startDate, $endDate)->get();
+
+        $totalNet = 0.0;
+        foreach ($orders as $order) {
+            $this->applySalesMetrics($order);
+            $totalNet += (float) $order->sales_net;
+        }
+
+        $branchLabel = null;
+        if ($siteFilter) {
+            $branchLabel = Site::query()->whereKey($siteFilter)->value('name');
+        }
+
+        return view('reports.sales_print', compact(
+            'orders',
+            'startDate',
+            'endDate',
+            'siteFilter',
+            'branchLabel',
+            'totalNet'
+        ));
+    }
+
+    private function resolveSalesDateRange(Request $request): array
+    {
         $today = Carbon::today()->toDateString();
         $startDate = $request->filled('start_date')
             ? Carbon::parse($request->input('start_date'))->toDateString()
@@ -85,6 +205,11 @@ class ReportController extends Controller
             ? Carbon::parse($request->input('end_date'))->toDateString()
             : $today;
 
+        return [$startDate, $endDate];
+    }
+
+    private function salesOrdersQuery(Request $request, string $startDate, string $endDate): Builder
+    {
         $viewer = $request->user();
         $siteFilter = $request->filled('site_id') ? (int) $request->input('site_id') : null;
 
@@ -111,34 +236,23 @@ class ReportController extends Controller
             }
         }
 
-        $orders = $ordersQuery->paginate(25)->withQueryString();
+        return $ordersQuery;
+    }
 
-        $orders->getCollection()->transform(function (Order $order) {
-            $details = $order->orderdetail;
-            $gross = (float) $details->sum(function (Order_detail $l) {
-                return (float) $l->quantity * (float) $l->unitprice;
-            });
-            $net = (float) $details->sum('amount');
-            $discPct = $gross > 0.0001 ? round((1 - $net / $gross) * 100, 1) : 0.0;
-            $order->setAttribute('sales_gross', $gross);
-            $order->setAttribute('sales_net', $net);
-            $order->setAttribute('sales_disc_pct', $discPct);
-            $order->setAttribute('sales_payment_status', $this->paymentStatusLabel($order, $net));
-
-            return $order;
+    private function applySalesMetrics(Order $order): Order
+    {
+        $details = $order->orderdetail;
+        $gross = (float) $details->sum(function (Order_detail $l) {
+            return (float) $l->quantity * (float) $l->unitprice;
         });
+        $net = (float) $details->sum('amount');
+        $discPct = $gross > 0.0001 ? round((1 - $net / $gross) * 100, 1) : 0.0;
+        $order->setAttribute('sales_gross', $gross);
+        $order->setAttribute('sales_net', $net);
+        $order->setAttribute('sales_disc_pct', $discPct);
+        $order->setAttribute('sales_payment_status', $this->paymentStatusLabel($order, $net));
 
-        $sites = $viewer->isSuperAdmin()
-            ? Site::query()->where('is_active', true)->orderBy('name')->get(['id', 'name', 'code'])
-            : Site::query()->forUserTenant($viewer)->where('is_active', true)->orderBy('name')->get(['id', 'name', 'code']);
-
-        return view('reports.sales', compact(
-            'orders',
-            'sites',
-            'startDate',
-            'endDate',
-            'siteFilter'
-        ));
+        return $order;
     }
 
     private function paymentStatusLabel(Order $order, float $net): string
@@ -156,5 +270,20 @@ class ReportController extends Controller
         }
 
         return 'partial';
+    }
+
+    private function salesPaymentStatusCsvLabel(string $status): string
+    {
+        if ($status === 'paid') {
+            return 'Paid';
+        }
+        if ($status === 'partial') {
+            return 'Partial';
+        }
+        if ($status === 'pending') {
+            return 'Pending';
+        }
+
+        return '';
     }
 }

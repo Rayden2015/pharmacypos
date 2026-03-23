@@ -99,4 +99,75 @@ class SalesReportTest extends TestCase
             ->assertSee('Jane Cooper', false)
             ->assertSee('#ORD-'.str_pad((string) $order->id, 5, '0', STR_PAD_LEFT), false);
     }
+
+    public function test_sales_csv_export_streams_csv_for_current_filters(): void
+    {
+        $user = $this->makeUser();
+
+        $product = Product::create([
+            'product_name' => 'CSV SKU '.uniqid(),
+            'description' => 'd',
+            'manufacturer_id' => Manufacturer::firstOrCreate(['name' => 'M2'], ['name' => 'M2'])->id,
+            'price' => 50,
+            'supplierprice' => 25,
+            'quantity' => 5,
+            'stock_alert' => 1,
+            'form' => 'Tablet',
+            'expiredate' => '2030-01-01',
+            'product_img' => 'product.png',
+        ]);
+
+        $order = new Order;
+        $order->name = 'CSV Customer';
+        $order->mobile = '0244111222';
+        $order->site_id = $user->site_id ?? \App\Models\Site::defaultId();
+        $order->save();
+
+        Order_detail::create([
+            'order_id' => $order->id,
+            'product_id' => $product->id,
+            'quantity' => 1,
+            'unitprice' => 50,
+            'discount' => 0,
+            'amount' => 50,
+            'unit_of_measure' => null,
+            'volume' => null,
+        ]);
+
+        Transaction::create([
+            'order_id' => $order->id,
+            'user_id' => $user->id,
+            'transaction_amount' => 50,
+            'paid_amount' => 50,
+            'balance' => 0,
+            'payment_method' => 'MoMo',
+            'transaction_date' => now()->toDateString(),
+        ]);
+
+        $response = $this->actingAs($user)->get(route('reports.sales.export', [
+            'start_date' => now()->toDateString(),
+            'end_date' => now()->toDateString(),
+        ]));
+
+        $response->assertOk();
+        $response->assertHeader('content-disposition');
+        $csv = $response->streamedContent();
+        $this->assertStringContainsString('Invoice', $csv);
+        $this->assertStringContainsString('CSV Customer', $csv);
+        $this->assertStringContainsString('MoMo', $csv);
+    }
+
+    public function test_sales_print_page_loads_with_heading(): void
+    {
+        $user = $this->makeUser();
+
+        $this->actingAs($user)
+            ->get(route('reports.sales.print', [
+                'start_date' => now()->toDateString(),
+                'end_date' => now()->toDateString(),
+            ]))
+            ->assertOk()
+            ->assertSee('Sales report', false)
+            ->assertSee('Invoice', false);
+    }
 }

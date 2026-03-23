@@ -134,6 +134,8 @@ Route::middleware(['auth', 'superadmin'])->prefix('super-admin')->name('super-ad
 });
 Route::get('reports/periodic',[App\Http\Controllers\ReportController::class, 'periodic'])->name('reports.periodic');
 Route::get('reports/periodicprint',[App\Http\Controllers\ReportController::class, 'periodicprint'])->name('reports.periodicprint');
+Route::get('reports/sales/export', [App\Http\Controllers\ReportController::class, 'salesExport'])->name('reports.sales.export');
+Route::get('reports/sales/print', [App\Http\Controllers\ReportController::class, 'salesPrint'])->name('reports.sales.print');
 Route::get('reports/sales', [App\Http\Controllers\ReportController::class, 'sales'])->name('reports.sales');
 
 Route::get('settings', [SettingsController::class, 'index'])->name('settings.index');

@@ -314,6 +314,9 @@
                     </div>
                 </div>
                 <div class="d-none d-md-flex align-items-center gap-2 ms-3 flex-shrink-0">
+                    @if (auth()->check() && auth()->user()->isSuperAdmin())
+                    <a href="{{ route('reports.sales') }}" class="btn btn-outline-primary btn-sm px-3">Sales report</a>
+                    @endif
                     @if (auth()->check() && ! auth()->user()->isSuperAdmin())
                     <a href="{{ route('orders.index') }}" class="btn btn-primary btn-sm px-3">POS</a>
                     <a href="{{ route('reports.periodic') }}" class="btn btn-outline-primary btn-sm px-3">Today's sales</a>
