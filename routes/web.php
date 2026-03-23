@@ -82,6 +82,7 @@ Route::middleware(['auth', 'tenant.communications'])->group(function () {
     Route::get('notifications/{announcement}', [AnnouncementController::class, 'show'])->name('notifications.show');
 });
 
+Route::get('orders/customers/lookup', [OrderController::class, 'lookupCustomer'])->name('orders.customers.lookup');
 Route::resource('orders', OrderController::class);
 Route::resource('report', OrderDetailController::class);
 Route::get('products/{product}/inventory-history', [ProductController::class, 'inventoryHistory'])

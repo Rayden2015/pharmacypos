@@ -159,14 +159,16 @@
                                         <tbody>
                                             <tr>
                                                 <td>
-                                                    <label for="cutomer" class=""><b>Customer Name:</b></label>
-                                                    <input type="name" name="customerName" id="customerName"
-                                                        class="form-control customerName">
+                                                    <label for="customerName" class=""><b>Customer Name:</b></label>
+                                                    <input type="text" name="customerName" id="customerName"
+                                                        class="form-control customerName" autocomplete="name"
+                                                        placeholder="Walk-in name">
                                                 </td>
                                                 <td>
-                                                    <label for="" class=""><b>Customer Mobile:</b></label>
-                                                    <input type="number" name="customerMobile" id="customerMobile"
-                                                        class="form-control customerMobile">
+                                                    <label for="customerMobile" class=""><b>Customer Mobile:</b></label>
+                                                    <input type="tel" name="customerMobile" id="customerMobile"
+                                                        class="form-control customerMobile" autocomplete="tel"
+                                                        inputmode="tel" placeholder="e.g. 0244123456">
                                                 </td>
                                             </tr>
 
@@ -327,7 +329,34 @@
             updateChange();
         });
 
+        (function posCustomerLookup() {
+            var lookupUrl = @json(route('orders.customers.lookup'));
+            var debounceTimer = null;
 
+            function runLookup() {
+                var phone = ($('#customerMobile').val() || '').trim();
+                if (phone.length < 6) {
+                    return;
+                }
+                fetch(lookupUrl + '?phone=' + encodeURIComponent(phone), {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    credentials: 'same-origin'
+                }).then(function(r) { return r.json(); }).then(function(data) {
+                    if (data && data.found && data.name) {
+                        $('#customerName').val(data.name);
+                    }
+                }).catch(function() { /* ignore */ });
+            }
+
+            $('#customerMobile').on('blur', function() {
+                clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(runLookup, 200);
+            });
+        })();
 
         //Report printing Section
         function ReceiptContent(el){

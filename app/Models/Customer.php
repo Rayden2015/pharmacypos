@@ -8,6 +8,33 @@ use Illuminate\Database\Eloquent\Model;
 
 class Customer extends Model
 {
+    /** Strip to digits for comparing phone numbers across formatting differences. */
+    public static function normalizeMobile(?string $mobile): string
+    {
+        return preg_replace('/\D+/', '', (string) $mobile);
+    }
+
+    /**
+     * Find a customer in this company (any branch site) whose mobile matches when normalized.
+     */
+    public static function findForCompanyByNormalizedMobile(int $companyId, string $rawMobile): ?self
+    {
+        $norm = self::normalizeMobile($rawMobile);
+        if ($norm === '') {
+            return null;
+        }
+
+        $siteIds = Site::query()->where('company_id', $companyId)->pluck('id')->all();
+        if ($siteIds === []) {
+            return null;
+        }
+
+        return self::query()
+            ->whereIn('site_id', $siteIds)
+            ->get()
+            ->first(fn (self $c) => self::normalizeMobile($c->mobile) === $norm);
+    }
+
     protected $fillable = [
         'code',
         'name',
