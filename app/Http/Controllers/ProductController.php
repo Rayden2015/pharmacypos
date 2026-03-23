@@ -36,7 +36,10 @@ class ProductController extends Controller
      */
     public function index()
     {
-        $products = Product::with(['manufacturer', 'preferredSupplier'])->paginate(5);
+        $products = Product::query()
+            ->forTenantCatalog()
+            ->with(['manufacturer', 'preferredSupplier'])
+            ->paginate(5);
 
         return view('products.index', array_merge(
             ['products' => $products],
@@ -81,9 +84,21 @@ class ProductController extends Controller
 
         $request->validate([
             'site_id' => 'required|exists:sites,id',
+        ]);
+
+        $site = Site::query()->findOrFail((int) $request->input('site_id'));
+        $this->authorizeSiteForUser($request->user(), $site);
+        $companyId = (int) $site->company_id;
+
+        $request->validate([
             'product_name' => 'required|string|max:255',
             'slug' => 'nullable|string|max:255',
-            'sku' => 'nullable|string|max:64|unique:products,sku',
+            'sku' => [
+                'nullable',
+                'string',
+                'max:64',
+                Rule::unique('products', 'sku')->where(fn ($q) => $q->where('company_id', $companyId)),
+            ],
             'item_code' => 'nullable|string|max:64',
             'selling_type' => 'required|in:retail,wholesale',
             'category' => 'nullable|string|max:128',
@@ -148,10 +163,10 @@ class ProductController extends Controller
         }
 
         $slugBase = Str::slug((string) ($request->input('slug') ?: $request->input('product_name')));
-        $slug = $this->uniqueProductSlug($slugBase !== '' ? $slugBase : 'item');
+        $slug = $this->uniqueProductSlug($slugBase !== '' ? $slugBase : 'item', $companyId);
 
         $skuInput = $request->input('sku');
-        $sku = $this->uniqueProductSku($skuInput !== null && trim((string) $skuInput) !== '' ? trim((string) $skuInput) : null);
+        $sku = $this->uniqueProductSku($skuInput !== null && trim((string) $skuInput) !== '' ? trim((string) $skuInput) : null, $companyId);
 
         $expire = $featureExpiry
             ? (string) $request->input('expiredate')
@@ -159,6 +174,7 @@ class ProductController extends Controller
 
         $products = new Product;
         $products->initial_site_id = (int) $request->input('site_id');
+        $products->company_id = $companyId;
         $products->product_name = $request->product_name;
         $products->slug = $slug;
         $products->sku = $sku;
@@ -214,12 +230,12 @@ class ProductController extends Controller
         return redirect('/products')->with('success', $msg);
     }
 
-    private function uniqueProductSlug(string $base): string
+    private function uniqueProductSlug(string $base, int $companyId): string
     {
         $slug = $base !== '' ? $base : 'item';
         $candidate = $slug;
         $i = 0;
-        while (Product::query()->where('slug', $candidate)->exists()) {
+        while (Product::query()->where('company_id', $companyId)->where('slug', $candidate)->exists()) {
             $i++;
             $candidate = $slug.'-'.$i;
         }
@@ -227,14 +243,14 @@ class ProductController extends Controller
         return $candidate;
     }
 
-    private function uniqueProductSku(?string $sku): ?string
+    private function uniqueProductSku(?string $sku, int $companyId): ?string
     {
         if ($sku === null || $sku === '') {
             return null;
         }
         $candidate = $sku;
         $i = 0;
-        while (Product::query()->where('sku', $candidate)->exists()) {
+        while (Product::query()->where('company_id', $companyId)->where('sku', $candidate)->exists()) {
             $i++;
             $candidate = $sku.'-'.$i;
         }
@@ -242,11 +258,37 @@ class ProductController extends Controller
         return $candidate;
     }
 
+    private function authorizeSiteForUser(\App\Models\User $user, Site $site): void
+    {
+        if ($user->isSuperAdmin()) {
+            return;
+        }
+        if ((int) $site->company_id !== (int) ($user->company_id ?? 0)) {
+            abort(403, 'That branch does not belong to your organization.');
+        }
+    }
+
+    private function authorizeProductAccess(Product $product): void
+    {
+        $user = auth()->user();
+        if (! $user) {
+            abort(403);
+        }
+        if ($user->isSuperAdmin()) {
+            return;
+        }
+        if ((int) $product->company_id !== (int) ($user->company_id ?? 0)) {
+            abort(403);
+        }
+    }
+
     /**
      * Stock ledger for a product (movements in reverse chronological order).
      */
     public function inventoryHistory(Product $product)
     {
+        $this->authorizeProductAccess($product);
+
         $movements = $product->inventoryMovements()
             ->with(['user:id,name', 'stockReceipt'])
             ->latest()
@@ -288,6 +330,9 @@ class ProductController extends Controller
      */
     public function update(Request $request, $id)
     {
+        $products = Product::findOrFail($id);
+        $this->authorizeProductAccess($products);
+
         $request->validate([
             'product_name' => 'required|string|max:255',
             'manufacturer_id' => 'required|exists:manufacturers,id',
@@ -309,8 +354,6 @@ class ProductController extends Controller
             'product_img.mimes' => 'Use JPG, PNG, GIF, or WebP for the product image.',
             'product_img.max' => 'The product image may not be greater than 5 MB.',
         ]);
-
-        $products = Product::findOrFail($id);
 
         if ($request->hasFile('product_img')) {
             //Get file name
@@ -404,6 +447,8 @@ class ProductController extends Controller
      */
     public function destroy(Product $product)
     {
+        $this->authorizeProductAccess($product);
+
         if($product->product_img != 'product.png'){
             Storage::delete('public/products/'.$product->product_img );
         }

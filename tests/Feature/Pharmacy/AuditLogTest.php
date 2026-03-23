@@ -88,7 +88,16 @@ class AuditLogTest extends TestCase
 
     public function test_site_switch_records_explicit_audit(): void
     {
-        $user = $this->makeAdmin();
+        $user = User::create([
+            'name' => 'Audit Admin',
+            'email' => 'audit-admin-switch@example.test',
+            'password' => bcrypt('secret'),
+            'confirm_password' => bcrypt('secret'),
+            'is_admin' => 1,
+            'mobile' => '0244222000',
+            'status' => '1',
+            'tenant_role' => 'tenant_admin',
+        ]);
         $main = Site::query()->where('is_default', true)->firstOrFail();
         $second = Site::create([
             'name' => 'Warehouse',

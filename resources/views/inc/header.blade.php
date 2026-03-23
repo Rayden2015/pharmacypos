@@ -14,6 +14,7 @@
             </div>
         </div>
         <!--navigation-->
+        {{-- Order: typical pharmacy day — front desk & sales first, then patients, comms, inventory, receiving, admin --}}
         <ul class="metismenu" id="menu">
 
             <li class="menu-label">Main</li>
@@ -61,18 +62,108 @@
                 </ul>
             </li>
             @endif
+
+            @if (auth()->check() && ! auth()->user()->isSuperAdmin())
+            <li class="menu-label">Daily operations</li>
             <li>
                 <a href="{{ route('orders.index') }}">
-                    <div class="parent-icon"><i class='bx bx-edit'></i></div>
+                    <div class="parent-icon"><i class='bx bx-cart'></i></div>
                     <div class="menu-title">POS</div>
                 </a>
             </li>
+            <li>
+                <a href="{{ route('reports.periodic') }}">
+                    <div class="parent-icon"><i class='bx bx-line-chart'></i></div>
+                    <div class="menu-title">Today's sales</div>
+                </a>
+            </li>
+            <li>
+                <a href="{{ route('reports.periodicprint') }}" target="_blank" rel="noopener">
+                    <div class="parent-icon"><i class='bx bx-printer'></i></div>
+                    <div class="menu-title">Print today's sales</div>
+                </a>
+            </li>
+            <li>
+                <a href="{{ route('pharmacy.prescriptions') }}">
+                    <div class="parent-icon"><i class='bx bx-file'></i></div>
+                    <div class="menu-title">Prescriptions</div>
+                </a>
+            </li>
+            <li>
+                <a href="javascript:;" class="has-arrow">
+                    <div class="parent-icon"><i class='bx bx-group'></i></div>
+                    <div class="menu-title">Customers</div>
+                </a>
+                <ul>
+                    <li>
+                        <a href="{{ route('customers.index', ['view' => 'grid']) }}">
+                            <i class="bx bx-right-arrow-alt"></i> Directory (grid)
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ route('customers.index', ['view' => 'list']) }}">
+                            <i class="bx bx-right-arrow-alt"></i> Directory (list)
+                        </a>
+                    </li>
+                </ul>
+            </li>
+            @elseif (auth()->check() && auth()->user()->isSuperAdmin())
+            <li class="menu-label">Reports &amp; tenant tools</li>
+            <li>
+                <a href="{{ route('reports.periodic') }}">
+                    <div class="parent-icon"><i class='bx bx-line-chart'></i></div>
+                    <div class="menu-title">Today's sales</div>
+                </a>
+            </li>
+            <li>
+                <a href="{{ route('reports.periodicprint') }}" target="_blank" rel="noopener">
+                    <div class="parent-icon"><i class='bx bx-printer'></i></div>
+                    <div class="menu-title">Print today's sales</div>
+                </a>
+            </li>
+            <li>
+                <a href="{{ route('pharmacy.prescriptions') }}">
+                    <div class="parent-icon"><i class='bx bx-file'></i></div>
+                    <div class="menu-title">Prescriptions</div>
+                </a>
+            </li>
+            <li>
+                <a href="javascript:;" class="has-arrow">
+                    <div class="parent-icon"><i class='bx bx-group'></i></div>
+                    <div class="menu-title">Customers</div>
+                </a>
+                <ul>
+                    <li>
+                        <a href="{{ route('customers.index', ['view' => 'grid']) }}"><i class="bx bx-right-arrow-alt"></i> Directory (grid)</a>
+                    </li>
+                    <li>
+                        <a href="{{ route('customers.index', ['view' => 'list']) }}"><i class="bx bx-right-arrow-alt"></i> Directory (list)</a>
+                    </li>
+                </ul>
+            </li>
+            @endif
 
-            <li class="menu-label">Inventory</li>
+            @if (auth()->check() && auth()->user()->canUseTenantCommunications())
+            <li class="menu-label">Communications</li>
+            <li>
+                <a href="{{ route('messages.index') }}">
+                    <div class="parent-icon"><i class='bx bx-envelope'></i></div>
+                    <div class="menu-title">Messages</div>
+                </a>
+            </li>
+            <li>
+                <a href="{{ route('notifications.index') }}">
+                    <div class="parent-icon"><i class='bx bx-bell'></i></div>
+                    <div class="menu-title">Announcements</div>
+                </a>
+            </li>
+            @endif
+
+            <li class="menu-label">Inventory &amp; catalog</li>
             <li>
                 <a href="javascript:;" class="has-arrow">
                     <div class="parent-icon"><i class='bx bx-package'></i></div>
-                    <div class="menu-title">Medicines &amp; catalog</div>
+                    <div class="menu-title">Medicines &amp; master data</div>
                 </a>
                 <ul>
                     <li><a href="{{ route('products.index') }}"><i class="bx bx-right-arrow-alt"></i>Medicine list</a></li>
@@ -89,15 +180,7 @@
                 </ul>
             </li>
 
-            <li class="menu-label">Prescriptions</li>
-            <li>
-                <a href="{{ route('pharmacy.prescriptions') }}">
-                    <div class="parent-icon"><i class='bx bx-file'></i></div>
-                    <div class="menu-title">Prescriptions</div>
-                </a>
-            </li>
-
-            <li class="menu-label">Stock</li>
+            <li class="menu-label">Stock &amp; receiving</li>
             <li>
                 <a href="{{ route('inventory.manage-stock') }}">
                     <div class="parent-icon"><i class='bx bx-cube'></i></div>
@@ -117,14 +200,6 @@
                 </a>
             </li>
             <li>
-                <a href="{{ route('sites.index') }}">
-                    <div class="parent-icon"><i class='bx bx-buildings'></i></div>
-                    <div class="menu-title">Sites / branches</div>
-                </a>
-            </li>
-
-            <li class="menu-label">Purchases</li>
-            <li>
                 <a href="{{ route('inventory.receive.create') }}">
                     <div class="parent-icon"><i class='bx bx-down-arrow-circle'></i></div>
                     <div class="menu-title">Receive stock</div>
@@ -137,18 +212,38 @@
                 </a>
             </li>
 
-            <li class="menu-label">Sales &amp; reports</li>
             <li>
-                <a href="{{ route('reports.periodic') }}">
-                    <div class="parent-icon"><i class='bx bx-chart'></i></div>
-                    <div class="menu-title">Today's report</div>
+                <a href="javascript:;" class="has-arrow">
+                    <div class="parent-icon"><i class='bx bx-briefcase'></i></div>
+                    <div class="menu-title">Administration</div>
                 </a>
-            </li>
-            <li>
-                <a href="{{ route('settings.index') }}">
-                    <div class="parent-icon"><i class='bx bx-cog'></i></div>
-                    <div class="menu-title">Settings</div>
-                </a>
+                <ul>
+                    <li>
+                        <a href="{{ route('sites.index') }}"><i class="bx bx-right-arrow-alt"></i> Sites / branches</a>
+                    </li>
+                    @if (auth()->check() && ! auth()->user()->isSuperAdmin() && (auth()->user()->isTenantAdmin() || auth()->user()->can('tenant.roles.manage')))
+                    <li>
+                        <a href="{{ route('roles.index') }}"><i class="bx bx-right-arrow-alt"></i> Roles &amp; permissions</a>
+                    </li>
+                    @endif
+                    <li>
+                        <a href="javascript:;" class="has-arrow">Employees</a>
+                        <ul>
+                            <li>
+                                <a href="{{ route('users.index') }}"><i class="bx bx-right-arrow-alt"></i> Add user</a>
+                            </li>
+                            <li>
+                                <a href="{{ route('users.employees.grid') }}"><i class="bx bx-right-arrow-alt"></i> Employees (grid)</a>
+                            </li>
+                            <li>
+                                <a href="{{ route('pharmacy.showuser') }}"><i class="bx bx-right-arrow-alt"></i> Manage users (list)</a>
+                            </li>
+                        </ul>
+                    </li>
+                    <li>
+                        <a href="{{ route('settings.index') }}"><i class="bx bx-right-arrow-alt"></i> Settings</a>
+                    </li>
+                </ul>
             </li>
 
             {{-- <li>
@@ -190,49 +285,6 @@
                     </li>
                 </ul>
             </li> --}}
-            <li class="menu-label">Users</li>
-            <li>
-                <a href="javascript:;" class="has-arrow">
-                    <div class="parent-icon"><i class='bx bx-user'></i></div>
-                    <div class="menu-title">Employee</div>
-                </a>
-            <ul>
-                <li>
-                    <a href="{{ route('users.index') }}">
-                        <i class="bx bx-right-arrow-alt"></i> Add user
-                    </a>
-                </li>
-                <li>
-                    <a href="{{ route('users.employees.grid') }}">
-                        <i class="bx bx-right-arrow-alt"></i> Employees (grid)
-                    </a>
-                </li>
-                <li>
-                    <a href="{{ route('pharmacy.showuser') }}">
-                        <i class="bx bx-right-arrow-alt"></i> Manage users (list)
-                    </a>
-                </li>
-            </ul>
-            </li>
-            <li>
-                <a href="javascript:;" class="has-arrow">
-                    <div class="parent-icon"><i class='bx bx-group'></i></div>
-                    <div class="menu-title">Customers</div>
-                </a>
-                <ul>
-                    <li>
-                        <a href="{{ route('customers.index', ['view' => 'grid']) }}">
-                            <i class="bx bx-right-arrow-alt"></i> Directory (grid)
-                        </a>
-                    </li>
-                    <li>
-                        <a href="{{ route('customers.index', ['view' => 'list']) }}">
-                            <i class="bx bx-right-arrow-alt"></i> Directory (list)
-                        </a>
-                    </li>
-                </ul>
-            </li>
-           
         </ul>
         <!--end navigation-->
     </div>
@@ -250,9 +302,12 @@
                     </div>
                 </div>
                 <div class="d-none d-md-flex align-items-center gap-2 ms-3 flex-shrink-0">
+                    @if (auth()->check() && ! auth()->user()->isSuperAdmin())
                     <a href="{{ route('orders.index') }}" class="btn btn-primary btn-sm px-3">POS</a>
+                    <a href="{{ route('reports.periodic') }}" class="btn btn-outline-primary btn-sm px-3">Today's sales</a>
+                    @endif
                     <a href="{{ route('inventory.receive.create') }}" class="btn btn-success btn-sm px-3">Receive</a>
-                    @if (isset($sitesForSwitcher) && $sitesForSwitcher->count() > 0)
+                    @if (!empty($showDashboardAllSitesOption) || (isset($sitesForSwitcher) && $sitesForSwitcher->count() > 1))
                         <form method="post" action="{{ route('sites.switch') }}" class="d-flex align-items-center gap-1 mb-0">
                             @csrf
                             <label class="small text-muted mb-0 d-none d-lg-inline">Site</label>
@@ -315,66 +370,9 @@
                                 </div>
                             </div>
                         </li>
-                        <li class="nav-item dropdown dropdown-large">
-                            <a class="nav-link dropdown-toggle dropdown-toggle-nocaret position-relative" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false"> <span class="alert-count">7</span>
-                                <i class='bx bx-bell'></i>
-                            </a>
-                            <div class="dropdown-menu dropdown-menu-end">
-                                <a href="javascript:;">
-                                    <div class="msg-header">
-                                        <p class="msg-header-title">Notifications</p>
-                                        <p class="msg-header-clear ms-auto">Marks all as read</p>
-                                    </div>
-                                </a>
-                                <div class="header-notifications-list">
-                                    <a class="dropdown-item" href="javascript:;">
-                                        <div class="d-flex align-items-center">
-                                            <div class="notify bg-light-primary text-primary"><i class="bx bx-group"></i>
-                                            </div>
-                                            <div class="flex-grow-1">
-                                                <h6 class="msg-name">New Customers<span class="msg-time float-end">14 Sec
-                                            ago</span></h6>
-                                                <p class="msg-info">5 new user registered</p>
-                                            </div>
-                                        </div>
-                                    </a>
-                                    
-                                </div>
-                                <a href="javascript:;">
-                                    <div class="text-center msg-footer">View All Notifications</div>
-                                </a>
-                            </div>
-                        </li>
-                        <li class="nav-item dropdown dropdown-large">
-                            <a class="nav-link dropdown-toggle dropdown-toggle-nocaret position-relative" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false"> <span class="alert-count">8</span>
-                                <i class='bx bx-comment'></i>
-                            </a>
-                            <div class="dropdown-menu dropdown-menu-end">
-                                <a href="javascript:;">
-                                    <div class="msg-header">
-                                        <p class="msg-header-title">Messages</p>
-                                        <p class="msg-header-clear ms-auto">Marks all as read</p>
-                                    </div>
-                                </a>
-                                <div class="header-message-list">
-                                    <a class="dropdown-item" href="javascript:;">
-                                        <div class="d-flex align-items-center">
-                                            <div class="user-online">
-                                                <img src="assets/images/avatars/avatar-1.png" class="msg-avatar" alt="user avatar">
-                                            </div>
-                                            <div class="flex-grow-1">
-                                                <h6 class="msg-name">Daisy Anderson <span class="msg-time float-end">5 sec
-                                            ago</span></h6>
-                                                <p class="msg-info">The standard chunk of lorem</p>
-                                            </div>
-                                        </div>
-                                    </a>
-                                </div>
-                                <a href="javascript:;">
-                                    <div class="text-center msg-footer">View All Messages</div>
-                                </a>
-                            </div>
-                        </li>
+                        @auth
+                            @include('inc.header-notifications-messages')
+                        @endauth
                     </ul>
                 </div>
                 @guest

@@ -34,3 +34,8 @@ docker-compose.override.yml
 php.ini
 .well-known/
 Archive.zip
+
+# Uploaded product images (local storage; not source)
+/storage/app/public/products/*.jpg
+/storage/app/public/products/*.jpeg
+/storage/app/public/products/*.png

@@ -9,11 +9,12 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
     use Auditable;
-    use HasFactory, Notifiable;
+    use HasFactory, HasRoles, Notifiable;
 
     protected static function boot()
     {
@@ -157,5 +158,54 @@ class User extends Authenticatable
     public function auditLogs()
     {
         return $this->hasMany(AuditLog::class);
+    }
+
+    public function sentDirectMessages()
+    {
+        return $this->hasMany(DirectMessage::class, 'sender_id');
+    }
+
+    public function receivedDirectMessages()
+    {
+        return $this->hasMany(DirectMessage::class, 'recipient_id');
+    }
+
+    public function readAnnouncements()
+    {
+        return $this->belongsToMany(Announcement::class, 'announcement_reads')
+            ->withPivot('read_at')
+            ->withTimestamps();
+    }
+
+    /** Tenant staff messaging & announcements (not platform super admins). */
+    public function canUseTenantCommunications(): bool
+    {
+        return ! $this->isSuperAdmin() && $this->company_id !== null;
+    }
+
+    /**
+     * Who may post org/branch announcements: tenant admins, branch managers, legacy managers.
+     */
+    public function canPublishAnnouncements(): bool
+    {
+        if (! $this->canUseTenantCommunications()) {
+            return false;
+        }
+
+        if ($this->isTenantAdmin()) {
+            return true;
+        }
+
+        if ($this->tenant_role === 'branch_manager') {
+            return true;
+        }
+
+        return (int) $this->is_admin === 3;
+    }
+
+    /** Branch-scoped announcement authors may only target their home branch. */
+    public function isBranchAnnouncementAuthor(): bool
+    {
+        return $this->tenant_role === 'branch_manager' || ((int) $this->is_admin === 3 && ! $this->isTenantAdmin());
     }
 }

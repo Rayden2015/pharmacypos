@@ -25,6 +25,9 @@ use App\Http\Controllers\SuperAdmin\SubscriptionPackageController;
 use App\Http\Controllers\SuperAdmin\SubscriptionPaymentController;
 use App\Http\Controllers\SuperAdmin\TenantCompanyController;
 use App\Http\Controllers\SuperAdmin\TenantSubscriptionController;
+use App\Http\Controllers\Tenant\RoleController as TenantRoleController;
+use App\Http\Controllers\DirectMessageController;
+use App\Http\Controllers\AnnouncementController;
 
 /*
 |--------------------------------------------------------------------------
@@ -58,6 +61,26 @@ Auth::routes();
 Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
 Route::get('dashboard/export', [DashboardController::class, 'exportCsv'])->name('dashboard.export');
 Route::get('dashboard/cross-site', [CrossSiteDashboardController::class, 'index'])->name('dashboard.cross-site');
+
+Route::middleware(['auth', 'tenant.communications'])->group(function () {
+    /*
+     * Inbox must be registered as GET messages/ (index) before GET messages/{user}, otherwise
+     * some stacks can treat the second segment incorrectly. Numeric-only {user} avoids clashes
+     * with paths like messages/mark-all-read.
+     */
+    Route::prefix('messages')->name('messages.')->group(function () {
+        Route::get('/', [DirectMessageController::class, 'index'])->name('index');
+        Route::post('mark-all-read', [DirectMessageController::class, 'markAllRead'])->name('mark-all-read');
+        Route::get('{user}', [DirectMessageController::class, 'show'])->name('show')->whereNumber('user');
+        Route::post('/', [DirectMessageController::class, 'store'])->name('store');
+    });
+
+    Route::get('notifications', [AnnouncementController::class, 'index'])->name('notifications.index');
+    Route::get('notifications/create', [AnnouncementController::class, 'create'])->name('notifications.create');
+    Route::post('notifications', [AnnouncementController::class, 'store'])->name('notifications.store');
+    Route::post('notifications/mark-all-read', [AnnouncementController::class, 'markAllRead'])->name('notifications.mark-all-read');
+    Route::get('notifications/{announcement}', [AnnouncementController::class, 'show'])->name('notifications.show');
+});
 
 Route::resource('orders', OrderController::class);
 Route::resource('report', OrderDetailController::class);
@@ -113,3 +136,5 @@ Route::get('reports/periodicprint',[App\Http\Controllers\ReportController::class
 
 Route::get('settings', [SettingsController::class, 'index'])->name('settings.index');
 Route::put('settings', [SettingsController::class, 'update'])->name('settings.update');
+
+Route::middleware(['auth', 'tenant.roles'])->resource('roles', TenantRoleController::class)->except(['show']);

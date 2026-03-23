@@ -2,11 +2,13 @@
 
 namespace Database\Seeders;
 
+use App\Models\Company;
 use App\Models\Manufacturer;
 use App\Models\Order;
 use App\Models\Order_detail;
 use App\Models\Prescription;
 use App\Models\Product;
+use App\Models\Site;
 use App\Models\Transaction;
 use App\Models\User;
 use Carbon\Carbon;
@@ -27,7 +29,9 @@ class DemoDataSeeder extends Seeder
      */
     public function run()
     {
-        $user = User::query()->orderBy('id')->first();
+        $user = User::query()->where('email', 'cashier@demo.test')->first()
+            ?? User::query()->where('is_super_admin', false)->orderBy('id')->first()
+            ?? User::query()->orderBy('id')->first();
         if (! $user) {
             $this->command->warn('No users found. Run AdminSeeder first.');
 
@@ -59,10 +63,14 @@ class DemoDataSeeder extends Seeder
                 'Abena Frimpong',
             ];
 
+            $companyIdForSites = (int) ($user->company_id ?? Company::query()->orderBy('id')->value('id'));
+            $defaultSiteId = $this->defaultSiteIdForCompany($companyIdForSites);
+
             foreach ($orderScenarios as $idx => $scenario) {
                 $order = new Order;
                 $order->name = $customerNames[$idx % count($customerNames)];
                 $order->mobile = self::DEMO_MOBILE;
+                $order->site_id = $defaultSiteId;
                 $order->save();
 
                 $placed = Carbon::now()->startOfDay()->subDays($scenario['day'])
@@ -166,6 +174,9 @@ class DemoDataSeeder extends Seeder
         $products = [];
         $exp = Carbon::now()->addYear()->format('Y-m-d');
 
+        $companyId = (int) Company::query()->orderBy('id')->value('id');
+        $initialSiteId = $this->defaultSiteIdForCompany($companyId);
+
             foreach ($rows as $i => $r) {
             [$name, $alias, $desc, $brand, $form, $price, $supplier, $qty, $uom, $vol] = $r;
 
@@ -174,27 +185,43 @@ class DemoDataSeeder extends Seeder
                 ['name' => $brand]
             );
 
-            $product = Product::updateOrCreate(
-                ['product_name' => $name],
-                [
-                    'alias' => $alias,
-                    'description' => $desc,
-                    'manufacturer_id' => $manufacturer->id,
-                    'form' => $form,
-                    'unit_of_measure' => $uom,
-                    'volume' => $vol,
-                    'expiredate' => $exp,
-                    'price' => $price,
-                    'supplierprice' => $supplier,
-                    'quantity' => $qty,
-                    'stock_alert' => $qty < 50 ? 20 : 30,
-                    'product_img' => 'product.png',
-                ]
-            );
+            $product = Product::firstOrNew(['product_name' => $name]);
+            $product->fill([
+                'company_id' => $companyId,
+                'alias' => $alias,
+                'description' => $desc,
+                'manufacturer_id' => $manufacturer->id,
+                'form' => $form,
+                'unit_of_measure' => $uom,
+                'volume' => $vol,
+                'expiredate' => $exp,
+                'price' => $price,
+                'supplierprice' => $supplier,
+                'quantity' => $qty,
+                'stock_alert' => $qty < 50 ? 20 : 30,
+                'product_img' => 'product.png',
+            ]);
+            $product->initial_site_id = $initialSiteId;
+            $product->save();
             $products[$i] = $product->fresh();
         }
 
         return $products;
+    }
+
+    private function defaultSiteIdForCompany(int $companyId): int
+    {
+        if ($companyId < 1) {
+            return Site::defaultId();
+        }
+
+        $id = (int) Site::query()
+            ->where('company_id', $companyId)
+            ->where('is_default', true)
+            ->orderBy('id')
+            ->value('id');
+
+        return $id > 0 ? $id : Site::defaultId();
     }
 
     private function clearPreviousDemoSales(): void

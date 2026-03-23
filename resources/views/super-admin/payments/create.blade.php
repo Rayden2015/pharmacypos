@@ -39,7 +39,15 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Payment method</label>
-                        <input type="text" name="payment_method" class="form-control" value="{{ old('payment_method') }}" placeholder="Credit Card, Paypal, …">
+                        <select name="payment_method" class="form-select">
+                            <option value="">— Not specified —</option>
+                            @foreach ($paymentMethods as $pm)
+                                <option value="{{ $pm }}" @selected(old('payment_method') === $pm)>{{ $pm }}</option>
+                            @endforeach
+                        </select>
+                        @error('payment_method')
+                            <div class="text-danger small mt-1">{{ $message }}</div>
+                        @enderror
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Status <span class="text-danger">*</span></label>

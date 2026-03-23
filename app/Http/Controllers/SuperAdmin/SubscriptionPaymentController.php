@@ -8,10 +8,14 @@ use App\Models\SubscriptionPayment;
 use App\Models\TenantSubscription;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class SubscriptionPaymentController extends Controller
 {
+    /** @var list<string> */
+    public const PAYMENT_METHOD_OPTIONS = ['Cash', 'Mobile Money', 'POS', 'Card'];
+
     public function __construct()
     {
         $this->middleware(['auth', 'superadmin']);
@@ -53,7 +57,9 @@ class SubscriptionPaymentController extends Controller
             ->limit(200)
             ->get();
 
-        return view('super-admin.payments.create', compact('companies', 'subscriptions'));
+        $paymentMethods = self::PAYMENT_METHOD_OPTIONS;
+
+        return view('super-admin.payments.create', compact('companies', 'subscriptions', 'paymentMethods'));
     }
 
     public function store(Request $request): RedirectResponse
@@ -63,7 +69,7 @@ class SubscriptionPaymentController extends Controller
             'tenant_subscription_id' => 'nullable|exists:tenant_subscriptions,id',
             'invoice_reference' => 'nullable|string|max:64|unique:subscription_payments,invoice_reference',
             'amount' => 'required|numeric|min:0',
-            'payment_method' => 'nullable|string|max:48',
+            'payment_method' => ['nullable', 'string', 'max:48', Rule::in(self::PAYMENT_METHOD_OPTIONS)],
             'status' => 'required|in:paid,unpaid,refunded',
             'paid_at' => 'nullable|date',
             'description' => 'nullable|string|max:2000',
@@ -71,12 +77,17 @@ class SubscriptionPaymentController extends Controller
 
         $paidAt = isset($data['paid_at']) ? \Carbon\Carbon::parse($data['paid_at']) : ($data['status'] === 'paid' ? now() : null);
 
+        $method = $data['payment_method'] ?? null;
+        if ($method === '' || $method === null) {
+            $method = null;
+        }
+
         SubscriptionPayment::query()->create([
             'company_id' => (int) $data['company_id'],
             'tenant_subscription_id' => $data['tenant_subscription_id'] ?? null,
             'invoice_reference' => $data['invoice_reference'] ?? null,
             'amount' => $data['amount'],
-            'payment_method' => $data['payment_method'] ?? null,
+            'payment_method' => $method,
             'status' => $data['status'],
             'paid_at' => $paidAt,
             'description' => $data['description'] ?? null,

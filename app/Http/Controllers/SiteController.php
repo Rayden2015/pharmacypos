@@ -174,6 +174,10 @@ class SiteController extends Controller
             if ((int) $site->company_id !== (int) ($request->user()->company_id ?? 0)) {
                 throw new AccessDeniedHttpException('That branch does not belong to your organization.');
             }
+            $allowed = Site::forSessionSwitcher($request->user())->pluck('id')->map(fn ($id) => (int) $id);
+            if (! $allowed->contains((int) $request->site_id)) {
+                throw new AccessDeniedHttpException('You cannot switch to that branch.');
+            }
         }
 
         $previous = session('current_site_id');

@@ -26,7 +26,11 @@
                     @endif
                 </div>
                 <div class="d-flex flex-wrap gap-2 align-items-center">
+                    @if (!auth()->user()->isSuperAdmin())
                     <a href="{{ route('orders.index') }}" class="btn btn-primary btn-sm"><i class="bx bx-cart me-1"></i>POS</a>
+                    @else
+                    <a href="{{ route('super-admin.dashboard') }}" class="btn btn-primary btn-sm"><i class="bx bx-shield-quarter me-1"></i>Platform</a>
+                    @endif
                     <a href="{{ route('inventory.receive.create') }}" class="btn btn-success btn-sm"><i class="bx bx-package me-1"></i>Receive stock</a>
                     <div class="dropdown">
                         <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">Export</button>
@@ -418,7 +422,9 @@
                                             </tbody>
                                         </table>
                                     </div>
+                                    @if (!auth()->user()->isSuperAdmin())
                                     <a href="{{ route('orders.index') }}" class="btn btn-link btn-sm px-0 mt-2">Open POS</a>
+                                    @endif
                                 </div>
                                 <div class="tab-pane fade" id="dashTabPurchases" role="tabpanel">
                                     <div class="table-responsive">
@@ -455,7 +461,11 @@
                 <div class="card-body">
                     <h6 class="mb-3">Quick actions</h6>
                     <div class="d-flex flex-wrap gap-2">
+                        @if (!auth()->user()->isSuperAdmin())
                         <a href="{{ route('orders.index') }}" class="btn btn-primary"><i class="bx bx-cart me-1"></i>POS / New sale</a>
+                        @else
+                        <a href="{{ route('super-admin.dashboard') }}" class="btn btn-primary"><i class="bx bx-shield-quarter me-1"></i>Platform dashboard</a>
+                        @endif
                         <a href="{{ route('inventory.receive.create') }}" class="btn btn-success"><i class="bx bx-package me-1"></i>Receive stock</a>
                         <a href="{{ route('inventory.manage-stock') }}" class="btn btn-outline-primary"><i class="bx bx-cube me-1"></i>Manage stock</a>
                         <a href="{{ route('inventory.batches') }}" class="btn btn-outline-primary"><i class="bx bx-layer me-1"></i>Batch management</a>

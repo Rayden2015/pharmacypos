@@ -1,0 +1,95 @@
+/* Dreams-style notifications & messages (header dropdowns) */
+.dropdown-large .msg-header .header-alerts-mark-read {
+    color: #ff6b35;
+    font-weight: 500;
+    font-size: 12px;
+    cursor: pointer;
+    border: 0;
+    background: none;
+    padding: 0;
+    margin: 0;
+}
+
+.dropdown-large .msg-header .header-alerts-mark-read:hover {
+    color: #e85d00;
+    text-decoration: underline;
+}
+
+.notify-avatar-initials {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 600;
+    color: #fff;
+    line-height: 1;
+}
+
+.dropdown-alerts-item .dropdown-item {
+    transition: background-color 0.15s ease;
+}
+
+.dropdown-alerts-item .dropdown-item:hover {
+    background-color: #f8f9fa;
+}
+
+.dropdown-alerts-footer {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    border-top: 1px solid #ededed;
+    background: #fff;
+    border-bottom-left-radius: 10px;
+    border-bottom-right-radius: 10px;
+}
+
+.notify-unread-dot {
+    width: 8px;
+    height: 8px;
+    min-width: 8px;
+    border-radius: 50%;
+    background: #f62718;
+    margin-top: 6px;
+    box-shadow: 0 0 0 2px #fff;
+}
+
+.header-notifications-list,
+.header-message-list {
+    max-height: 320px;
+    overflow-y: auto;
+}
+
+.alert-count--messages {
+    left: 22px;
+}
+
+/* Match Dreams-style orange primary on dropdown footers */
+.dropdown-alerts-footer .btn-primary {
+    background-color: #ff6b35;
+    border-color: #ff6b35;
+    color: #fff;
+}
+
+.dropdown-alerts-footer .btn-primary:hover {
+    background-color: #e85d00;
+    border-color: #e85d00;
+    color: #fff;
+}
+
+/* Bell: show dot instead of number when using .alert-dot-only */
+.nav-link .alert-dot-only {
+    position: absolute;
+    top: 8px;
+    left: 22px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #f62718;
+    border: 2px solid #fff;
+}

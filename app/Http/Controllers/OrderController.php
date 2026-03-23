@@ -7,6 +7,7 @@ use App\Models\Order;
 use App\Models\Order_detail;
 use App\Models\Product;
 use App\Models\ProductSiteStock;
+use App\Models\Site;
 use App\Models\Transaction;
 use App\Support\CurrentSite;
 use Illuminate\Http\Request;
@@ -27,6 +28,7 @@ class OrderController extends Controller
     public function __construct()
     {
         $this->middleware('auth');
+        $this->middleware('pos_staff');
     }
 
     /**
@@ -36,7 +38,7 @@ class OrderController extends Controller
      */
     public function index()
     {
-        $products = Product::all();
+        $products = Product::query()->forTenantCatalog()->orderBy('product_name')->get();
         $orders = Order::all();
          //Display Last Order details
          $lastId = Order_detail::max('order_id');
@@ -72,6 +74,7 @@ class OrderController extends Controller
             $order_id = $orders->id;
 
             $siteId = CurrentSite::id();
+            $site = Site::query()->findOrFail($siteId);
 
             $productIds = $request->product_id ?? [];
             $quantities = $request->quantity ?? [];
@@ -85,6 +88,11 @@ class OrderController extends Controller
                 $product = Product::query()->lockForUpdate()->find($productIds[$i]);
                 if (! $product) {
                     continue;
+                }
+                if ((int) $product->company_id !== (int) $site->company_id) {
+                    throw ValidationException::withMessages([
+                        'product_id' => 'Invalid product for this branch.',
+                    ]);
                 }
                 $unitPrice = (float) $product->price;
                 $qty = (int) ($quantities[$i] ?? 0);

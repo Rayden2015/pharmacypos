@@ -11,6 +11,7 @@ use App\Models\Supplier;
 use App\Support\CurrentSite;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class StockReceiptController extends Controller
 {
@@ -33,6 +34,7 @@ class StockReceiptController extends Controller
     public function create(Request $request)
     {
         $products = Product::query()
+            ->forTenantCatalog()
             ->orderBy('product_name')
             ->get(['id', 'product_name', 'alias', 'unit_of_measure', 'volume', 'quantity']);
 
@@ -40,7 +42,7 @@ class StockReceiptController extends Controller
 
         $prefillProductId = $request->query('product_id');
 
-        $sites = Site::query()->where('is_active', true)->orderBy('name')->get(['id', 'name', 'code']);
+        $sites = Site::query()->forUserTenant(auth()->user())->where('is_active', true)->orderBy('name')->get(['id', 'name', 'code']);
         $defaultSiteId = CurrentSite::id();
 
         return view('stock-receipts.create', compact('products', 'suppliers', 'prefillProductId', 'sites', 'defaultSiteId'));
@@ -63,6 +65,14 @@ class StockReceiptController extends Controller
         $siteId = isset($data['site_id']) ? (int) $data['site_id'] : CurrentSite::id();
 
         $receipt = DB::transaction(function () use ($data, $siteId) {
+            $site = Site::query()->findOrFail($siteId);
+            $product = Product::query()->forTenantCatalog()->lockForUpdate()->findOrFail((int) $data['product_id']);
+            if ((int) $product->company_id !== (int) $site->company_id) {
+                throw ValidationException::withMessages([
+                    'product_id' => 'Product and receiving site must belong to the same organization.',
+                ]);
+            }
+
             $receipt = StockReceipt::query()->create([
                 'product_id' => (int) $data['product_id'],
                 'user_id' => auth()->id(),

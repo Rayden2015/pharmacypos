@@ -142,63 +142,63 @@ html.color-sidebar .sidebar-wrapper {
 
 
 .switcher-wrapper .sidebarcolor1 {
-	background-image: url(../images/bg-themes/1-1.png);
+	background-image: linear-gradient(135deg, #0727d7 0%, #051a8c 100%);
 }
 .switcher-wrapper .sidebarcolor2 {
-	background-image: url(../images/bg-themes/2-1.png);
+	background-image: linear-gradient(135deg, #23282c 0%, #121518 100%);
 }
 .switcher-wrapper .sidebarcolor3 {
-	background-image: url(../images/bg-themes/3-1.png);
+	background-image: linear-gradient(135deg, #e10a1f 0%, #8a0613 100%);
 }
 .switcher-wrapper .sidebarcolor4 {
-	background-image: url(../images/bg-themes/4-1.png);
+	background-image: linear-gradient(135deg, #157d4c 0%, #0c4a2d 100%);
 }
 .switcher-wrapper .sidebarcolor5 {
-	background-image: url(../images/bg-themes/5-1.png);
+	background-image: linear-gradient(135deg, #673ab7 0%, #3e2280 100%);
 }
 .switcher-wrapper .sidebarcolor6 {
-	background-image: url(../images/bg-themes/6-1.png);
+	background-image: linear-gradient(135deg, #795548 0%, #4a332c 100%);
 }
 .switcher-wrapper .sidebarcolor7 {
-	background-image: url(../images/bg-themes/7-1.png);
+	background-image: linear-gradient(135deg, #d3094e 0%, #7d052f 100%);
 }
 .switcher-wrapper .sidebarcolor8 {
-	background-image: url(../images/bg-themes/8-1.png);
+	background-image: linear-gradient(135deg, #ff9800 0%, #b86a00 100%);
 }
 
 
 
 
 html.color-sidebar.sidebarcolor1 .sidebar-wrapper {
-    background-image: url(../images/bg-themes/1-1.png);
+    background-image: linear-gradient(135deg, #0727d7 0%, #051a8c 100%);
 }
 
 html.color-sidebar.sidebarcolor2 .sidebar-wrapper {
-    background-image: url(../images/bg-themes/2-1.png);
+    background-image: linear-gradient(135deg, #23282c 0%, #121518 100%);
 }
 
 html.color-sidebar.sidebarcolor3 .sidebar-wrapper {
-    background-image: url(../images/bg-themes/3-1.png);
+    background-image: linear-gradient(135deg, #e10a1f 0%, #8a0613 100%);
 }
 
 html.color-sidebar.sidebarcolor4 .sidebar-wrapper {
-    background-image: url(../images/bg-themes/4-1.png);
+    background-image: linear-gradient(135deg, #157d4c 0%, #0c4a2d 100%);
 }
 
 html.color-sidebar.sidebarcolor5 .sidebar-wrapper {
-    background-image: url(../images/bg-themes/5-1.png);
+    background-image: linear-gradient(135deg, #673ab7 0%, #3e2280 100%);
 }
 
 html.color-sidebar.sidebarcolor6 .sidebar-wrapper {
-    background-image: url(../images/bg-themes/6-1.png);
+    background-image: linear-gradient(135deg, #795548 0%, #4a332c 100%);
 }
 
 html.color-sidebar.sidebarcolor7 .sidebar-wrapper {
-    background-image: url(../images/bg-themes/7-1.png);
+    background-image: linear-gradient(135deg, #d3094e 0%, #7d052f 100%);
 }
 
 html.color-sidebar.sidebarcolor8 .sidebar-wrapper {
-    background-image: url(../images/bg-themes/8-1.png);
+    background-image: linear-gradient(135deg, #ff9800 0%, #b86a00 100%);
 }
 
 

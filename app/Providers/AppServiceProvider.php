@@ -6,6 +6,7 @@ use App\Models\Setting;
 use App\Models\Site;
 use App\Models\UnitOfMeasure;
 use App\Support\CurrentSite;
+use App\View\Composers\HeaderCommunicationsComposer;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
@@ -56,7 +57,7 @@ class AppServiceProvider extends ServiceProvider
                 }
                 $user = auth()->user();
                 $view->with([
-                    'sitesForSwitcher' => Site::query()->where('is_active', true)->orderBy('name')->get(['id', 'name', 'code']),
+                    'sitesForSwitcher' => $user ? Site::forSessionSwitcher($user) : collect(),
                     'currentSiteId' => CurrentSite::id(),
                     'dashboardAllSites' => $user ? CurrentSite::dashboardAllSites() : false,
                     'showDashboardAllSitesOption' => $user && $user->isSuperAdmin(),
@@ -70,6 +71,8 @@ class AppServiceProvider extends ServiceProvider
                 ]);
             }
         });
+
+        View::composer('inc.header-notifications-messages', HeaderCommunicationsComposer::class);
 
         View::composer('products.partials.unit-of-measure-select', function ($view) {
             try {

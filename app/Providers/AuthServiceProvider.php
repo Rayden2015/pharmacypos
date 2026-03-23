@@ -25,6 +25,11 @@ class AuthServiceProvider extends ServiceProvider
     {
         $this->registerPolicies();
 
-        //
+        // After Spatie registers Gate::before, allow platform super admins all abilities.
+        \Illuminate\Support\Facades\Gate::before(function ($user, $ability) {
+            if ($user instanceof \App\Models\User && $user->isSuperAdmin()) {
+                return true;
+            }
+        });
     }
 }

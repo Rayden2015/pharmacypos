@@ -44,7 +44,10 @@ class PagesController extends Controller
 
     public function grid()
     {
-        $products = Product::with(['manufacturer', 'preferredSupplier'])->paginate(5);
+        $products = Product::query()
+            ->forTenantCatalog()
+            ->with(['manufacturer', 'preferredSupplier'])
+            ->paginate(5);
 
         return view('products.grid')->with('products', $products);
     }

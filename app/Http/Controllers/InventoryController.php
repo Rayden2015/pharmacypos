@@ -27,6 +27,7 @@ class InventoryController extends Controller
     public function lowStock()
     {
         $products = Product::query()
+            ->forTenantCatalog()
             ->whereNotNull('stock_alert')
             ->whereColumn('quantity', '<=', 'stock_alert')
             ->orderBy('quantity')
@@ -41,6 +42,7 @@ class InventoryController extends Controller
     public function manageStock()
     {
         $products = Product::query()
+            ->forTenantCatalog()
             ->orderBy('product_name')
             ->paginate(15);
 
@@ -50,10 +52,11 @@ class InventoryController extends Controller
     public function createStockAdjustment()
     {
         $products = Product::query()
+            ->forTenantCatalog()
             ->orderBy('product_name')
             ->get(['id', 'product_name', 'alias', 'quantity', 'stock_alert']);
 
-        $sites = Site::query()->where('is_active', true)->orderBy('name')->get(['id', 'name', 'code']);
+        $sites = Site::query()->forUserTenant(auth()->user())->where('is_active', true)->orderBy('name')->get(['id', 'name', 'code']);
         $defaultSiteId = CurrentSite::id();
 
         return view('inventory.stock-adjustment', compact('products', 'sites', 'defaultSiteId'));
@@ -76,7 +79,13 @@ class InventoryController extends Controller
             : -(int) $data['quantity'];
 
         DB::transaction(function () use ($data, $delta, $siteId) {
-            $product = Product::query()->lockForUpdate()->findOrFail($data['product_id']);
+            $product = Product::query()->forTenantCatalog()->lockForUpdate()->findOrFail($data['product_id']);
+            $site = Site::query()->findOrFail($siteId);
+            if ((int) $product->company_id !== (int) $site->company_id) {
+                throw ValidationException::withMessages([
+                    'product_id' => 'Product does not belong to this branch’s organization.',
+                ]);
+            }
 
             $pss = ProductSiteStock::query()
                 ->where('product_id', $product->id)
@@ -132,10 +141,11 @@ class InventoryController extends Controller
     public function stockTransfer()
     {
         $products = Product::query()
+            ->forTenantCatalog()
             ->orderBy('product_name')
             ->get(['id', 'product_name', 'alias', 'quantity']);
 
-        $sites = Site::query()->where('is_active', true)->orderBy('name')->get(['id', 'name', 'code']);
+        $sites = Site::query()->forUserTenant(auth()->user())->where('is_active', true)->orderBy('name')->get(['id', 'name', 'code']);
 
         return view('inventory.stock-transfer', compact('products', 'sites'));
     }
@@ -156,7 +166,15 @@ class InventoryController extends Controller
         $productId = (int) $data['product_id'];
 
         DB::transaction(function () use ($fromSiteId, $toSiteId, $qty, $productId, $data) {
-            $product = Product::query()->lockForUpdate()->findOrFail($productId);
+            $product = Product::query()->forTenantCatalog()->lockForUpdate()->findOrFail($productId);
+            $fromSite = Site::query()->findOrFail($fromSiteId);
+            $toSite = Site::query()->findOrFail($toSiteId);
+            if ((int) $product->company_id !== (int) $fromSite->company_id
+                || (int) $fromSite->company_id !== (int) $toSite->company_id) {
+                throw ValidationException::withMessages([
+                    'product_id' => 'Transfer only between branches of the same organization, for that tenant’s products.',
+                ]);
+            }
 
             $from = ProductSiteStock::query()
                 ->where('product_id', $product->id)
@@ -279,12 +297,14 @@ class InventoryController extends Controller
     {
         $today = now()->toDateString();
         $expired = Product::query()
+            ->forTenantCatalog()
             ->whereNotNull('expiredate')
             ->whereDate('expiredate', '<', $today)
             ->orderBy('expiredate', 'desc')
             ->paginate(15, ['*'], 'expired_page');
 
         $nearExpiry = Product::query()
+            ->forTenantCatalog()
             ->whereNotNull('expiredate')
             ->whereDate('expiredate', '>=', $today)
             ->whereDate('expiredate', '<=', now()->addDays(90)->toDateString())

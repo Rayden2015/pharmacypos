@@ -49,7 +49,7 @@ class DashboardMetrics
 
         $today_sales = (float) (clone $odBase)->whereDate('created_at', $today)->sum('amount');
         $orders_today = (int) (clone $orderBase)->whereDate('created_at', $today)->count();
-        $total_products = (int) Product::query()->count();
+        $total_products = (int) Product::visibleForDashboard($siteId)->count();
 
         $low_stock_count = self::lowStockCount($siteId);
         $month_sales = (float) (clone $odBase)->where('created_at', '>=', $startOfMonth)->sum('amount');
@@ -284,7 +284,7 @@ class DashboardMetrics
     private static function inventoryRetailValue(?int $siteId): float
     {
         if ($siteId === null) {
-            return (float) (Product::query()
+            return (float) (Product::visibleForDashboard(null)
                 ->selectRaw('COALESCE(SUM(COALESCE(quantity, 0) * COALESCE(price, 0)), 0) as v')
                 ->value('v') ?? 0);
         }
@@ -298,7 +298,7 @@ class DashboardMetrics
     private static function lowStockCount(?int $siteId): int
     {
         if ($siteId === null) {
-            return (int) Product::query()
+            return (int) Product::visibleForDashboard(null)
                 ->whereNotNull('stock_alert')
                 ->whereColumn('quantity', '<=', 'stock_alert')
                 ->count();
@@ -315,14 +315,14 @@ class DashboardMetrics
     private static function firstLowStock(?int $siteId): ?Product
     {
         if ($siteId === null) {
-            return Product::query()
+            return Product::visibleForDashboard($siteId)
                 ->whereNotNull('stock_alert')
                 ->whereColumn('quantity', '<=', 'stock_alert')
                 ->orderBy('quantity')
                 ->first(['id', 'product_name', 'quantity', 'stock_alert']);
         }
 
-        return Product::query()
+        return Product::visibleForDashboard($siteId)
             ->join('product_site_stock as pss', 'products.id', '=', 'pss.product_id')
             ->where('pss.site_id', $siteId)
             ->whereNotNull('products.stock_alert')
@@ -335,7 +335,7 @@ class DashboardMetrics
     private static function lowStockTable(?int $siteId)
     {
         if ($siteId === null) {
-            return Product::query()
+            return Product::visibleForDashboard($siteId)
                 ->whereNotNull('stock_alert')
                 ->whereColumn('quantity', '<=', 'stock_alert')
                 ->orderBy('quantity')
@@ -343,7 +343,7 @@ class DashboardMetrics
                 ->get(['id', 'product_name', 'alias', 'quantity', 'stock_alert']);
         }
 
-        return Product::query()
+        return Product::visibleForDashboard($siteId)
             ->join('product_site_stock as pss', 'products.id', '=', 'pss.product_id')
             ->where('pss.site_id', $siteId)
             ->whereNotNull('products.stock_alert')
@@ -363,7 +363,7 @@ class DashboardMetrics
     private static function stockOutCount(?int $siteId): int
     {
         if ($siteId === null) {
-            return (int) Product::query()->where('quantity', '<=', 0)->count();
+            return (int) Product::visibleForDashboard($siteId)->where('quantity', '<=', 0)->count();
         }
 
         return (int) DB::table('product_site_stock')
@@ -375,7 +375,7 @@ class DashboardMetrics
     private static function stockLowOnlyCount(?int $siteId): int
     {
         if ($siteId === null) {
-            return (int) Product::query()
+            return (int) Product::visibleForDashboard($siteId)
                 ->whereNotNull('stock_alert')
                 ->where('quantity', '>', 0)
                 ->whereColumn('quantity', '<=', 'stock_alert')
@@ -394,7 +394,7 @@ class DashboardMetrics
     private static function stockAvailableCount(?int $siteId): int
     {
         if ($siteId === null) {
-            return (int) Product::query()
+            return (int) Product::visibleForDashboard($siteId)
                 ->where('quantity', '>', 0)
                 ->where(function ($q) {
                     $q->whereColumn('quantity', '>', 'stock_alert')
@@ -416,7 +416,7 @@ class DashboardMetrics
 
     private static function expiringSoonCount(?int $siteId, Carbon $today): int
     {
-        $q = Product::query()
+        $q = Product::visibleForDashboard($siteId)
             ->whereNotNull('expiredate')
             ->whereDate('expiredate', '>', $today)
             ->whereDate('expiredate', '<=', $today->copy()->addDays(90));
@@ -432,7 +432,7 @@ class DashboardMetrics
 
     private static function expiredCount(?int $siteId, Carbon $today): int
     {
-        $q = Product::query()
+        $q = Product::visibleForDashboard($siteId)
             ->whereNotNull('expiredate')
             ->whereDate('expiredate', '<', $today);
 
@@ -447,7 +447,7 @@ class DashboardMetrics
 
     private static function expiredProducts(?int $siteId, Carbon $today)
     {
-        $q = Product::query()
+        $q = Product::visibleForDashboard($siteId)
             ->whereNotNull('expiredate')
             ->whereDate('expiredate', '<', $today)
             ->orderBy('expiredate', 'desc')
@@ -464,7 +464,7 @@ class DashboardMetrics
 
     private static function nearExpiryCountInRange(?int $siteId, Carbon $monthStart, Carbon $monthEnd, Carbon $today): int
     {
-        $q = Product::query()
+        $q = Product::visibleForDashboard($siteId)
             ->whereNotNull('expiredate')
             ->whereDate('expiredate', '>=', $monthStart->toDateString())
             ->whereDate('expiredate', '<=', $monthEnd->toDateString());
@@ -481,7 +481,7 @@ class DashboardMetrics
     private static function inventoryByForm(?int $siteId)
     {
         if ($siteId === null) {
-            return Product::query()
+            return Product::visibleForDashboard($siteId)
                 ->select('form', DB::raw('COUNT(*) as c'))
                 ->whereNotNull('form')
                 ->where('form', '!=', '')
@@ -491,7 +491,7 @@ class DashboardMetrics
                 ->get();
         }
 
-        return Product::query()
+        return Product::visibleForDashboard($siteId)
             ->join('product_site_stock as pss', 'products.id', '=', 'pss.product_id')
             ->where('pss.site_id', $siteId)
             ->where('pss.quantity', '>', 0)

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\Auditable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -22,6 +23,14 @@ class Product extends Model
     {
         parent::boot();
 
+        static::creating(function (Product $product) {
+            if ($product->company_id === null) {
+                $sid = $product->initial_site_id ?? Site::defaultId();
+                $site = Site::query()->find($sid);
+                $product->company_id = $site?->company_id ?? Company::defaultId();
+            }
+        });
+
         static::created(function (Product $product) {
             $siteId = $product->initial_site_id ?? Site::defaultId();
             ProductSiteStock::updateOrCreate(
@@ -33,6 +42,7 @@ class Product extends Model
     }
 
     protected $fillable = [
+        'company_id',
         'product_name', 'slug', 'sku', 'item_code', 'selling_type', 'category', 'sub_category',
         'barcode_symbology', 'tax_type', 'discount_type', 'discount_value', 'product_type',
         'warranty_term', 'manufactured_date', 'warehouse_note',
@@ -46,9 +56,47 @@ class Product extends Model
         'discount_value' => 'decimal:2',
     ];
 
+    public function company(): BelongsTo
+    {
+        return $this->belongsTo(Company::class);
+    }
+
     public function manufacturer(): BelongsTo
     {
         return $this->belongsTo(Manufacturer::class);
+    }
+
+    /**
+     * Catalog is shared across all branches of a tenant; stock is per-site via {@see ProductSiteStock}.
+     */
+    public function scopeForTenantCatalog(Builder $query, ?User $user = null): Builder
+    {
+        $user = $user ?? auth()->user();
+        if ($user && ! $user->isSuperAdmin() && $user->company_id) {
+            return $query->where('company_id', $user->company_id);
+        }
+
+        return $query;
+    }
+
+    /**
+     * Dashboard KPIs: scope products to the tenant for the active site, or the logged-in tenant for branch users.
+     */
+    public static function visibleForDashboard(?int $siteId = null): Builder
+    {
+        $q = static::query();
+        if ($siteId !== null) {
+            $cid = Site::query()->whereKey($siteId)->value('company_id');
+            if ($cid) {
+                return $q->where('company_id', (int) $cid);
+            }
+        }
+        $u = auth()->user();
+        if ($u && ! $u->isSuperAdmin() && $u->company_id) {
+            return $q->where('company_id', $u->company_id);
+        }
+
+        return $q;
     }
 
     public function preferredSupplier(): BelongsTo
