@@ -32,12 +32,14 @@
                     <a href="{{ route('super-admin.dashboard') }}" class="btn btn-primary btn-sm"><i class="bx bx-shield-quarter me-1"></i>Platform</a>
                     @endif
                     <a href="{{ route('inventory.receive.create') }}" class="btn btn-success btn-sm"><i class="bx bx-package me-1"></i>Receive stock</a>
+                    @can('reports.export')
                     <div class="dropdown">
                         <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">Export</button>
                         <ul class="dropdown-menu dropdown-menu-end">
                             <li><a class="dropdown-item" href="{{ route('dashboard.export') }}"><i class="bx bx-download me-1"></i>Summary CSV</a></li>
                         </ul>
                     </div>
+                    @endcan
                 </div>
             </div>
 
@@ -462,7 +464,9 @@
                     <h6 class="mb-3">Quick actions</h6>
                     <div class="d-flex flex-wrap gap-2">
                         @if (!auth()->user()->isSuperAdmin())
-                        <a href="{{ route('orders.index') }}" class="btn btn-primary"><i class="bx bx-cart me-1"></i>POS / New sale</a>
+                            @can('pos.access')
+                            <a href="{{ route('orders.index') }}" class="btn btn-primary"><i class="bx bx-cart me-1"></i>POS / New sale</a>
+                            @endcan
                         @else
                         <a href="{{ route('super-admin.dashboard') }}" class="btn btn-primary"><i class="bx bx-shield-quarter me-1"></i>Platform dashboard</a>
                         @endif
@@ -471,7 +475,9 @@
                         <a href="{{ route('inventory.batches') }}" class="btn btn-outline-primary"><i class="bx bx-layer me-1"></i>Batch management</a>
                         <a href="{{ route('products.index') }}" class="btn btn-outline-primary"><i class="bx bx-list-ul me-1"></i>Product list</a>
                         <a href="{{ url('addproduct') }}" class="btn btn-outline-secondary"><i class="bx bx-plus-circle me-1"></i>Add product</a>
+                        @can('reports.view')
                         <a href="{{ route('reports.periodic') }}" class="btn btn-outline-secondary"><i class="bx bx-bar-chart-alt me-1"></i>Periodic report</a>
+                        @endcan
                     </div>
                 </div>
             </div>

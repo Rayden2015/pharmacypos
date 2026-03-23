@@ -2,6 +2,7 @@
 
 namespace App\Exceptions;
 
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
 use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -46,6 +47,18 @@ class Handler extends ExceptionHandler
      */
     public function report(Throwable $e)
     {
+        if ($e instanceof AuthorizationException) {
+            $request = request();
+            if ($request && $request->user()) {
+                Log::channel('audit')->warning('auth.policy.denied', [
+                    'message' => $e->getMessage(),
+                    'user_id' => $request->user()->id,
+                    'path' => $request->path(),
+                    'method' => $request->method(),
+                ]);
+            }
+        }
+
         if ($e instanceof NotFoundHttpException) {
             $request = request();
             if ($request) {

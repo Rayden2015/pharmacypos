@@ -8,10 +8,12 @@ use App\Models\Product;
 use App\Models\Site;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\GrantsTenantPermissions;
 use Tests\TestCase;
 
 class PosCustomerTest extends TestCase
 {
+    use GrantsTenantPermissions;
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -22,7 +24,9 @@ class PosCustomerTest extends TestCase
 
     private function makePosUser(): User
     {
-        return User::create([
+        $this->seedPermissionsCatalog();
+
+        $user = User::create([
             'name' => 'POS Cashier',
             'email' => uniqid('pos', true).'@example.test',
             'password' => bcrypt('secret'),
@@ -32,6 +36,8 @@ class PosCustomerTest extends TestCase
             'mobile' => '0244222000',
             'status' => '1',
         ]);
+
+        return $this->grantPermissions($user, ['pos.access']);
     }
 
     public function test_pos_lookup_returns_customer_name_by_mobile(): void

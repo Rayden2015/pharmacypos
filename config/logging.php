@@ -64,6 +64,16 @@ return [
             'days' => 14,
         ],
 
+        /*
+        | Security / compliance: report access, exports, permission denials (optional).
+        */
+        'audit' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/audit.log'),
+            'level' => 'info',
+            'days' => 90,
+        ],
+
         'slack' => [
             'driver' => 'slack',
             'url' => env('LOG_SLACK_WEBHOOK_URL'),

@@ -56,6 +56,10 @@ So: L2–L5 are the **defaults**; a tenant can add e.g. “Dispensary lead” or
 | `tenant_role` → Spatie role | Same seeder + `User::$tenant_role` |
 | Custom tenant roles UI | `App\Http\Controllers\Tenant\RoleController` |
 | Team id for permission checks | `SetPermissionTeamFromAuth` (`company_id`) |
+| Route authorization (`can:…`) | `routes/web.php` — reports, dashboard CSV export, POS (`OrderController`) |
+| Super Admin bypass | `AuthServiceProvider` `Gate::before` (all abilities allowed for platform users) |
+| Report / export audit trail | `App\Support\ReportAuditLogger` → `audit` log channel + `audit_logs` for exports & prints (optional HTML views via `AUDIT_LOG_REPORT_VIEWS`) |
+| Permission denials (403) | `Handler::report` logs `auth.policy.denied` to the `audit` channel |
 
 ---
 

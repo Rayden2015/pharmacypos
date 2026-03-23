@@ -13,10 +13,12 @@ use App\Models\Transaction;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\GrantsTenantPermissions;
 use Tests\TestCase;
 
 class DashboardTest extends TestCase
 {
+    use GrantsTenantPermissions;
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -27,7 +29,11 @@ class DashboardTest extends TestCase
 
     private function makeUser(string $name = 'Dash User', bool $superAdmin = false): User
     {
-        return User::create([
+        if (! $superAdmin) {
+            $this->seedPermissionsCatalog();
+        }
+
+        $user = User::create([
             'name' => $name,
             'email' => uniqid('dash', true).'@example.test',
             'password' => bcrypt('secret'),
@@ -37,6 +43,18 @@ class DashboardTest extends TestCase
             'mobile' => '0244222000',
             'status' => '1',
         ]);
+
+        if (! $superAdmin) {
+            return $this->grantPermissions($user, [
+                'pos.access',
+                'reports.view',
+                'reports.export',
+                'products.view',
+                'inventory.view',
+            ]);
+        }
+
+        return $user;
     }
 
     private function baseProductAttributes(): array

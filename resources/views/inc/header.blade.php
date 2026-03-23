@@ -65,12 +65,15 @@
 
             @if (auth()->check() && ! auth()->user()->isSuperAdmin())
             <li class="menu-label">Daily operations</li>
+            @can('pos.access')
             <li>
                 <a href="{{ route('orders.index') }}">
                     <div class="parent-icon"><i class='bx bx-cart'></i></div>
                     <div class="menu-title">POS</div>
                 </a>
             </li>
+            @endcan
+            @can('reports.view')
             <li>
                 <a href="{{ route('reports.periodic') }}">
                     <div class="parent-icon"><i class='bx bx-line-chart'></i></div>
@@ -89,6 +92,7 @@
                     <div class="menu-title">Print today's sales</div>
                 </a>
             </li>
+            @endcan
             <li>
                 <a href="{{ route('pharmacy.prescriptions') }}">
                     <div class="parent-icon"><i class='bx bx-file'></i></div>
@@ -114,6 +118,7 @@
                 </ul>
             </li>
             @elseif (auth()->check() && auth()->user()->isSuperAdmin())
+            @can('reports.view')
             <li class="menu-label">Reports &amp; tenant tools</li>
             <li>
                 <a href="{{ route('reports.periodic') }}">
@@ -133,6 +138,7 @@
                     <div class="menu-title">Print today's sales</div>
                 </a>
             </li>
+            @endcan
             <li>
                 <a href="{{ route('pharmacy.prescriptions') }}">
                     <div class="parent-icon"><i class='bx bx-file'></i></div>
@@ -315,11 +321,17 @@
                 </div>
                 <div class="d-none d-md-flex align-items-center gap-2 ms-3 flex-shrink-0">
                     @if (auth()->check() && auth()->user()->isSuperAdmin())
-                    <a href="{{ route('reports.sales') }}" class="btn btn-outline-primary btn-sm px-3">Sales report</a>
+                        @can('reports.view')
+                        <a href="{{ route('reports.sales') }}" class="btn btn-outline-primary btn-sm px-3">Sales report</a>
+                        @endcan
                     @endif
                     @if (auth()->check() && ! auth()->user()->isSuperAdmin())
-                    <a href="{{ route('orders.index') }}" class="btn btn-primary btn-sm px-3">POS</a>
-                    <a href="{{ route('reports.periodic') }}" class="btn btn-outline-primary btn-sm px-3">Today's sales</a>
+                        @can('pos.access')
+                        <a href="{{ route('orders.index') }}" class="btn btn-primary btn-sm px-3">POS</a>
+                        @endcan
+                        @can('reports.view')
+                        <a href="{{ route('reports.periodic') }}" class="btn btn-outline-primary btn-sm px-3">Today's sales</a>
+                        @endcan
                     @endif
                     <a href="{{ route('inventory.receive.create') }}" class="btn btn-success btn-sm px-3">Receive</a>
                     @if (!empty($showDashboardAllSitesOption) || (isset($sitesForSwitcher) && $sitesForSwitcher->count() > 1))

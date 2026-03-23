@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Order;
 use App\Models\Order_detail;
 use App\Models\Site;
+use App\Support\ReportAuditLogger;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -44,6 +45,11 @@ class ReportController extends Controller
             ->whereDate('order_details.created_at', '<=', $end_date)
             ->sum('order_details.amount');
 
+        ReportAuditLogger::log($request, 'periodic.index', [
+            'start_date' => $start_date,
+            'end_date' => $end_date,
+        ]);
+
         return view('reports.index', compact('start_date', 'end_date', 'debt', 'total'));
     }
 
@@ -71,6 +77,11 @@ class ReportController extends Controller
             ->whereDate('order_details.created_at', '<=', $end_date)
             ->sum('order_details.amount');
 
+        ReportAuditLogger::log($request, 'periodic.print', [
+            'start_date' => $start_date,
+            'end_date' => $end_date,
+        ]);
+
         return view('reports.periodic_print', compact('start_date', 'end_date', 'debt', 'total'));
     }
 
@@ -95,6 +106,12 @@ class ReportController extends Controller
             ? Site::query()->where('is_active', true)->orderBy('name')->get(['id', 'name', 'code'])
             : Site::query()->forUserTenant($viewer)->where('is_active', true)->orderBy('name')->get(['id', 'name', 'code']);
 
+        ReportAuditLogger::log($request, 'sales.view', [
+            'start_date' => $startDate,
+            'end_date' => $endDate,
+            'site_id' => $siteFilter,
+        ]);
+
         return view('reports.sales', compact(
             'orders',
             'sites',
@@ -110,6 +127,14 @@ class ReportController extends Controller
     public function salesExport(Request $request): StreamedResponse
     {
         [$startDate, $endDate] = $this->resolveSalesDateRange($request);
+        $siteFilter = $request->filled('site_id') ? (int) $request->input('site_id') : null;
+
+        ReportAuditLogger::log($request, 'sales.export', [
+            'start_date' => $startDate,
+            'end_date' => $endDate,
+            'site_id' => $siteFilter,
+        ]);
+
         $filename = sprintf(
             'sales-report-%s-to-%s.csv',
             preg_replace('/[^0-9-]/', '', $startDate),
@@ -184,6 +209,12 @@ class ReportController extends Controller
         if ($siteFilter) {
             $branchLabel = Site::query()->whereKey($siteFilter)->value('name');
         }
+
+        ReportAuditLogger::log($request, 'sales.print', [
+            'start_date' => $startDate,
+            'end_date' => $endDate,
+            'site_id' => $siteFilter,
+        ]);
 
         return view('reports.sales_print', compact(
             'orders',

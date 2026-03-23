@@ -9,10 +9,12 @@ use App\Models\ProductSiteStock;
 use App\Models\Site;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\GrantsTenantPermissions;
 use Tests\TestCase;
 
 class TenantCatalogTest extends TestCase
 {
+    use GrantsTenantPermissions;
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -57,7 +59,9 @@ class TenantCatalogTest extends TestCase
 
     private function makeTenantUser(Company $company, Site $site): User
     {
-        return User::create([
+        $this->seedPermissionsCatalog();
+
+        $user = User::create([
             'name' => 'Staff '.$company->id,
             'email' => uniqid('tc', true).'@example.test',
             'password' => bcrypt('secret'),
@@ -68,6 +72,13 @@ class TenantCatalogTest extends TestCase
             'site_id' => $site->id,
             'mobile' => '0244222000',
             'status' => '1',
+        ]);
+
+        return $this->grantPermissions($user, [
+            'pos.access',
+            'products.view',
+            'products.manage',
+            'inventory.view',
         ]);
     }
 

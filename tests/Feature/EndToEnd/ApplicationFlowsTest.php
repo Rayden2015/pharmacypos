@@ -6,6 +6,7 @@ use App\Models\Manufacturer;
 use App\Models\Setting;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\GrantsTenantPermissions;
 use Tests\TestCase;
 
 /**
@@ -13,6 +14,7 @@ use Tests\TestCase;
  */
 class ApplicationFlowsTest extends TestCase
 {
+    use GrantsTenantPermissions;
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -23,7 +25,9 @@ class ApplicationFlowsTest extends TestCase
 
     private function makeAdmin(): User
     {
-        return User::create([
+        $this->seedPermissionsCatalog();
+
+        $user = User::create([
             'name' => 'Test Admin',
             'email' => 'e2e-admin@example.test',
             'password' => bcrypt('secret'),
@@ -31,6 +35,12 @@ class ApplicationFlowsTest extends TestCase
             'is_admin' => 1,
             'mobile' => '0244111222',
             'status' => '1',
+        ]);
+
+        return $this->grantPermissions($user, [
+            'pos.access',
+            'products.view',
+            'settings.manage',
         ]);
     }
 

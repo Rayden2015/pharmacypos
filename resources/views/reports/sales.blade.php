@@ -21,9 +21,13 @@
                     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
                         <p class="text-muted small mb-0">Invoice-style list of POS orders by date range and branch (same data as checkout; totals from line items).</p>
                         <div class="d-flex flex-wrap gap-2">
+                            @can('reports.export')
                             <a href="{{ route('reports.sales.export', request()->except('page')) }}" class="btn btn-outline-secondary btn-sm">Export CSV</a>
+                            @endcan
+                            @can('reports.view')
                             <a href="{{ route('reports.sales.print', request()->except('page')) }}" class="btn btn-outline-secondary btn-sm" target="_blank" rel="noopener">Print</a>
                             <a href="{{ route('reports.periodic') }}" class="btn btn-outline-secondary btn-sm">Line items (today)</a>
+                            @endcan
                         </div>
                     </div>
                     <form method="get" action="{{ route('reports.sales') }}" class="row g-2 align-items-end mb-4">

@@ -31,6 +31,7 @@ class OrderController extends Controller
     {
         $this->middleware('auth');
         $this->middleware('pos_staff');
+        $this->middleware('can:pos.access');
     }
 
     /**

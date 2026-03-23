@@ -9,10 +9,12 @@ use App\Models\Product;
 use App\Models\Transaction;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\GrantsTenantPermissions;
 use Tests\TestCase;
 
 class SalesReportTest extends TestCase
 {
+    use GrantsTenantPermissions;
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -23,7 +25,9 @@ class SalesReportTest extends TestCase
 
     private function makeUser(): User
     {
-        return User::create([
+        $this->seedPermissionsCatalog();
+
+        $user = User::create([
             'name' => 'Report User',
             'email' => uniqid('rep', true).'@example.test',
             'password' => bcrypt('secret'),
@@ -33,6 +37,8 @@ class SalesReportTest extends TestCase
             'mobile' => '0244222000',
             'status' => '1',
         ]);
+
+        return $this->grantPermissions($user, ['reports.view', 'reports.export']);
     }
 
     public function test_sales_report_page_loads_for_authenticated_user(): void

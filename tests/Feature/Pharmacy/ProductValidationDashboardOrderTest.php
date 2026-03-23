@@ -10,10 +10,12 @@ use App\Models\Site;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Tests\Concerns\GrantsTenantPermissions;
 use Tests\TestCase;
 
 class ProductValidationDashboardOrderTest extends TestCase
 {
+    use GrantsTenantPermissions;
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -24,7 +26,9 @@ class ProductValidationDashboardOrderTest extends TestCase
 
     private function makeAdmin(): User
     {
-        return User::create([
+        $this->seedPermissionsCatalog();
+
+        $user = User::create([
             'name' => 'Test Admin',
             'email' => 'validation-admin@example.test',
             'password' => bcrypt('secret'),
@@ -32,6 +36,14 @@ class ProductValidationDashboardOrderTest extends TestCase
             'is_admin' => 1,
             'mobile' => '0244222000',
             'status' => '1',
+        ]);
+
+        return $this->grantPermissions($user, [
+            'pos.access',
+            'products.view',
+            'products.manage',
+            'reports.view',
+            'reports.export',
         ]);
     }
 

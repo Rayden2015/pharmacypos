@@ -30,4 +30,15 @@ return [
         'sites.switch',
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Report GET views (sales / periodic HTML)
+    |--------------------------------------------------------------------------
+    |
+    | When true, successful report page views also write an audit_logs row (in
+    | addition to the audit log file). Exports and print always write DB audit.
+    |
+    */
+    'log_report_views' => env('AUDIT_LOG_REPORT_VIEWS', false),
+
 ];

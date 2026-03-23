@@ -58,8 +58,8 @@ Route::get('grid', [PagesController::class, 'grid']);
 
 Auth::routes();
 
-Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
-Route::get('dashboard/export', [DashboardController::class, 'exportCsv'])->name('dashboard.export');
+Route::get('dashboard', [DashboardController::class, 'index'])->middleware('auth')->name('dashboard');
+Route::get('dashboard/export', [DashboardController::class, 'exportCsv'])->middleware(['auth', 'can:reports.export'])->name('dashboard.export');
 Route::get('dashboard/cross-site', [CrossSiteDashboardController::class, 'index'])->name('dashboard.cross-site');
 
 Route::middleware(['auth', 'tenant.communications'])->group(function () {
@@ -132,11 +132,16 @@ Route::middleware(['auth', 'superadmin'])->prefix('super-admin')->name('super-ad
     Route::get('purchase-transactions/create', [SubscriptionPaymentController::class, 'create'])->name('payments.create');
     Route::post('purchase-transactions', [SubscriptionPaymentController::class, 'store'])->name('payments.store');
 });
-Route::get('reports/periodic',[App\Http\Controllers\ReportController::class, 'periodic'])->name('reports.periodic');
-Route::get('reports/periodicprint',[App\Http\Controllers\ReportController::class, 'periodicprint'])->name('reports.periodicprint');
-Route::get('reports/sales/export', [App\Http\Controllers\ReportController::class, 'salesExport'])->name('reports.sales.export');
-Route::get('reports/sales/print', [App\Http\Controllers\ReportController::class, 'salesPrint'])->name('reports.sales.print');
-Route::get('reports/sales', [App\Http\Controllers\ReportController::class, 'sales'])->name('reports.sales');
+Route::middleware(['auth', 'can:reports.view'])->group(function () {
+    Route::get('reports/periodic', [App\Http\Controllers\ReportController::class, 'periodic'])->name('reports.periodic');
+    Route::get('reports/periodicprint', [App\Http\Controllers\ReportController::class, 'periodicprint'])->name('reports.periodicprint');
+    Route::get('reports/sales/print', [App\Http\Controllers\ReportController::class, 'salesPrint'])->name('reports.sales.print');
+    Route::get('reports/sales', [App\Http\Controllers\ReportController::class, 'sales'])->name('reports.sales');
+});
+
+Route::middleware(['auth', 'can:reports.export'])->group(function () {
+    Route::get('reports/sales/export', [App\Http\Controllers\ReportController::class, 'salesExport'])->name('reports.sales.export');
+});
 
 Route::get('settings', [SettingsController::class, 'index'])->name('settings.index');
 Route::put('settings', [SettingsController::class, 'update'])->name('settings.update');

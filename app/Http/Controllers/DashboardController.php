@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Support\CurrentSite;
 use App\Support\DashboardMetrics;
+use App\Support\ReportAuditLogger;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -41,6 +42,11 @@ class DashboardController extends Controller
      */
     public function exportCsv(Request $request): StreamedResponse
     {
+        ReportAuditLogger::log($request, 'dashboard.export', [
+            'dashboard_all_sites' => CurrentSite::dashboardAllSites(),
+            'site_id' => CurrentSite::id(),
+        ]);
+
         $data = self::dashboardViewData();
         $filename = 'pharmacy-dashboard-'.now()->format('Y-m-d-His').'.csv';
 
