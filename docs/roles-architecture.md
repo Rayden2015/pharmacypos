@@ -59,6 +59,7 @@ So: L2–L5 are the **defaults**; a tenant can add e.g. “Dispensary lead” or
 | Route authorization (`can:…`) | `routes/web.php` — reports, dashboard CSV export, POS (`OrderController`) |
 | Super Admin bypass | `AuthServiceProvider` `Gate::before` (all abilities allowed for platform users) |
 | Report / export audit trail | `App\Support\ReportAuditLogger` → `audit` log channel + `audit_logs` for exports & prints (optional HTML views via `AUDIT_LOG_REPORT_VIEWS`) |
+| Batch / lot listing & CSV | `inventory.batches` + `inventory.batches.export` require `inventory.view`; tenant users only see receipts for sites in their company |
 | Permission denials (403) | `Handler::report` logs `auth.policy.denied` to the `audit` channel |
 
 ---

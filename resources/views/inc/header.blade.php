@@ -187,7 +187,9 @@
                     <li><a href="{{ route('products.index') }}"><i class="bx bx-right-arrow-alt"></i>Medicine list</a></li>
                     <li><a href="{{ url('addproduct') }}"><i class="bx bx-right-arrow-alt"></i>Create medicine</a></li>
                     <li><a href="{{ route('inventory.low-stock') }}"><i class="bx bx-right-arrow-alt"></i>Low stock</a></li>
+                    @can('inventory.view')
                     <li><a href="{{ route('inventory.batches') }}"><i class="bx bx-right-arrow-alt"></i>Batch management</a></li>
+                    @endcan
                     <li><a href="{{ route('inventory.expiry-tracking') }}"><i class="bx bx-right-arrow-alt"></i>Expiry tracking</a></li>
                     <li><a href="{{ route('inventory.receipts.index') }}"><i class="bx bx-right-arrow-alt"></i>Inventory logs (receipts)</a></li>
                     <li><a href="{{ route('inventory.catalog.categories') }}"><i class="bx bx-right-arrow-alt"></i>Category</a></li>

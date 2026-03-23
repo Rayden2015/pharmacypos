@@ -9,10 +9,15 @@ use App\Models\Site;
 use App\Models\StockReceipt;
 use App\Models\StockTransfer;
 use App\Models\UnitOfMeasure;
+use App\Models\User;
 use App\Support\CurrentSite;
+use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class InventoryController extends Controller
 {
@@ -315,17 +320,202 @@ class InventoryController extends Controller
     }
 
     /**
-     * Inbound batches from stock receipts (lot / expiry / supplier).
+     * Inbound batches from stock receipts (lot / expiry / supplier / branch).
      */
-    public function batchManagement()
+    public function batchManagement(Request $request)
     {
-        $batches = StockReceipt::query()
-            ->with(['product:id,product_name', 'supplier:id,supplier_name', 'user:id,name'])
-            ->latest('received_at')
-            ->latest('id')
-            ->paginate(20);
+        $viewer = $request->user();
+        $expiry = $request->input('expiry', 'all');
+        if (! in_array($expiry, ['all', 'expired', 'expiring_90', 'ok', 'no_expiry'], true)) {
+            $expiry = 'all';
+        }
 
-        return view('inventory.batches', compact('batches'));
+        $base = $this->batchReceiptBaseQuery($request, $viewer);
+        $stats = $this->batchReceiptStats(clone $base);
+
+        $tableQuery = clone $base;
+        $this->applyBatchExpiryFilter($tableQuery, $expiry);
+
+        $batches = $tableQuery->paginate(20)->withQueryString();
+        $batches->getCollection()->transform(function (StockReceipt $b) {
+            $b->setAttribute('lot_status', $this->batchLotStatus($b));
+
+            return $b;
+        });
+
+        $sites = $viewer->isSuperAdmin()
+            ? Site::query()->where('is_active', true)->orderBy('name')->get(['id', 'name', 'code'])
+            : Site::query()->forUserTenant($viewer)->where('is_active', true)->orderBy('name')->get(['id', 'name', 'code']);
+
+        return view('inventory.batches', compact('batches', 'stats', 'sites', 'expiry'));
+    }
+
+    /**
+     * CSV of filtered batch lines (same query string as the grid).
+     */
+    public function batchExport(Request $request): StreamedResponse
+    {
+        $viewer = $request->user();
+        $expiry = $request->input('expiry', 'all');
+        if (! in_array($expiry, ['all', 'expired', 'expiring_90', 'ok', 'no_expiry'], true)) {
+            $expiry = 'all';
+        }
+
+        Log::channel('audit')->info('inventory.batches.export', [
+            'user_id' => $viewer->id,
+            'filters' => $request->only(['q', 'site_id', 'received_from', 'received_to', 'expiry']),
+        ]);
+
+        $base = $this->batchReceiptBaseQuery($request, $viewer);
+        $tableQuery = clone $base;
+        $this->applyBatchExpiryFilter($tableQuery, $expiry);
+
+        $filename = 'batch-lots-'.now()->format('Y-m-d-His').'.csv';
+
+        return response()->streamDownload(function () use ($tableQuery) {
+            $out = fopen('php://output', 'w');
+            fprintf($out, chr(0xEF).chr(0xBB).chr(0xBF));
+            fputcsv($out, [
+                'Received',
+                'Branch',
+                'Product',
+                'Qty',
+                'Lot',
+                'Batch expiry',
+                'Status',
+                'Supplier',
+                'Receipt ID',
+                'Document ref',
+                'Received by',
+            ]);
+
+            $tableQuery->chunk(250, function ($rows) use ($out) {
+                    foreach ($rows as $b) {
+                        $st = $this->batchLotStatus($b);
+                        fputcsv($out, [
+                            $b->received_at->format('Y-m-d'),
+                            $b->site ? $b->site->name : '—',
+                            $b->product ? $b->product->product_name : '—',
+                            $b->quantity,
+                            $b->batch_number ?? '',
+                            $b->expiry_date ? $b->expiry_date->format('Y-m-d') : '',
+                            $st['label'],
+                            $b->supplier ? $b->supplier->supplier_name : '',
+                            (string) $b->id,
+                            $b->document_reference ?? '',
+                            $b->user ? $b->user->name : '',
+                        ]);
+                    }
+                });
+
+            fclose($out);
+        }, $filename, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+        ]);
+    }
+
+    private function batchReceiptBaseQuery(Request $request, User $viewer): Builder
+    {
+        $q = StockReceipt::query()
+            ->with(['product:id,product_name', 'supplier:id,supplier_name', 'user:id,name', 'site:id,name,code']);
+
+        if (! $viewer->isSuperAdmin()) {
+            $companyId = (int) ($viewer->company_id ?? 0);
+            if ($companyId > 0) {
+                $q->whereIn(
+                    'stock_receipts.site_id',
+                    Site::query()->where('company_id', $companyId)->select('id')
+                );
+            }
+        }
+
+        if ($request->filled('site_id')) {
+            $sid = (int) $request->input('site_id');
+            if ($sid > 0) {
+                $q->where('stock_receipts.site_id', $sid);
+            }
+        }
+
+        if ($request->filled('q')) {
+            $term = trim((string) $request->input('q'));
+            if ($term !== '') {
+                $like = '%'.addcslashes($term, '%_\\').'%';
+                $q->whereHas('product', function (Builder $pq) use ($like) {
+                    $pq->where('product_name', 'like', $like);
+                });
+            }
+        }
+
+        if ($request->filled('received_from')) {
+            $q->whereDate('stock_receipts.received_at', '>=', Carbon::parse($request->input('received_from'))->toDateString());
+        }
+        if ($request->filled('received_to')) {
+            $q->whereDate('stock_receipts.received_at', '<=', Carbon::parse($request->input('received_to'))->toDateString());
+        }
+
+        return $q->latest('stock_receipts.received_at')->latest('stock_receipts.id');
+    }
+
+    /**
+     * @return array{total: int, expired: int, expiring_90: int, ok: int, no_expiry: int}
+     */
+    private function batchReceiptStats(Builder $base): array
+    {
+        $today = Carbon::today()->toDateString();
+        $d90 = Carbon::today()->addDays(90)->toDateString();
+
+        return [
+            'total' => (clone $base)->count(),
+            'expired' => (clone $base)->whereNotNull('stock_receipts.expiry_date')->whereDate('stock_receipts.expiry_date', '<', $today)->count(),
+            'expiring_90' => (clone $base)->whereNotNull('stock_receipts.expiry_date')
+                ->whereDate('stock_receipts.expiry_date', '>=', $today)
+                ->whereDate('stock_receipts.expiry_date', '<=', $d90)
+                ->count(),
+            'ok' => (clone $base)->whereNotNull('stock_receipts.expiry_date')->whereDate('stock_receipts.expiry_date', '>', $d90)->count(),
+            'no_expiry' => (clone $base)->whereNull('stock_receipts.expiry_date')->count(),
+        ];
+    }
+
+    private function applyBatchExpiryFilter(Builder $q, string $expiry): void
+    {
+        if ($expiry === 'all') {
+            return;
+        }
+
+        $today = Carbon::today()->toDateString();
+        $d90 = Carbon::today()->addDays(90)->toDateString();
+
+        if ($expiry === 'expired') {
+            $q->whereNotNull('stock_receipts.expiry_date')->whereDate('stock_receipts.expiry_date', '<', $today);
+        } elseif ($expiry === 'expiring_90') {
+            $q->whereNotNull('stock_receipts.expiry_date')
+                ->whereDate('stock_receipts.expiry_date', '>=', $today)
+                ->whereDate('stock_receipts.expiry_date', '<=', $d90);
+        } elseif ($expiry === 'ok') {
+            $q->whereNotNull('stock_receipts.expiry_date')->whereDate('stock_receipts.expiry_date', '>', $d90);
+        } elseif ($expiry === 'no_expiry') {
+            $q->whereNull('stock_receipts.expiry_date');
+        }
+    }
+
+    /**
+     * @return array{key: string, label: string, badge: string}
+     */
+    private function batchLotStatus(StockReceipt $b): array
+    {
+        if (! $b->expiry_date) {
+            return ['key' => 'no_expiry', 'label' => 'No lot expiry', 'badge' => 'bg-secondary'];
+        }
+        $today = Carbon::today()->startOfDay();
+        $exp = $b->expiry_date->copy()->startOfDay();
+        if ($exp->lt($today)) {
+            return ['key' => 'expired', 'label' => 'Expired', 'badge' => 'bg-danger'];
+        }
+        if ($exp->lte($today->copy()->addDays(90))) {
+            return ['key' => 'expiring', 'label' => 'Expiring ≤90d', 'badge' => 'bg-warning text-dark'];
+        }
+
+        return ['key' => 'ok', 'label' => 'OK', 'badge' => 'bg-success'];
     }
 
 }

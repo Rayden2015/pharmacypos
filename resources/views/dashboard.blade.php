@@ -472,7 +472,9 @@
                         @endif
                         <a href="{{ route('inventory.receive.create') }}" class="btn btn-success"><i class="bx bx-package me-1"></i>Receive stock</a>
                         <a href="{{ route('inventory.manage-stock') }}" class="btn btn-outline-primary"><i class="bx bx-cube me-1"></i>Manage stock</a>
+                        @can('inventory.view')
                         <a href="{{ route('inventory.batches') }}" class="btn btn-outline-primary"><i class="bx bx-layer me-1"></i>Batch management</a>
+                        @endcan
                         <a href="{{ route('products.index') }}" class="btn btn-outline-primary"><i class="bx bx-list-ul me-1"></i>Product list</a>
                         <a href="{{ url('addproduct') }}" class="btn btn-outline-secondary"><i class="bx bx-plus-circle me-1"></i>Add product</a>
                         @can('reports.view')

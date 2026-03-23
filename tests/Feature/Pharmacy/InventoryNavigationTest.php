@@ -4,10 +4,12 @@ namespace Tests\Feature\Pharmacy;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\GrantsTenantPermissions;
 use Tests\TestCase;
 
 class InventoryNavigationTest extends TestCase
 {
+    use GrantsTenantPermissions;
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -18,7 +20,9 @@ class InventoryNavigationTest extends TestCase
 
     private function makeAdmin(): User
     {
-        return User::create([
+        $this->seedPermissionsCatalog();
+
+        $user = User::create([
             'name' => 'Nav Admin',
             'email' => 'nav-admin@example.test',
             'password' => bcrypt('secret'),
@@ -27,6 +31,8 @@ class InventoryNavigationTest extends TestCase
             'mobile' => '0244222000',
             'status' => '1',
         ]);
+
+        return $this->grantPermissions($user, ['inventory.view', 'inventory.receive', 'products.view']);
     }
 
     public function test_inventory_pages_are_reachable(): void

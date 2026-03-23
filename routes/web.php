@@ -105,7 +105,10 @@ Route::get('inventory/catalog/categories', [InventoryController::class, 'catalog
 Route::get('inventory/catalog/brands', [InventoryController::class, 'catalogBrands'])->name('inventory.catalog.brands');
 Route::get('inventory/catalog/units', [InventoryController::class, 'catalogUnits'])->name('inventory.catalog.units');
 Route::get('inventory/expiry-tracking', [InventoryController::class, 'expiryTracking'])->name('inventory.expiry-tracking');
-Route::get('inventory/batches', [InventoryController::class, 'batchManagement'])->name('inventory.batches');
+Route::middleware(['can:inventory.view'])->group(function () {
+    Route::get('inventory/batches/export', [InventoryController::class, 'batchExport'])->name('inventory.batches.export');
+    Route::get('inventory/batches', [InventoryController::class, 'batchManagement'])->name('inventory.batches');
+});
 
 Route::get('pharmacy/prescriptions', [PrescriptionController::class, 'index'])->name('pharmacy.prescriptions');
 Route::post('pharmacy/prescriptions', [PrescriptionController::class, 'store'])->name('pharmacy.prescriptions.store');

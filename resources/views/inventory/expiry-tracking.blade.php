@@ -15,7 +15,7 @@
                     </div>
                 </div>
                 @include('inc.msg')
-                <p class="text-muted small mb-3">Uses each product’s <strong>Expire date</strong> (catalog batch). For lot-level expiry from receipts, see <a href="{{ route('inventory.batches') }}">Batch management</a>.</p>
+                <p class="text-muted small mb-3">Uses each product’s <strong>Expire date</strong> (catalog batch).@can('inventory.view') For lot-level expiry from receipts, see <a href="{{ route('inventory.batches') }}">Batch management</a>.@endcan</p>
 
                 <h6 class="text-danger mb-2">Expired (remove from sale / quarantine)</h6>
                 <div class="card mb-4">
