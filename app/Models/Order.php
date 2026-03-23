@@ -22,7 +22,12 @@ class Order extends Model
 
     public function orderdetail()
     {
-        return $this->hasMany('App\Models\Order_detail');
+        return $this->hasMany(Order_detail::class, 'order_id');
+    }
+
+    public function transaction()
+    {
+        return $this->hasOne(Transaction::class, 'order_id');
     }
     public function product(){
         return $this->belongsTo('App\Models\Product');

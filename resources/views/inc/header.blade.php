@@ -78,6 +78,12 @@
                 </a>
             </li>
             <li>
+                <a href="{{ route('reports.sales') }}">
+                    <div class="parent-icon"><i class='bx bx-receipt'></i></div>
+                    <div class="menu-title">Sales report</div>
+                </a>
+            </li>
+            <li>
                 <a href="{{ route('reports.periodicprint') }}" target="_blank" rel="noopener">
                     <div class="parent-icon"><i class='bx bx-printer'></i></div>
                     <div class="menu-title">Print today's sales</div>
@@ -113,6 +119,12 @@
                 <a href="{{ route('reports.periodic') }}">
                     <div class="parent-icon"><i class='bx bx-line-chart'></i></div>
                     <div class="menu-title">Today's sales</div>
+                </a>
+            </li>
+            <li>
+                <a href="{{ route('reports.sales') }}">
+                    <div class="parent-icon"><i class='bx bx-receipt'></i></div>
+                    <div class="menu-title">Sales report</div>
                 </a>
             </li>
             <li>

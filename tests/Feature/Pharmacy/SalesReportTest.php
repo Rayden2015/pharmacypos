@@ -1,0 +1,102 @@
+<?php
+
+namespace Tests\Feature\Pharmacy;
+
+use App\Models\Manufacturer;
+use App\Models\Order;
+use App\Models\Order_detail;
+use App\Models\Product;
+use App\Models\Transaction;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
+
+class SalesReportTest extends TestCase
+{
+    use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->withoutMiddleware(\App\Http\Middleware\VerifyCsrfToken::class);
+    }
+
+    private function makeUser(): User
+    {
+        return User::create([
+            'name' => 'Report User',
+            'email' => uniqid('rep', true).'@example.test',
+            'password' => bcrypt('secret'),
+            'confirm_password' => bcrypt('secret'),
+            'is_admin' => 1,
+            'is_super_admin' => false,
+            'mobile' => '0244222000',
+            'status' => '1',
+        ]);
+    }
+
+    public function test_sales_report_page_loads_for_authenticated_user(): void
+    {
+        $user = $this->makeUser();
+
+        $this->actingAs($user)
+            ->get(route('reports.sales'))
+            ->assertOk()
+            ->assertSee('Sales report', false)
+            ->assertSee('Invoice', false);
+    }
+
+    public function test_sales_report_lists_order_with_totals(): void
+    {
+        $user = $this->makeUser();
+
+        $product = Product::create([
+            'product_name' => 'Report SKU '.uniqid(),
+            'description' => 'd',
+            'manufacturer_id' => Manufacturer::firstOrCreate(['name' => 'M'], ['name' => 'M'])->id,
+            'price' => 100,
+            'supplierprice' => 50,
+            'quantity' => 10,
+            'stock_alert' => 1,
+            'form' => 'Tablet',
+            'expiredate' => '2030-01-01',
+            'product_img' => 'product.png',
+        ]);
+
+        $order = new Order;
+        $order->name = 'Jane Cooper';
+        $order->mobile = '0244000111';
+        $order->site_id = $user->site_id ?? \App\Models\Site::defaultId();
+        $order->save();
+
+        Order_detail::create([
+            'order_id' => $order->id,
+            'product_id' => $product->id,
+            'quantity' => 1,
+            'unitprice' => 100,
+            'discount' => 10,
+            'amount' => 90,
+            'unit_of_measure' => null,
+            'volume' => null,
+        ]);
+
+        Transaction::create([
+            'order_id' => $order->id,
+            'user_id' => $user->id,
+            'transaction_amount' => 90,
+            'paid_amount' => 100,
+            'balance' => 10,
+            'payment_method' => 'Cash',
+            'transaction_date' => now()->toDateString(),
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('reports.sales', [
+                'start_date' => now()->toDateString(),
+                'end_date' => now()->toDateString(),
+            ]))
+            ->assertOk()
+            ->assertSee('Jane Cooper', false)
+            ->assertSee('#ORD-'.str_pad((string) $order->id, 5, '0', STR_PAD_LEFT), false);
+    }
+}
