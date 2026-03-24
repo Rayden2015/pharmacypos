@@ -10,7 +10,7 @@
         @include('super-admin.partials.nav-pills')
 
         <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-            <p class="text-muted small mb-0">Platform billing (Dreams POS “Purchase Transaction”): invoices for tenant subscriptions.</p>
+            <p class="text-muted small mb-0">Platform <strong>subscription billing</strong> (tenants paying for SaaS packages). Tenant <strong>vendor payments</strong> to medicine suppliers live under Medicines → Vendor payments.</p>
             <a href="{{ route('super-admin.payments.create') }}" class="btn btn-primary btn-sm"><i class="bx bx-plus me-1"></i>Record payment</a>
         </div>
 

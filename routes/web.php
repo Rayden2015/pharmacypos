@@ -30,6 +30,7 @@ use App\Http\Controllers\DirectMessageController;
 use App\Http\Controllers\AnnouncementController;
 use App\Http\Controllers\Auth\TwoFactorChallengeController;
 use App\Http\Controllers\DoctorController;
+use App\Http\Controllers\SupplierInvoiceController;
 
 /*
 |--------------------------------------------------------------------------
@@ -133,6 +134,7 @@ Route::resource('pharmacy/doctors', DoctorController::class)->except(['show'])->
 Route::resource('products', ProductController::class);
 Route::resource('manufacturers', ManufacturerController::class)->except(['show']);
 Route::resource('suppliers', SupplierController::class)->except(['show']);
+Route::resource('supplier-invoices', SupplierInvoiceController::class)->except(['show']);
 Route::get('users/profile', [UserController::class, 'profile'])->name('profile');
 Route::put('users/profile', [UserController::class, 'updateProfile'])->name('profile.update');
 Route::resource('users', UserController::class);

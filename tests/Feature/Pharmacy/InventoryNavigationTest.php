@@ -37,6 +37,7 @@ class InventoryNavigationTest extends TestCase
             'inventory.receive',
             'products.view',
             'prescriptions.manage',
+            'suppliers.manage',
         ]);
     }
 
@@ -52,6 +53,7 @@ class InventoryNavigationTest extends TestCase
         $this->actingAs($user)->get(route('inventory.catalog.brands'))->assertRedirect(route('manufacturers.index'));
         $this->actingAs($user)->get(route('manufacturers.index'))->assertOk();
         $this->actingAs($user)->get(route('suppliers.index'))->assertOk();
+        $this->actingAs($user)->get(route('supplier-invoices.index'))->assertOk();
         $this->actingAs($user)->get(route('inventory.catalog.units'))->assertOk();
         $this->actingAs($user)->get(route('inventory.expiry-tracking'))->assertOk();
         $this->actingAs($user)->get(route('inventory.batches'))->assertOk();

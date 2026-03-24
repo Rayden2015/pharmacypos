@@ -74,6 +74,17 @@ return [
             'days' => 90,
         ],
 
+        /*
+        | Tenant accounts payable: supplier invoices (vendor payments). INFO only;
+        | create/update/delete with company_id, invoice_id, reference for support.
+        */
+        'vendor_payments' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/vendor-payments.log'),
+            'level' => 'info',
+            'days' => 30,
+        ],
+
         'slack' => [
             'driver' => 'slack',
             'url' => env('LOG_SLACK_WEBHOOK_URL'),

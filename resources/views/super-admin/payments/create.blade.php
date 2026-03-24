@@ -7,7 +7,8 @@
         @include('super-admin.partials.nav-pills')
         <div class="card radius-10" style="max-width: 40rem;">
             <div class="card-body">
-                <h5 class="mb-3">Record purchase / invoice</h5>
+                <h5 class="mb-3">Record subscription payment</h5>
+                <p class="small text-muted mb-3">Charges from tenants for SaaS packages. Not the same as tenant <strong>Medicines → Vendor payments</strong> (supplier invoices).</p>
                 <form method="post" action="{{ route('super-admin.payments.store') }}">
                     @csrf
                     <div class="mb-3">

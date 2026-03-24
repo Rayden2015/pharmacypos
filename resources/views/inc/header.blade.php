@@ -57,7 +57,7 @@
                         <a href="{{ route('super-admin.domain') }}"><i class="bx bx-right-arrow-alt"></i> Domain</a>
                     </li>
                     <li>
-                        <a href="{{ route('super-admin.payments.index') }}"><i class="bx bx-right-arrow-alt"></i> Purchase transactions</a>
+                        <a href="{{ route('super-admin.payments.index') }}"><i class="bx bx-right-arrow-alt"></i> Subscription purchase transactions</a>
                     </li>
                 </ul>
             </li>
@@ -214,7 +214,10 @@
                     <li><a href="{{ route('inventory.receipts.index') }}"><i class="bx bx-right-arrow-alt"></i>Inventory logs (receipts)</a></li>
                     <li><a href="{{ route('inventory.catalog.categories') }}"><i class="bx bx-right-arrow-alt"></i>Category</a></li>
                     <li><a href="{{ route('manufacturers.index') }}"><i class="bx bx-right-arrow-alt"></i>Manufacturers</a></li>
+                    @can('suppliers.manage')
+                    <li><a href="{{ route('supplier-invoices.index') }}"><i class="bx bx-right-arrow-alt"></i>Vendor payments</a></li>
                     <li><a href="{{ route('suppliers.index') }}"><i class="bx bx-right-arrow-alt"></i>Suppliers</a></li>
+                    @endcan
                     <li><a href="{{ route('inventory.catalog.units') }}"><i class="bx bx-right-arrow-alt"></i>Units</a></li>
                     <li><a href="{{ url('grid') }}"><i class="bx bx-right-arrow-alt"></i>Grid view</a></li>
                 </ul>
