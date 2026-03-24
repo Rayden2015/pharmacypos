@@ -5,6 +5,8 @@ namespace App\Exceptions;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Route;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Throwable;
 
@@ -77,6 +79,43 @@ class Handler extends ExceptionHandler
             }
         }
 
+        /*
+         * Symfony HttpException (abort(), etc.) is in Laravel's internal "do not report" list,
+         * so nothing would be written to the default log. Record status + message + route for troubleshooting.
+         */
+        if ($e instanceof HttpException && ! $e instanceof NotFoundHttpException) {
+            $request = request();
+            Log::warning('http.exception', [
+                'exception' => get_class($e),
+                'status' => $e->getStatusCode(),
+                'message' => $e->getMessage() !== '' ? $e->getMessage() : '(empty)',
+                'route_action' => Route::currentRouteAction(),
+                'path' => $request?->path(),
+                'http_method' => $request?->method(),
+                'user_id' => $request?->user()?->id,
+            ]);
+        }
+
         parent::report($e);
+    }
+
+    /**
+     * Extra keys merged into Laravel's default exception log line for reported throwables.
+     */
+    protected function context()
+    {
+        try {
+            $request = request();
+
+            return array_merge(parent::context(), array_filter([
+                'route_action' => Route::currentRouteAction(),
+                'path' => $request?->path(),
+                'http_method' => $request?->method(),
+            ], static function ($v) {
+                return $v !== null && $v !== '';
+            }));
+        } catch (Throwable $e) {
+            return parent::context();
+        }
     }
 }

@@ -141,14 +141,23 @@ class ApplicationFlowsTest extends TestCase
         $this->actingAs($user)
             ->get(route('settings.index'))
             ->assertOk()
-            ->assertSee('Currency', false);
+            ->assertSee('Localization', false);
 
-        $response = $this->actingAs($user)->put(route('settings.update'), [
+        $this->actingAs($user)
+            ->get(route('settings.localization'))
+            ->assertOk()
+            ->assertSee('Regional settings', false);
+
+        $response = $this->actingAs($user)->put(route('settings.localization.update'), [
             'currency_symbol' => 'GH₵',
             'currency_code' => 'GHS',
+            'app_locale' => 'en',
+            'app_timezone' => 'Africa/Lagos',
+            'date_format' => 'd M Y',
+            'time_format' => 'H:i',
         ]);
 
-        $response->assertRedirect(route('settings.index'));
+        $response->assertRedirect(route('settings.localization'));
         $response->assertSessionHas('success');
 
         Setting::clearRuntimeCache();

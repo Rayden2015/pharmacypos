@@ -147,7 +147,8 @@ Route::middleware(['auth', 'can:reports.export'])->group(function () {
 });
 
 Route::get('settings', [SettingsController::class, 'index'])->name('settings.index');
-Route::put('settings', [SettingsController::class, 'update'])->name('settings.update');
+Route::get('settings/localization', [SettingsController::class, 'localization'])->name('settings.localization');
+Route::put('settings/localization', [SettingsController::class, 'saveLocalization'])->name('settings.localization.update');
 Route::get('settings/notifications', [SettingsController::class, 'notifications'])->name('settings.notifications');
 Route::put('settings/notifications', [SettingsController::class, 'updateNotifications'])->name('settings.notifications.update');
 

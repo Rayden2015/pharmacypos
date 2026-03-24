@@ -22,5 +22,6 @@ class DatabaseSeeder extends Seeder
         $this->call(TenantRolesBootstrapSeeder::class);
         $this->call(PharmaceuticalUnitOfMeasureSeeder::class);
         $this->call(DemoDataSeeder::class);
+        $this->call(NotificationsAndBatchesDemoSeeder::class);
     }
 }

@@ -15,7 +15,6 @@ class DirectMessageController extends Controller
 {
     public function index(Request $request): View
     {
-        Log::info('DirectMessageController@index');
         $me = $request->user();
         $companyId = (int) $me->company_id;
         $uid = (int) $me->id;
@@ -68,7 +67,6 @@ class DirectMessageController extends Controller
     public function show(Request $request, string $user): View
     {
         $userId = (int) $user;
-        Log::info('DirectMessageController@show', ['user_id' => $userId]);
 
         $other = User::query()->find($userId);
         if ($other === null) {
@@ -113,7 +111,6 @@ class DirectMessageController extends Controller
     public function store(StoreDirectMessageRequest $request): RedirectResponse
     {
         $data = $request->validated();
-        Log::info('DirectMessageController@store', ['recipient_id' => $data['recipient_id'] ?? null]);
         $me = $request->user();
         $recipient = User::query()->findOrFail($data['recipient_id']);
 
@@ -134,7 +131,6 @@ class DirectMessageController extends Controller
      */
     public function markAllRead(Request $request): JsonResponse
     {
-        Log::info('DirectMessageController@markAllRead');
         $user = $request->user();
         $companyId = (int) $user->company_id;
 

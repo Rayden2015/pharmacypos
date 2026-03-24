@@ -16,7 +16,6 @@ class AnnouncementController extends Controller
 {
     public function index(Request $request): View
     {
-        Log::info('AnnouncementController@index');
         $user = $request->user();
 
         $announcements = Announcement::query()
@@ -38,7 +37,6 @@ class AnnouncementController extends Controller
 
     public function create(Request $request): View|RedirectResponse
     {
-        Log::info('AnnouncementController@create');
         $user = $request->user();
         if (! $user->canPublishAnnouncements()) {
             abort(403);
@@ -64,7 +62,6 @@ class AnnouncementController extends Controller
 
     public function store(StoreAnnouncementRequest $request): RedirectResponse
     {
-        Log::info('AnnouncementController@store');
         $user = $request->user();
         $data = $request->validated();
         $scope = $data['scope'];
@@ -86,7 +83,6 @@ class AnnouncementController extends Controller
 
     public function show(Request $request, Announcement $announcement): View
     {
-        Log::info('AnnouncementController@show', ['announcement_id' => $announcement->id]);
         $user = $request->user();
 
         if (! Announcement::query()->visibleTo($user)->whereKey($announcement->id)->exists()) {
@@ -117,7 +113,6 @@ class AnnouncementController extends Controller
      */
     public function markAllRead(Request $request): JsonResponse
     {
-        Log::info('AnnouncementController@markAllRead');
         $user = $request->user();
 
         $ids = Announcement::query()

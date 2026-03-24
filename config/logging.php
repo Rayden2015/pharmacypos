@@ -122,4 +122,15 @@ return [
         ],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Controller action success logs (INFO: controller.action.success)
+    |--------------------------------------------------------------------------
+    |
+    | When true, every HTTP controller action logs once after a normal return.
+    | Set LOG_CONTROLLER_ACTIONS=false in production if log volume is too high.
+    |
+    */
+    'log_controller_actions' => filter_var(env('LOG_CONTROLLER_ACTIONS', true), FILTER_VALIDATE_BOOLEAN),
+
 ];

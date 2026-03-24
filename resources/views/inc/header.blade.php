@@ -261,7 +261,18 @@
                         </ul>
                     </li>
                     <li>
-                        <a href="{{ route('settings.index') }}"><i class="bx bx-right-arrow-alt"></i> Settings</a>
+                        <a href="javascript:;" class="has-arrow"><i class="bx bx-right-arrow-alt"></i> Settings</a>
+                        <ul>
+                            <li>
+                                <a href="{{ route('settings.index') }}"><i class="bx bx-right-arrow-alt"></i> Overview</a>
+                            </li>
+                            <li>
+                                <a href="{{ route('settings.localization') }}"><i class="bx bx-right-arrow-alt"></i> Localization</a>
+                            </li>
+                            <li>
+                                <a href="{{ route('settings.notifications') }}"><i class="bx bx-right-arrow-alt"></i> Notifications</a>
+                            </li>
+                        </ul>
                     </li>
                 </ul>
             </li>
@@ -435,6 +446,8 @@
                         <li><a class="dropdown-item" href="users/profile"><i class="bx bx-user"></i><span>Profile</span></a>
                         </li>
                         <li><a class="dropdown-item" href="{{ route('settings.index') }}"><i class="bx bx-cog"></i><span>Settings</span></a>
+                        </li>
+                        <li><a class="dropdown-item" href="{{ route('settings.localization') }}"><i class="bx bx-globe"></i><span>Localization</span></a>
                         </li>
                         <li><a class="dropdown-item" href="{{ route('settings.notifications') }}"><i class="bx bx-bell"></i><span>Notifications</span></a>
                         </li>

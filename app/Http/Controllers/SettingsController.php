@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Setting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\Rule;
 
 class SettingsController extends Controller
 {
@@ -13,27 +14,89 @@ class SettingsController extends Controller
         $this->middleware('auth');
     }
 
+    /**
+     * Settings hub (links to sub-pages).
+     */
     public function index()
+    {
+        return view('settings.index');
+    }
+
+    /**
+     * Currency, language, timezone, date & time display formats.
+     */
+    public function localization()
     {
         $currencySymbol = Setting::get('currency_symbol', '#');
         $currencyCode = Setting::get('currency_code', '');
+        $appLocale = Setting::get('app_locale', 'en');
+        $appTimezone = Setting::get('app_timezone', config('app.timezone'));
+        $dateFormat = Setting::get('date_format', 'd M Y');
+        $timeFormat = Setting::get('time_format', 'H:i');
+        $timezones = timezone_identifiers_list();
 
-        return view('settings.index', compact('currencySymbol', 'currencyCode'));
+        return view('settings.localization', compact(
+            'currencySymbol',
+            'currencyCode',
+            'appLocale',
+            'appTimezone',
+            'dateFormat',
+            'timeFormat',
+            'timezones'
+        ));
     }
 
-    public function update(Request $request)
+    public function saveLocalization(Request $request)
     {
         $data = $request->validate([
             'currency_symbol' => 'required|string|max:16',
             'currency_code' => 'nullable|string|max:8',
+            'app_locale' => ['required', 'string', 'max:12', Rule::in($this->allowedLocales())],
+            'app_timezone' => 'required|timezone',
+            'date_format' => ['required', 'string', 'max:32', Rule::in($this->allowedDateFormats())],
+            'time_format' => ['required', 'string', 'max:32', Rule::in($this->allowedTimeFormats())],
         ]);
 
         Setting::set('currency_symbol', $data['currency_symbol']);
         Setting::set('currency_code', $data['currency_code'] ?? '');
+        Setting::set('app_locale', $data['app_locale']);
+        Setting::set('app_timezone', $data['app_timezone']);
+        Setting::set('date_format', $data['date_format']);
+        Setting::set('time_format', $data['time_format']);
 
         Setting::clearRuntimeCache();
 
-        return redirect()->route('settings.index')->with('success', 'Settings saved.');
+        Log::channel('audit')->info('settings.localization.updated', [
+            'user_id' => $request->user()->id,
+            'app_locale' => $data['app_locale'],
+            'app_timezone' => $data['app_timezone'],
+        ]);
+
+        return redirect()->route('settings.localization')->with('success', 'Localization settings saved.');
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function allowedLocales(): array
+    {
+        return ['en', 'fr', 'es', 'ar'];
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function allowedDateFormats(): array
+    {
+        return ['d M Y', 'd/m/Y', 'm/d/Y', 'Y-m-d', 'd-m-Y'];
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function allowedTimeFormats(): array
+    {
+        return ['H:i', 'g:i A'];
     }
 
     /**
