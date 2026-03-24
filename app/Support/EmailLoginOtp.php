@@ -10,6 +10,18 @@ use Illuminate\Support\Facades\Mail;
 
 class EmailLoginOtp
 {
+    /**
+     * Session keys used during email 2FA login (must stay in sync across LoginController + TwoFactorChallengeController).
+     *
+     * @var list<string>
+     */
+    public const SESSION_KEYS = [
+        'two_factor_login_user_id',
+        'two_factor_login_remember',
+        'two_factor_login_attempts',
+        'two_factor_resend_count',
+    ];
+
     public static function cacheKey(int $userId): string
     {
         return 'two_factor_login:'.$userId;

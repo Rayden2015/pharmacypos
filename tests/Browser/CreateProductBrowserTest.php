@@ -76,12 +76,30 @@ class CreateProductBrowserTest extends DuskTestCase
             $browser->visit('/addproduct')
                 ->waitForText('Create product', 5)
                 ->type('product_name', $productName)
-                ->select('manufacturer_id', (string) $manufacturerId)
+                ->select('manufacturer_id', (string) $manufacturerId);
+
+            $browser->driver->executeScript(
+                'document.querySelector(\'button[data-bs-target="#collapsePrice"]\').scrollIntoView({block: "center"});'
+            );
+            $browser->driver->executeScript(
+                'document.querySelector(\'button[data-bs-target="#collapsePrice"]\').click();'
+            );
+
+            $browser->waitFor('#collapsePrice.show', 10)
                 ->type('price', '9.99')
                 ->type('supplierprice', '0')
                 ->type('quantity', '3')
                 ->type('stock_alert', '1')
-                ->select('form', 'Tablet')
+                ->select('form', 'Tablet');
+
+            $browser->driver->executeScript(
+                'document.querySelector(\'button[data-bs-target="#collapseCustom"]\').scrollIntoView({block: "center"});'
+            );
+            $browser->driver->executeScript(
+                'document.querySelector(\'button[data-bs-target="#collapseCustom"]\').click();'
+            );
+
+            $browser->waitFor('#collapseCustom.show', 10)
                 ->type('expiredate', '2031-06-15');
 
             $browser->press('Add product')

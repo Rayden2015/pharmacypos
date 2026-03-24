@@ -21,10 +21,18 @@
                     <strong>Platform scope:</strong> full database dump (SQLite copy or MySQL <code>mysqldump</code>) and a system manifest listing table row counts.
                     Store files securely; they may contain all tenants’ data.
                 </p>
+                <div class="alert alert-light border mb-3 small" role="note">
+                    <strong>On-demand only:</strong> the tables below list backups you generate from this page (<code>storage/app/backups/platform/…</code>).
+                    <strong>Automated nightly backups</strong> (midnight, app timezone) are written to <code>storage/app/backups/scheduled/platform/</code> and are not shown here—retrieve them directly from the server.
+                    Ensure the system cron runs <code>php artisan schedule:run</code> every minute (e.g. <code>* * * * *</code>).
+                </div>
             @else
                 <p class="text-muted small mb-3">
                     <strong>Tenant scope:</strong> exports include only your organization’s data. Database backup is a structured JSON export (not a raw SQL dump).
                 </p>
+                <div class="alert alert-light border mb-3 small" role="note">
+                    Platform-wide nightly backups (if enabled on the server) live under <code>scheduled/platform/</code> and are not listed here.
+                </div>
             @endif
 
             <div class="row g-3">

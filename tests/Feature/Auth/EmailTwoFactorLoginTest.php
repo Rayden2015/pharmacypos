@@ -84,6 +84,7 @@ class EmailTwoFactorLoginTest extends TestCase
             ->assertRedirect('/home');
 
         $this->assertAuthenticatedAs($user);
+        $this->get('/home')->assertSessionMissing('two_factor_resend_count');
     }
 
     public function test_wrong_code_is_rejected(): void

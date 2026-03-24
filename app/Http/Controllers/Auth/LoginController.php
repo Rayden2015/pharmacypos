@@ -61,11 +61,7 @@ class LoginController extends Controller
                 $request->session()->put('two_factor_login_attempts', 0);
 
                 if (! EmailLoginOtp::send($user)) {
-                    $request->session()->forget([
-                        'two_factor_login_user_id',
-                        'two_factor_login_remember',
-                        'two_factor_resend_count',
-                    ]);
+                    $request->session()->forget(EmailLoginOtp::SESSION_KEYS);
 
                     return redirect()->route('login')
                         ->withInput($request->only('email', 'remember'))

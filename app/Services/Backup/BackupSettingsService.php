@@ -94,7 +94,7 @@ class BackupSettingsService
     public function generateSystemBackup(?\App\Models\User $user): string
     {
         if ($this->isPlatformScope($user)) {
-            return $this->writePlatformSystemBackup();
+            return $this->writePlatformSystemBackup('platform');
         }
 
         return $this->writeTenantSystemBackup((int) $user->company_id);
@@ -103,22 +103,73 @@ class BackupSettingsService
     public function generateDatabaseBackup(?\App\Models\User $user): string
     {
         if ($this->isPlatformScope($user)) {
-            return $this->writePlatformDatabaseBackup();
+            return $this->writePlatformDatabaseBackup('platform');
         }
 
         return $this->writeTenantDatabaseExport((int) $user->company_id);
     }
 
-    private function writePlatformSystemBackup(): string
+    /**
+     * Nightly job: full platform manifest + DB dump under scheduled/platform/ (not shown on Backup settings UI).
+     *
+     * @return array{system: string, database: string}
+     */
+    public function runScheduledPlatformBackups(): array
+    {
+        $root = 'scheduled/platform';
+
+        return [
+            'system' => $this->writePlatformSystemBackup($root),
+            'database' => $this->writePlatformDatabaseBackup($root),
+        ];
+    }
+
+    /**
+     * Remove scheduled backup files older than the configured retention window.
+     */
+    public function pruneScheduledPlatformBackups(): int
+    {
+        $days = (int) config('backup.scheduled_retention_days', 30);
+        $removed = 0;
+        $removed += $this->pruneBackupDirectory('scheduled/platform/system', $days);
+        $removed += $this->pruneBackupDirectory('scheduled/platform/database', $days);
+
+        return $removed;
+    }
+
+    private function pruneBackupDirectory(string $directory, int $maxAgeDays): int
     {
         $disk = Storage::disk(self::DISK);
-        $disk->makeDirectory('platform/system');
+        if (! $disk->exists($directory)) {
+            return 0;
+        }
+        $cutoff = now()->subDays($maxAgeDays)->getTimestamp();
+        $removed = 0;
+        foreach ($disk->files($directory) as $path) {
+            $name = basename($path);
+            if ($name === '.gitignore' || (strlen($name) > 0 && $name[0] === '.')) {
+                continue;
+            }
+            if ($disk->lastModified($path) < $cutoff) {
+                $disk->delete($path);
+                $removed++;
+            }
+        }
+
+        return $removed;
+    }
+
+    private function writePlatformSystemBackup(string $rootPrefix = 'platform'): string
+    {
+        $disk = Storage::disk(self::DISK);
+        $disk->makeDirectory($rootPrefix.'/system');
 
         $name = 'system_manifest_'.now()->format('Y-m-d_His').'.txt';
-        $path = 'platform/system/'.$name;
+        $path = $rootPrefix.'/system/'.$name;
 
         $lines = [
             'Pharmacy POS — platform system backup (summary)',
+            $rootPrefix === 'scheduled/platform' ? 'Source: scheduled (nightly)' : 'Source: on-demand',
             'Generated: '.now()->toIso8601String(),
             'Laravel: '.app()->version(),
             'PHP: '.PHP_VERSION,
@@ -178,10 +229,10 @@ class BackupSettingsService
         return $path;
     }
 
-    private function writePlatformDatabaseBackup(): string
+    private function writePlatformDatabaseBackup(string $rootPrefix = 'platform'): string
     {
         $disk = Storage::disk(self::DISK);
-        $disk->makeDirectory('platform/database');
+        $disk->makeDirectory($rootPrefix.'/database');
 
         $connection = config('database.default');
         $name = 'full_db_backup_'.now()->format('Ymd_His');
@@ -194,7 +245,7 @@ class BackupSettingsService
                 );
             }
             $destName = $name.'.sqlite';
-            $path = 'platform/database/'.$destName;
+            $path = $rootPrefix.'/database/'.$destName;
             $full = $disk->path($path);
             if (! @copy($src, $full)) {
                 throw new \RuntimeException('Could not copy SQLite database file.');
@@ -205,7 +256,7 @@ class BackupSettingsService
 
         if ($connection === 'mysql') {
             $cfg = config('database.connections.mysql');
-            $dumpPath = 'platform/database/'.$name.'.sql';
+            $dumpPath = $rootPrefix.'/database/'.$name.'.sql';
             $full = $disk->path($dumpPath);
 
             $process = new Process([

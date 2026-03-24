@@ -60,11 +60,7 @@ class TwoFactorChallengeController extends Controller
             ]);
 
             if ($attempts >= 8) {
-                $request->session()->forget([
-                    'two_factor_login_user_id',
-                    'two_factor_login_remember',
-                    'two_factor_login_attempts',
-                ]);
+                $request->session()->forget(EmailLoginOtp::SESSION_KEYS);
                 Cache::forget($cacheKey);
 
                 Log::channel('audit')->warning('auth.two_factor.email_locked_out', [
@@ -84,7 +80,7 @@ class TwoFactorChallengeController extends Controller
 
         $user = User::query()->find($userId);
         if (! $user) {
-            $request->session()->forget(['two_factor_login_user_id', 'two_factor_login_remember', 'two_factor_login_attempts']);
+            $request->session()->forget(EmailLoginOtp::SESSION_KEYS);
             Cache::forget(EmailLoginOtp::cacheKey((int) $userId));
 
             return redirect()->route('login');
@@ -93,11 +89,7 @@ class TwoFactorChallengeController extends Controller
         $remember = (bool) $request->session()->get('two_factor_login_remember', false);
 
         Cache::forget($cacheKey);
-        $request->session()->forget([
-            'two_factor_login_user_id',
-            'two_factor_login_remember',
-            'two_factor_login_attempts',
-        ]);
+        $request->session()->forget(EmailLoginOtp::SESSION_KEYS);
 
         Auth::login($user, $remember);
 
@@ -129,11 +121,17 @@ class TwoFactorChallengeController extends Controller
                 'ip' => $request->ip(),
             ]);
 
-            return redirect()->route('two-factor.challenge')->with('error', __('Too many resend attempts. Wait a few minutes or sign in again.'));
+            $request->session()->forget(EmailLoginOtp::SESSION_KEYS);
+            Cache::forget(EmailLoginOtp::cacheKey((int) $userId));
+
+            return redirect()->route('login')->with('error', __('Too many resend attempts. Wait a few minutes or sign in again.'));
         }
 
         $user = User::query()->find($userId);
         if (! $user || ! $user->wantsEmailTwoFactorLogin()) {
+            $request->session()->forget(EmailLoginOtp::SESSION_KEYS);
+            Cache::forget(EmailLoginOtp::cacheKey((int) $userId));
+
             return redirect()->route('login');
         }
 
