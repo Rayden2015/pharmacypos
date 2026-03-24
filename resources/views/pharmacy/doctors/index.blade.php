@@ -17,6 +17,8 @@
 
                 @include('inc.msg')
 
+                @include('pharmacy.partials.care-nav', ['active' => 'doctors'])
+
                 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
                     <p class="text-muted small mb-0">{{ __('Prescribing physicians for Rx logs and records.') }}</p>
                     <a href="{{ route('pharmacy.doctors.create') }}" class="btn btn-primary btn-sm"><i class="bx bx-plus me-1"></i>{{ __('Add doctor') }}</a>
@@ -66,6 +68,13 @@
                                             <td class="small">{{ $d->license_number ?? '—' }}</td>
                                             <td class="small">{{ $d->hospital_or_clinic ?? '—' }}</td>
                                             <td class="text-end text-nowrap">
+                                                @if ($d->prescriptions_count > 0)
+                                                    <a href="{{ route('pharmacy.prescriptions', ['doctor_id' => $d->id]) }}" class="badge bg-light text-dark border">{{ $d->prescriptions_count }}</a>
+                                                @else
+                                                    <span class="text-muted small">0</span>
+                                                @endif
+                                            </td>
+                                            <td class="text-end text-nowrap">
                                                 <a href="{{ route('pharmacy.doctors.edit', $d) }}" class="btn btn-sm btn-outline-primary">{{ __('Edit') }}</a>
                                                 <form action="{{ route('pharmacy.doctors.destroy', $d) }}" method="post" class="d-inline" onsubmit="return confirm('{{ __('Delete this doctor?') }}');">
                                                     @csrf
@@ -76,7 +85,7 @@
                                         </tr>
                                     @empty
                                         <tr>
-                                            <td colspan="7" class="text-center text-muted py-4">{{ __('No doctors yet. Add prescribers to attach them to prescriptions.') }}</td>
+                                            <td colspan="8" class="text-center text-muted py-4">{{ __('No doctors yet. Add prescribers to attach them to prescriptions.') }}</td>
                                         </tr>
                                     @endforelse
                                 </tbody>

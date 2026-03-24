@@ -21,6 +21,7 @@ class DoctorController extends Controller
 
         $doctors = Doctor::query()
             ->forCurrentSiteContext()
+            ->withCount('prescriptions')
             ->when($search !== '', function ($q) use ($search) {
                 $term = '%'.$search.'%';
                 $q->where(function ($q2) use ($term) {

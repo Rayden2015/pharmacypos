@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\Company;
+use App\Models\Doctor;
 use App\Models\Manufacturer;
 use App\Models\Order;
 use App\Models\Order_detail;
@@ -131,6 +132,24 @@ class DemoDataSeeder extends Seeder
     private function seedDemoPrescriptions(User $user): void
     {
         Prescription::query()->where('rx_number', 'like', 'DEMO-%')->delete();
+        Doctor::query()->where('license_number', 'like', 'DEMO-%')->delete();
+
+        $siteId = (int) ($user->site_id ?? Site::defaultId());
+
+        $docDemo1 = Doctor::create([
+            'site_id' => $siteId,
+            'name' => 'Dr. Demo One',
+            'specialty' => 'General practice',
+            'phone' => '0200000001',
+            'license_number' => 'DEMO-DOC-1',
+        ]);
+        $docDemo2 = Doctor::create([
+            'site_id' => $siteId,
+            'name' => 'Dr. Demo Two',
+            'specialty' => 'Paediatrics',
+            'phone' => '0200000002',
+            'license_number' => 'DEMO-DOC-2',
+        ]);
 
         $rows = [
             ['patient_name' => 'Akosua T.', 'patient_phone' => '0244111001', 'rx_number' => 'DEMO-001', 'status' => 'completed', 'notes' => 'Antibiotic course'],
@@ -140,8 +159,10 @@ class DemoDataSeeder extends Seeder
             ['patient_name' => 'Ama S.', 'patient_phone' => '0244111005', 'rx_number' => 'DEMO-005', 'status' => 'completed', 'notes' => null],
         ];
 
-        foreach ($rows as $row) {
+        foreach ($rows as $i => $row) {
             $rx = new Prescription;
+            $rx->site_id = $siteId;
+            $rx->doctor_id = $i % 2 === 0 ? $docDemo1->id : $docDemo2->id;
             $rx->patient_name = $row['patient_name'];
             $rx->patient_phone = $row['patient_phone'];
             $rx->rx_number = $row['rx_number'];
@@ -236,5 +257,6 @@ class DemoDataSeeder extends Seeder
         Transaction::query()->whereIn('order_id', $orderIds)->delete();
         Order::query()->whereIn('id', $orderIds)->delete();
         Prescription::query()->where('rx_number', 'like', 'DEMO-%')->delete();
+        Doctor::query()->where('license_number', 'like', 'DEMO-%')->delete();
     }
 }

@@ -17,19 +17,46 @@ class PrescriptionController extends Controller
         $this->middleware('auth');
     }
 
-    public function index(): View
+    public function index(Request $request): View
     {
-        $prescriptions = Prescription::query()
-            ->with(['user:id,name', 'doctor:id,name,specialty'])
-            ->latest()
-            ->paginate(15);
+        $filters = [
+            'q' => trim((string) $request->query('q', '')),
+            'status' => $request->query('status'),
+            'doctor_id' => $request->query('doctor_id'),
+        ];
+
+        $query = Prescription::query()
+            ->forCurrentSiteContext()
+            ->with(['user:id,name', 'doctor:id,name,specialty']);
+
+        if ($filters['status'] !== null && $filters['status'] !== '' && in_array($filters['status'], ['pending', 'completed', 'cancelled'], true)) {
+            $query->where('status', $filters['status']);
+        }
+
+        if ($filters['doctor_id'] !== null && $filters['doctor_id'] !== '') {
+            $query->where('doctor_id', (int) $filters['doctor_id']);
+        }
+
+        if ($filters['q'] !== '') {
+            $term = '%'.$filters['q'].'%';
+            $query->where(function ($q) use ($term) {
+                $q->where('patient_name', 'like', $term)
+                    ->orWhere('rx_number', 'like', $term)
+                    ->orWhere('patient_phone', 'like', $term)
+                    ->orWhere('notes', 'like', $term);
+            });
+        }
+
+        $prescriptions = $query->latest()->paginate(15)->withQueryString();
 
         $doctors = Doctor::query()
             ->forCurrentSiteContext()
             ->orderBy('name')
             ->get(['id', 'name', 'specialty']);
 
-        return view('pharmacy.prescriptions', compact('prescriptions', 'doctors'));
+        $doctorCount = $doctors->count();
+
+        return view('pharmacy.prescriptions', compact('prescriptions', 'doctors', 'filters', 'doctorCount'));
     }
 
     public function store(Request $request): RedirectResponse

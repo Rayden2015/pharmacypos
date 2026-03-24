@@ -17,10 +17,20 @@
 
                 @include('inc.msg')
 
+                @include('pharmacy.partials.care-nav', ['active' => 'prescriptions'])
+
+                @if ($doctorCount === 0)
+                    <div class="alert alert-info border-0 mb-3" role="alert">
+                        <strong>{{ __('No prescribers yet.') }}</strong>
+                        {{ __('Add doctors to your directory so you can attach them to each Rx for clearer records and reporting.') }}
+                        <a href="{{ route('pharmacy.doctors.create') }}" class="alert-link">{{ __('Add a doctor') }}</a>
+                    </div>
+                @endif
+
                 <div class="card mb-4">
                     <div class="card-header">
                         <h6 class="mb-0">Log a prescription</h6>
-                        <p class="text-muted small mb-0">Queue items for dispensing; status feeds the dashboard Rx chart.</p>
+                        <p class="text-muted small mb-0">{{ __('Queue items for dispensing; link a prescriber when available. Status feeds the dashboard Rx chart.') }}</p>
                     </div>
                     <div class="card-body">
                         <form action="{{ route('pharmacy.prescriptions.store') }}" method="post" class="row g-3 align-items-end">
@@ -59,6 +69,43 @@
                     </div>
                 </div>
 
+                <div class="card mb-3">
+                    <div class="card-body py-2">
+                        <form method="get" action="{{ route('pharmacy.prescriptions') }}" class="row g-2 align-items-end">
+                            <div class="col-md-3 col-lg-2">
+                                <label class="form-label small mb-0">{{ __('Status') }}</label>
+                                <select name="status" class="form-select form-select-sm">
+                                    <option value="">{{ __('All') }}</option>
+                                    <option value="pending" {{ ($filters['status'] ?? '') === 'pending' ? 'selected' : '' }}>{{ __('Pending') }}</option>
+                                    <option value="completed" {{ ($filters['status'] ?? '') === 'completed' ? 'selected' : '' }}>{{ __('Completed') }}</option>
+                                    <option value="cancelled" {{ ($filters['status'] ?? '') === 'cancelled' ? 'selected' : '' }}>{{ __('Cancelled') }}</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4 col-lg-3">
+                                <label class="form-label small mb-0">{{ __('Doctor') }}</label>
+                                <select name="doctor_id" class="form-select form-select-sm">
+                                    <option value="">{{ __('All prescribers') }}</option>
+                                    @foreach ($doctors as $doc)
+                                        <option value="{{ $doc->id }}" {{ (string) ($filters['doctor_id'] ?? '') === (string) $doc->id ? 'selected' : '' }}>{{ $doc->displayLabel() }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="col-md-4 col-lg-3">
+                                <label class="form-label small mb-0">{{ __('Search') }}</label>
+                                <input type="search" name="q" class="form-control form-control-sm" value="{{ $filters['q'] ?? '' }}" placeholder="{{ __('Patient, Rx #, phone…') }}">
+                            </div>
+                            <div class="col-auto">
+                                <button type="submit" class="btn btn-sm btn-outline-primary">{{ __('Apply') }}</button>
+                            </div>
+                            @if (($filters['q'] ?? '') !== '' || ($filters['status'] ?? '') !== '' || ($filters['doctor_id'] ?? '') !== '')
+                                <div class="col-auto">
+                                    <a href="{{ route('pharmacy.prescriptions') }}" class="btn btn-sm btn-outline-secondary">{{ __('Clear filters') }}</a>
+                                </div>
+                            @endif
+                        </form>
+                    </div>
+                </div>
+
                 <div class="card">
                     <div class="card-body">
                         <div class="table-responsive">
@@ -81,7 +128,13 @@
                                             <td class="text-nowrap small">{{ $rx->created_at->format('M j, Y H:i') }}</td>
                                             <td>{{ $rx->patient_name }}</td>
                                             <td class="small">{{ $rx->patient_phone ?? '—' }}</td>
-                                            <td class="small">{{ $rx->doctor ? $rx->doctor->displayLabel() : '—' }}</td>
+                                            <td class="small">
+                                                @if ($rx->doctor)
+                                                    <a href="{{ route('pharmacy.prescriptions', ['doctor_id' => $rx->doctor_id]) }}">{{ $rx->doctor->displayLabel() }}</a>
+                                                @else
+                                                    —
+                                                @endif
+                                            </td>
                                             <td class="small">{{ $rx->rx_number ?? '—' }}</td>
                                             <td>
                                                 @if ($rx->status === 'completed')

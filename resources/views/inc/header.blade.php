@@ -94,16 +94,18 @@
             </li>
             @endcan
             <li>
-                <a href="{{ route('pharmacy.prescriptions') }}">
-                    <div class="parent-icon"><i class='bx bx-file'></i></div>
-                    <div class="menu-title">Prescriptions</div>
+                <a href="javascript:;" class="has-arrow">
+                    <div class="parent-icon"><i class='bx bx-first-aid'></i></div>
+                    <div class="menu-title">Pharmacy &amp; Rx</div>
                 </a>
-            </li>
-            <li>
-                <a href="{{ route('pharmacy.doctors.index') }}">
-                    <div class="parent-icon"><i class='bx bx-plus-medical'></i></div>
-                    <div class="menu-title">Doctors</div>
-                </a>
+                <ul>
+                    <li>
+                        <a href="{{ route('pharmacy.prescriptions') }}"><i class="bx bx-right-arrow-alt"></i> Prescriptions</a>
+                    </li>
+                    <li>
+                        <a href="{{ route('pharmacy.doctors.index') }}"><i class="bx bx-right-arrow-alt"></i> Doctors</a>
+                    </li>
+                </ul>
             </li>
             <li>
                 <a href="javascript:;" class="has-arrow">
@@ -146,16 +148,18 @@
             </li>
             @endcan
             <li>
-                <a href="{{ route('pharmacy.prescriptions') }}">
-                    <div class="parent-icon"><i class='bx bx-file'></i></div>
-                    <div class="menu-title">Prescriptions</div>
+                <a href="javascript:;" class="has-arrow">
+                    <div class="parent-icon"><i class='bx bx-first-aid'></i></div>
+                    <div class="menu-title">Pharmacy &amp; Rx</div>
                 </a>
-            </li>
-            <li>
-                <a href="{{ route('pharmacy.doctors.index') }}">
-                    <div class="parent-icon"><i class='bx bx-plus-medical'></i></div>
-                    <div class="menu-title">Doctors</div>
-                </a>
+                <ul>
+                    <li>
+                        <a href="{{ route('pharmacy.prescriptions') }}"><i class="bx bx-right-arrow-alt"></i> Prescriptions</a>
+                    </li>
+                    <li>
+                        <a href="{{ route('pharmacy.doctors.index') }}"><i class="bx bx-right-arrow-alt"></i> Doctors</a>
+                    </li>
+                </ul>
             </li>
             <li>
                 <a href="javascript:;" class="has-arrow">

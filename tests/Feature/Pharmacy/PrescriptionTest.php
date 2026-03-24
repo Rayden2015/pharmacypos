@@ -3,6 +3,7 @@
 namespace Tests\Feature\Pharmacy;
 
 use App\Http\Controllers\DashboardController;
+use App\Models\Doctor;
 use App\Models\Prescription;
 use App\Models\Site;
 use App\Models\User;
@@ -61,6 +62,42 @@ class PrescriptionTest extends TestCase
         $rx->refresh();
         $this->assertSame('completed', $rx->status);
         $this->assertNotNull($rx->dispensed_at);
+    }
+
+    public function test_prescription_list_can_filter_by_doctor(): void
+    {
+        $user = $this->makeUser();
+        $siteId = Site::defaultId();
+
+        $docA = Doctor::create([
+            'site_id' => $siteId,
+            'name' => 'Dr. Filter A',
+        ]);
+        $docB = Doctor::create([
+            'site_id' => $siteId,
+            'name' => 'Dr. Filter B',
+        ]);
+
+        Prescription::create([
+            'site_id' => $siteId,
+            'doctor_id' => $docA->id,
+            'patient_name' => 'Patient A',
+            'status' => 'pending',
+            'user_id' => $user->id,
+        ]);
+        Prescription::create([
+            'site_id' => $siteId,
+            'doctor_id' => $docB->id,
+            'patient_name' => 'Patient B',
+            'status' => 'pending',
+            'user_id' => $user->id,
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('pharmacy.prescriptions', ['doctor_id' => $docA->id]))
+            ->assertOk()
+            ->assertSee('Patient A', false)
+            ->assertDontSee('Patient B', false);
     }
 
     public function test_dashboard_includes_prescription_and_ar_metrics(): void
