@@ -59,6 +59,9 @@
                     <li>
                         <a href="{{ route('super-admin.payments.index') }}"><i class="bx bx-right-arrow-alt"></i> Subscription purchase transactions</a>
                     </li>
+                    <li>
+                        <a href="{{ route('settings.backup') }}"><i class="bx bx-right-arrow-alt"></i> Backup settings</a>
+                    </li>
                 </ul>
             </li>
             @endif
@@ -298,6 +301,11 @@
                             <li>
                                 <a href="{{ route('settings.notifications') }}"><i class="bx bx-right-arrow-alt"></i> Notifications</a>
                             </li>
+                            @if (auth()->user()->isTenantAdmin())
+                            <li>
+                                <a href="{{ route('settings.backup') }}"><i class="bx bx-right-arrow-alt"></i> Backup</a>
+                            </li>
+                            @endif
                         </ul>
                     </li>
                 </ul>

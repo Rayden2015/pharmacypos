@@ -34,6 +34,17 @@
                         </div>
                     </div>
                 </div>
+                @if (auth()->user()->isSuperAdmin() || auth()->user()->isTenantAdmin())
+                <div class="col">
+                    <div class="card radius-10 h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">Backup</h5>
+                            <p class="text-muted small mb-3">System and database backups (tenant admin or platform super admin).</p>
+                            <a href="{{ route('settings.backup') }}" class="btn btn-outline-primary btn-sm">Open</a>
+                        </div>
+                    </div>
+                </div>
+                @endif
             </div>
         </div>
     </div>

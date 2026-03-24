@@ -70,5 +70,6 @@ class Kernel extends HttpKernel
         'pos_staff' => \App\Http\Middleware\DenyPlatformSuperAdminFromPos::class,
         'tenant.roles' => \App\Http\Middleware\EnsureTenantRoleManager::class,
         'tenant.communications' => \App\Http\Middleware\EnsureTenantCommunications::class,
+        'tenant.admin.or.super' => \App\Http\Middleware\EnsureTenantAdminOrSuperAdmin::class,
     ];
 }

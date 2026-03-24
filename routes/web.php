@@ -11,6 +11,7 @@ use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\OrderDetailController;
 use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\SettingsController;
+use App\Http\Controllers\Settings\BackupSettingsController;
 use App\Http\Controllers\StockReceiptController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\SiteController;
@@ -171,5 +172,15 @@ Route::get('settings/localization', [SettingsController::class, 'localization'])
 Route::put('settings/localization', [SettingsController::class, 'saveLocalization'])->name('settings.localization.update');
 Route::get('settings/notifications', [SettingsController::class, 'notifications'])->name('settings.notifications');
 Route::put('settings/notifications', [SettingsController::class, 'updateNotifications'])->name('settings.notifications.update');
+
+Route::get('settings/backup', [BackupSettingsController::class, 'index'])->name('settings.backup');
+Route::post('settings/backup/system', [BackupSettingsController::class, 'generateSystem'])->name('settings.backup.system');
+Route::post('settings/backup/database', [BackupSettingsController::class, 'generateDatabase'])->name('settings.backup.database');
+Route::get('settings/backup/download/{category}/{filename}', [BackupSettingsController::class, 'download'])
+    ->name('settings.backup.download')
+    ->where('filename', '[a-zA-Z0-9._-]+');
+Route::delete('settings/backup/{category}/{filename}', [BackupSettingsController::class, 'destroy'])
+    ->name('settings.backup.destroy')
+    ->where('filename', '[a-zA-Z0-9._-]+');
 
 Route::middleware(['auth', 'tenant.roles'])->resource('roles', TenantRoleController::class)->except(['show']);
