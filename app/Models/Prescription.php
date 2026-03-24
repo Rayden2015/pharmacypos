@@ -12,6 +12,7 @@ class Prescription extends Model
 
     protected $fillable = [
         'site_id',
+        'doctor_id',
         'patient_name',
         'patient_phone',
         'rx_number',
@@ -29,6 +30,11 @@ class Prescription extends Model
     public function site(): BelongsTo
     {
         return $this->belongsTo(Site::class);
+    }
+
+    public function doctor(): BelongsTo
+    {
+        return $this->belongsTo(Doctor::class);
     }
 
     public function user(): BelongsTo

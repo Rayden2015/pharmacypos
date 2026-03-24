@@ -35,14 +35,24 @@
                                 <input type="text" name="patient_phone" class="form-control" value="{{ old('patient_phone') }}" maxlength="50">
                             </div>
                             <div class="col-md-2">
+                                <label class="form-label">Doctor</label>
+                                <select name="doctor_id" class="form-select @error('doctor_id') is-invalid @enderror">
+                                    <option value="">—</option>
+                                    @foreach ($doctors as $doc)
+                                        <option value="{{ $doc->id }}" {{ (string) old('doctor_id') === (string) $doc->id ? 'selected' : '' }}>{{ $doc->displayLabel() }}</option>
+                                    @endforeach
+                                </select>
+                                @error('doctor_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            </div>
+                            <div class="col-md-2">
                                 <label class="form-label">Rx / file #</label>
                                 <input type="text" name="rx_number" class="form-control" value="{{ old('rx_number') }}" maxlength="100">
                             </div>
-                            <div class="col-md-3">
+                            <div class="col-md-2">
                                 <label class="form-label">Notes</label>
                                 <input type="text" name="notes" class="form-control" value="{{ old('notes') }}" maxlength="5000" placeholder="Optional">
                             </div>
-                            <div class="col-md-2">
+                            <div class="col-md-1">
                                 <button type="submit" class="btn btn-primary w-100"><i class="bx bx-plus me-1"></i>Add</button>
                             </div>
                         </form>
@@ -58,6 +68,7 @@
                                         <th>When</th>
                                         <th>Patient</th>
                                         <th>Phone</th>
+                                        <th>Doctor</th>
                                         <th>Rx #</th>
                                         <th>Status</th>
                                         <th>Logged by</th>
@@ -70,6 +81,7 @@
                                             <td class="text-nowrap small">{{ $rx->created_at->format('M j, Y H:i') }}</td>
                                             <td>{{ $rx->patient_name }}</td>
                                             <td class="small">{{ $rx->patient_phone ?? '—' }}</td>
+                                            <td class="small">{{ $rx->doctor ? $rx->doctor->displayLabel() : '—' }}</td>
                                             <td class="small">{{ $rx->rx_number ?? '—' }}</td>
                                             <td>
                                                 @if ($rx->status === 'completed')
@@ -102,7 +114,7 @@
                                         </tr>
                                     @empty
                                         <tr>
-                                            <td colspan="7" class="text-center text-muted py-4">No prescriptions yet. Add one above or seed demo data.</td>
+                                            <td colspan="8" class="text-center text-muted py-4">No prescriptions yet. Add one above or seed demo data.</td>
                                         </tr>
                                     @endforelse
                                 </tbody>

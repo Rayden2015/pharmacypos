@@ -29,6 +29,7 @@ use App\Http\Controllers\Tenant\RoleController as TenantRoleController;
 use App\Http\Controllers\DirectMessageController;
 use App\Http\Controllers\AnnouncementController;
 use App\Http\Controllers\Auth\TwoFactorChallengeController;
+use App\Http\Controllers\DoctorController;
 
 /*
 |--------------------------------------------------------------------------
@@ -120,6 +121,14 @@ Route::middleware(['can:inventory.view'])->group(function () {
 Route::get('pharmacy/prescriptions', [PrescriptionController::class, 'index'])->name('pharmacy.prescriptions');
 Route::post('pharmacy/prescriptions', [PrescriptionController::class, 'store'])->name('pharmacy.prescriptions.store');
 Route::patch('pharmacy/prescriptions/{prescription}', [PrescriptionController::class, 'update'])->name('pharmacy.prescriptions.update');
+Route::resource('pharmacy/doctors', DoctorController::class)->except(['show'])->names([
+    'index' => 'pharmacy.doctors.index',
+    'create' => 'pharmacy.doctors.create',
+    'store' => 'pharmacy.doctors.store',
+    'edit' => 'pharmacy.doctors.edit',
+    'update' => 'pharmacy.doctors.update',
+    'destroy' => 'pharmacy.doctors.destroy',
+]);
 
 Route::resource('products', ProductController::class);
 Route::resource('manufacturers', ManufacturerController::class)->except(['show']);

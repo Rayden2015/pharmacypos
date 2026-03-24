@@ -100,6 +100,12 @@
                 </a>
             </li>
             <li>
+                <a href="{{ route('pharmacy.doctors.index') }}">
+                    <div class="parent-icon"><i class='bx bx-plus-medical'></i></div>
+                    <div class="menu-title">Doctors</div>
+                </a>
+            </li>
+            <li>
                 <a href="javascript:;" class="has-arrow">
                     <div class="parent-icon"><i class='bx bx-group'></i></div>
                     <div class="menu-title">Customers</div>
@@ -143,6 +149,12 @@
                 <a href="{{ route('pharmacy.prescriptions') }}">
                     <div class="parent-icon"><i class='bx bx-file'></i></div>
                     <div class="menu-title">Prescriptions</div>
+                </a>
+            </li>
+            <li>
+                <a href="{{ route('pharmacy.doctors.index') }}">
+                    <div class="parent-icon"><i class='bx bx-plus-medical'></i></div>
+                    <div class="menu-title">Doctors</div>
                 </a>
             </li>
             <li>

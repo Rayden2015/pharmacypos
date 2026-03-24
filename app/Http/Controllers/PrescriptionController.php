@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Doctor;
 use App\Models\Prescription;
 use App\Support\CurrentSite;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use Illuminate\Validation\Rule;
 
 class PrescriptionController extends Controller
 {
@@ -18,11 +20,16 @@ class PrescriptionController extends Controller
     public function index(): View
     {
         $prescriptions = Prescription::query()
-            ->with(['user:id,name'])
+            ->with(['user:id,name', 'doctor:id,name,specialty'])
             ->latest()
             ->paginate(15);
 
-        return view('pharmacy.prescriptions', compact('prescriptions'));
+        $doctors = Doctor::query()
+            ->forCurrentSiteContext()
+            ->orderBy('name')
+            ->get(['id', 'name', 'specialty']);
+
+        return view('pharmacy.prescriptions', compact('prescriptions', 'doctors'));
     }
 
     public function store(Request $request): RedirectResponse
@@ -32,6 +39,13 @@ class PrescriptionController extends Controller
             'patient_phone' => 'nullable|string|max:50',
             'rx_number' => 'nullable|string|max:100',
             'notes' => 'nullable|string|max:5000',
+            'doctor_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('doctors', 'id')->where(function ($query) {
+                    $query->where('site_id', CurrentSite::id());
+                }),
+            ],
         ]);
 
         $data['user_id'] = $request->user()->id;
