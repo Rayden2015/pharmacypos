@@ -37,6 +37,8 @@ class User extends Authenticatable
      */
     protected $fillable = [
         'name',
+        'first_name',
+        'last_name',
         'email',
         'password',
         'confirm_password',
@@ -49,6 +51,12 @@ class User extends Authenticatable
         'user_img',
         'status',
         'address',
+        'address_line1',
+        'address_line2',
+        'country',
+        'city',
+        'state_region',
+        'postal_code',
         'notification_preferences',
 
     ];
@@ -88,6 +96,18 @@ class User extends Authenticatable
         }
 
         return filter_var($prefs[$key], FILTER_VALIDATE_BOOLEAN);
+    }
+
+    /** Email OTP at sign-in (profile → Two step verification). */
+    public function wantsEmailTwoFactorLogin(): bool
+    {
+        return $this->notificationPreference('two_factor_email', false);
+    }
+
+    /** SMS OTP at sign-in (when wired to your SMS provider). */
+    public function wantsSmsTwoFactorLogin(): bool
+    {
+        return $this->notificationPreference('two_factor_sms', false);
     }
 
     public function site()

@@ -1,173 +1,255 @@
 @extends('layouts.dash')
 @section('content')
-    <div class="wrapper">
-        <!--start page wrapper -->
-        <div class="page-wrapper">
-            <div class="page-content">
-                <!--breadcrumb-->
-                <div class="page-breadcrumb d-none d-sm-flex align-items-center mb-3">
-                    <div class="breadcrumb-title pe-3">User Profile</div>
-                    <div class="ps-3">
-                        <nav aria-label="breadcrumb">
-                            <ol class="breadcrumb mb-0 p-0">
-                                <li class="breadcrumb-item"><a href="javascript:;"><i class="bx bx-home-alt"></i></a>
-                                </li>
-                                <li class="breadcrumb-item active" aria-current="page">User Profile</li>
-                            </ol>
-                        </nav>
-                    </div>
-
+    @php
+        $u = $user ?? auth()->user();
+        $avatar = $u->user_img ?? 'user.png';
+        $prefs = $u->notification_preferences ?? [];
+        $tfSms = (bool) ($prefs['two_factor_sms'] ?? false);
+        $tfEmail = (bool) ($prefs['two_factor_email'] ?? false);
+    @endphp
+    <div class="page-wrapper">
+        <div class="page-content">
+            <div class="page-breadcrumb d-none d-sm-flex align-items-center mb-2">
+                <div class="breadcrumb-title pe-3">{{ __('Settings') }}</div>
+                <div class="ps-3">
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb mb-0 p-0">
+                            <li class="breadcrumb-item"><a href="{{ route('dashboard') }}"><i class="bx bx-home-alt"></i></a></li>
+                            <li class="breadcrumb-item"><a href="{{ route('settings.index') }}">{{ __('Settings') }}</a></li>
+                            <li class="breadcrumb-item active" aria-current="page">{{ __('Profile') }}</li>
+                        </ol>
+                    </nav>
                 </div>
-                <!--end breadcrumb-->
-                <div class="container">
-                    <div class="main-body">
-                        <div class="row">
-                            <div class="col-lg-4">
-                                <div class="card">
-                                    <div class="card-body">
-                                        <div class="d-flex flex-column align-items-center text-center">
-                                            <img src="{{asset('/storage/users/' .Auth::user()->user_img)}}" alt="Admin"
-                                                class="rounded-circle p-1 bg-primary" width="110">
-                                            <div class="mt-3">
-                                                <h4>{{ Auth::user()->name }}</h4>
-                                                <p class="text-secondary mb-1">
-                                                    @if (Auth::user()->is_admin == 1) Admin
-													@elseif (Auth::user()->is_admin == 2) Cashier
-													@else Manager
-                                                    @endif
-                                                </p>
-                                                {{-- <p class="text-muted font-size-sm">Bay Area, San Francisco, CA</p> --}}
-                                                {{-- <button type="button" class="btn btn-primary" data-bs-toggle="modal"
-                                                    data-bs-target="#exampleVerticallycenteredModal">Edit Profile
-                                                    Picture</button> --}}
-                                            </div>
-                                        </div>
-                                        {{-- <hr class="my-4" />
-										<ul class="list-group list-group-flush">
-											<li class="list-group-item d-flex justify-content-between align-items-center flex-wrap">
-												<h6 class="mb-0"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-globe me-2 icon-inline"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>Website</h6>
-												<span class="text-secondary">https://codervent.com</span>
-											</li>
-											<li class="list-group-item d-flex justify-content-between align-items-center flex-wrap">
-												<h6 class="mb-0"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-github me-2 icon-inline"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg>Github</h6>
-												<span class="text-secondary">codervent</span>
-											</li>
-											<li class="list-group-item d-flex justify-content-between align-items-center flex-wrap">
-												<h6 class="mb-0"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-twitter me-2 icon-inline text-info"><path d="M23 3a10.9 10.9 0 0 1-3.14 1.53 4.48 4.48 0 0 0-7.86 3v1A10.66 10.66 0 0 1 3 4s-4 9 5 13a11.64 11.64 0 0 1-7 2c9 5 20 0 20-11.5a4.5 4.5 0 0 0-.08-.83A7.72 7.72 0 0 0 23 3z"></path></svg>Twitter</h6>
-												<span class="text-secondary">@codervent</span>
-											</li>
-											<li class="list-group-item d-flex justify-content-between align-items-center flex-wrap">
-												<h6 class="mb-0"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-instagram me-2 icon-inline text-danger"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>Instagram</h6>
-												<span class="text-secondary">codervent</span>
-											</li>
-											<li class="list-group-item d-flex justify-content-between align-items-center flex-wrap">
-												<h6 class="mb-0"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-facebook me-2 icon-inline text-primary"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path></svg>Facebook</h6>
-												<span class="text-secondary">codervent</span>
-											</li>
-										</ul> --}}
-                                    </div>
-                                </div>
+            </div>
+
+            {{-- DreamsPOS-style horizontal settings tabs --}}
+            <div class="d-flex flex-wrap align-items-center gap-2 mb-4 pb-2 border-bottom">
+                <a href="{{ route('settings.index') }}" class="btn btn-sm btn-outline-secondary rounded-pill px-3">{{ __('Overview') }}</a>
+                <span class="btn btn-sm btn-primary rounded-pill px-3 disabled" tabindex="-1" aria-current="page">{{ __('Profile') }}</span>
+                <a href="{{ route('settings.localization') }}" class="btn btn-sm btn-outline-secondary rounded-pill px-3">{{ __('Localization') }}</a>
+                <a href="{{ route('sites.index') }}" class="btn btn-sm btn-outline-secondary rounded-pill px-3">{{ __('Branches') }}</a>
+                <a href="{{ route('settings.notifications') }}" class="btn btn-sm btn-outline-secondary rounded-pill px-3">{{ __('Notifications') }}</a>
+            </div>
+
+            @include('inc.msg')
+
+            <div class="row">
+                <div class="col-12 col-lg-4 col-xl-3 mb-4">
+                    <div class="card radius-10">
+                        <div class="card-body text-center">
+                            <div class="position-relative d-inline-block mb-2">
+                                <img src="{{ asset('storage/users/'.$avatar) }}" alt=""
+                                    class="rounded-circle p-1 bg-primary" width="120" height="120" style="object-fit: cover;">
                             </div>
-                            <div class="col-lg-8">
-                                <div class="card">
-                                    <div class="card-body">
-                                        <div class="row mb-3">
-                                            <div class="col-sm-3">
-                                                <h6 class="mb-0">Full Name</h6>
-                                            </div>
-                                            <div class="col-sm-9 text-secondary">
-                                                <input type="text" class="form-control"
-                                                    value="{{ Auth::user()->name }}" />
-                                            </div>
-                                        </div>
-                                        <div class="row mb-3">
-                                            <div class="col-sm-3">
-                                                <h6 class="mb-0">Email</h6>
-                                            </div>
-                                            <div class="col-sm-9 text-secondary">
-                                                <input type="text" class="form-control"
-                                                    value="{{ Auth::user()->email }}" />
-                                            </div>
-                                        </div>
-                                        <div class="row mb-3">
-                                            <div class="col-sm-3">
-                                                <h6 class="mb-0">Phone</h6>
-                                            </div>
-                                            <div class="col-sm-9 text-secondary">
-                                                <input type="text" class="form-control"
-                                                    value="{{ Auth::user()->mobile }}" />
-                                            </div>
-										</div>
-										<div class="row mb-3">
-                                            <div class="col-sm-3">
-                                                <h6 class="mb-0">Address</h6>
-                                            </div>
-                                            <div class="col-sm-9 text-secondary">
-                                                <input type="text" class="form-control"
-                                                    value="{{ Auth::user()->address }}" />
-                                            </div>
-										</div>
-										<div class="row mb-3">
-                                            <div class="col-sm-3">
-                                                <h6 class="mb-0">Status</h6>
-                                            </div>
-                                            <div class="col-sm-9 text-secondary">
-                                                <textarea name="status" id="" class="form-control">
-													@if (Auth::user()->status == 1) Active
-                                                    @else Inactive
-                                                    @endif
-												</textarea>
-                                            </div>
-                                        </div>
+                            <h5 class="mb-1">{{ $u->name }}</h5>
+                            <p class="text-muted small mb-2">{{ $u->hierarchyLabel() }}</p>
+                            @if ($u->site)
+                                <p class="text-muted small mb-0">
+                                    <i class="bx bx-buildings"></i> {{ $u->site->name }}@if($u->site->code) · {{ $u->site->code }}@endif
+                                </p>
+                            @endif
+                            @if ($u->company && ! $u->is_super_admin)
+                                <p class="text-muted small mb-0">{{ $u->company->company_name }}</p>
+                            @endif
+                            <span class="badge rounded-pill mt-2 {{ $u->status == '1' ? 'bg-success' : 'bg-secondary' }}">
+                                {{ $u->status == '1' ? __('Active') : __('Inactive') }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
 
+                <div class="col-12 col-lg-8 col-xl-9">
+                    {{-- Basic information + image (PDF: Upload Store Image, names, email, phone) --}}
+                    <form action="{{ route('profile.update') }}" method="post" enctype="multipart/form-data" class="mb-4">
+                        @csrf
+                        @method('put')
+                        <input type="hidden" name="_section" value="profile">
 
-                                        {{-- <div class="row">
-                                            <div class="col-sm-3"></div>
-                                            <div class="col-sm-9 text-secondary">
-                                                <input type="button" class="btn btn-primary px-4" value="Save Changes" />
-                                            </div>
-                                        </div> --}}
+                        <div class="card radius-10 mb-4">
+                            <div class="card-body">
+                                <h5 class="card-title mb-1">{{ __('Basic Information') }}</h5>
+                                <p class="text-muted small mb-4">{{ __('Upload profile image. Image should be below 2MB.') }}</p>
+
+                                <div class="row g-3 mb-4">
+                                    <div class="col-12">
+                                        <label for="user_img" class="form-label">{{ __('Upload image') }}</label>
+                                        <input type="file" name="user_img" id="user_img" accept="image/*"
+                                            class="form-control @error('user_img') is-invalid @enderror">
+                                        @error('user_img')<div class="invalid-feedback">{{ $message }}</div>@enderror
                                     </div>
                                 </div>
-                                {{-- <div class="col">
 
-                                    <!-- Modal -->
-                                    <form action="{{ route('users.update', $user->id) }}" method="POST" enctype="multipart/form-data">
-										@csrf
-										@method('put')
-                                        <div class="modal fade" id="exampleVerticallycenteredModal" tabindex="-1"
-                                            aria-hidden="true">
-                                            <div class="modal-dialog modal-dialog-centered">
-                                                <div class="modal-content">
-                                                    <div class="modal-header">
-                                                        <h5 class="modal-title">Edit Profile Picture</h5>
-                                                        <button type="button" class="btn-close" data-bs-dismiss="modal"
-                                                            aria-label="Close"></button>
-                                                    </div>
-                                                    <div class="modal-body">
-                                                        <div class="input-group"> 
-															<span class="input-group-text bg-transparent"><i class='bx bxs-user-circle'></i>
-															</span>
-                                                            <input type="file" class="form-control border-start-0"
-                                                                name="user_img" placeholder="Choose Image" required />
-														</div>
-														
-                                                        <div class="modal-footer">
-                                                            <button type="button" class="btn btn-secondary"
-                                                                data-bs-dismiss="modal">Close</button>
-                                                            <button type="submit" class="btn btn-primary" >Save</button>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                    </form>
-                                </div> --}}
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label for="first_name" class="form-label">{{ __('First name') }} <span class="text-danger">*</span></label>
+                                        <input type="text" name="first_name" id="first_name" required maxlength="100"
+                                            class="form-control @error('first_name') is-invalid @enderror"
+                                            value="{{ old('first_name', $firstName) }}" autocomplete="given-name">
+                                        @error('first_name')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="last_name" class="form-label">{{ __('Last name') }}</label>
+                                        <input type="text" name="last_name" id="last_name" maxlength="100"
+                                            class="form-control @error('last_name') is-invalid @enderror"
+                                            value="{{ old('last_name', $lastName) }}" autocomplete="family-name">
+                                        @error('last_name')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="email" class="form-label">{{ __('Email') }} <span class="text-danger">*</span></label>
+                                        <input type="email" name="email" id="email" required maxlength="255"
+                                            class="form-control @error('email') is-invalid @enderror"
+                                            value="{{ old('email', $u->email) }}" autocomplete="email">
+                                        @error('email')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="mobile" class="form-label">{{ __('Phone number') }} <span class="text-danger">*</span></label>
+                                        <input type="text" name="mobile" id="mobile" required minlength="10" maxlength="10"
+                                            class="form-control @error('mobile') is-invalid @enderror"
+                                            value="{{ old('mobile', $u->mobile) }}" inputmode="numeric" autocomplete="tel">
+                                        @error('mobile')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                    </div>
+                                </div>
                             </div>
                         </div>
+
+                        <div class="card radius-10 mb-4">
+                            <div class="card-body">
+                                <h5 class="card-title mb-1">{{ __('Address information') }}</h5>
+                                <p class="text-muted small mb-4">{{ __('Used for records and future invoicing features.') }}</p>
+
+                                <div class="row g-3">
+                                    <div class="col-12">
+                                        <label for="address_line1" class="form-label">{{ __('Address line 1') }}</label>
+                                        <input type="text" name="address_line1" id="address_line1" maxlength="255"
+                                            class="form-control @error('address_line1') is-invalid @enderror"
+                                            value="{{ old('address_line1', $u->address_line1) }}" autocomplete="address-line1">
+                                        @error('address_line1')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                    </div>
+                                    <div class="col-12">
+                                        <label for="address_line2" class="form-label">{{ __('Address line 2') }}</label>
+                                        <input type="text" name="address_line2" id="address_line2" maxlength="255"
+                                            class="form-control @error('address_line2') is-invalid @enderror"
+                                            value="{{ old('address_line2', $u->address_line2) }}">
+                                        @error('address_line2')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="country" class="form-label">{{ __('Country') }}</label>
+                                        <input type="text" name="country" id="country" maxlength="120"
+                                            class="form-control @error('country') is-invalid @enderror"
+                                            value="{{ old('country', $u->country) }}" autocomplete="country-name">
+                                        @error('country')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="city" class="form-label">{{ __('City') }}</label>
+                                        <input type="text" name="city" id="city" maxlength="120"
+                                            class="form-control @error('city') is-invalid @enderror"
+                                            value="{{ old('city', $u->city) }}" autocomplete="address-level2">
+                                        @error('city')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="state_region" class="form-label">{{ __('State / province') }}</label>
+                                        <input type="text" name="state_region" id="state_region" maxlength="120"
+                                            class="form-control @error('state_region') is-invalid @enderror"
+                                            value="{{ old('state_region', $u->state_region) }}" autocomplete="address-level1">
+                                        @error('state_region')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="postal_code" class="form-label">{{ __('Pin code') }}</label>
+                                        <input type="text" name="postal_code" id="postal_code" maxlength="32"
+                                            class="form-control @error('postal_code') is-invalid @enderror"
+                                            value="{{ old('postal_code', $u->postal_code) }}" autocomplete="postal-code">
+                                        @error('postal_code')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary px-4">
+                            <i class="bx bx-save me-1"></i>{{ __('Save changes') }}
+                        </button>
+                    </form>
+
+                    {{-- Change password (separate save, PDF) --}}
+                    <form action="{{ route('profile.update') }}" method="post" class="mb-4">
+                        @csrf
+                        @method('put')
+                        <input type="hidden" name="_section" value="password">
+
+                        <div class="card radius-10 mb-4">
+                            <div class="card-body">
+                                <h5 class="card-title mb-1">{{ __('Change password') }}</h5>
+                                <p class="text-muted small mb-4">{{ __('Use a strong password you do not use elsewhere.') }}</p>
+
+                                <div class="row g-3">
+                                    <div class="col-md-4">
+                                        <label for="current_password" class="form-label">{{ __('Current password') }} <span class="text-danger">*</span></label>
+                                        <input type="password" name="current_password" id="current_password" required
+                                            class="form-control @error('current_password') is-invalid @enderror"
+                                            autocomplete="current-password">
+                                        @error('current_password')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label for="password" class="form-label">{{ __('New password') }} <span class="text-danger">*</span></label>
+                                        <input type="password" name="password" id="password" required
+                                            class="form-control @error('password') is-invalid @enderror"
+                                            autocomplete="new-password">
+                                        @error('password')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label for="password_confirmation" class="form-label">{{ __('Confirm password') }} <span class="text-danger">*</span></label>
+                                        <input type="password" name="password_confirmation" id="password_confirmation" required
+                                            class="form-control" autocomplete="new-password">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary px-4">
+                            <i class="bx bx-save me-1"></i>{{ __('Save changes') }}
+                        </button>
+                    </form>
+
+                    {{-- 2-step verification (preferences only; SMS/email delivery when org enables it) --}}
+                    <form action="{{ route('profile.update') }}" method="post">
+                        @csrf
+                        @method('put')
+                        <input type="hidden" name="_section" value="security">
+
+                        <div class="card radius-10 mb-3">
+                            <div class="card-body">
+                                <h5 class="card-title mb-1">{{ __('Two step verification') }}</h5>
+                                <p class="text-muted small mb-4">{{ __('Add an extra layer of security to your account. Delivery of codes depends on your organization enabling SMS or mail.') }}</p>
+
+                                <div class="form-check form-switch mb-3">
+                                    <input class="form-check-input" type="checkbox" name="two_factor_sms" id="two_factor_sms" value="1"
+                                        {{ old('two_factor_sms', $tfSms) ? 'checked' : '' }}>
+                                    <label class="form-check-label" for="two_factor_sms">
+                                        <strong>{{ __('Phone') }}</strong>
+                                        <span class="d-block text-muted small">{{ __('Receive a one-time code via SMS when signing in') }}</span>
+                                    </label>
+                                </div>
+
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" name="two_factor_email" id="two_factor_email" value="1"
+                                        {{ old('two_factor_email', $tfEmail) ? 'checked' : '' }}>
+                                    <label class="form-check-label" for="two_factor_email">
+                                        <strong>{{ __('Email') }}</strong>
+                                        <span class="d-block text-muted small">{{ __('Receive a verification code at your registered email address') }}</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary px-4">
+                            <i class="bx bx-save me-1"></i>{{ __('Save changes') }}
+                        </button>
+                    </form>
+
+                    <div class="mt-4">
+                        <a href="{{ route('settings.index') }}" class="btn btn-outline-secondary">{{ __('Back to settings') }}</a>
                     </div>
                 </div>
             </div>
         </div>
-        <!--end page wrapper -->
     </div>
 @endsection

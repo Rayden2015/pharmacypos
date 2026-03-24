@@ -28,6 +28,7 @@ use App\Http\Controllers\SuperAdmin\TenantSubscriptionController;
 use App\Http\Controllers\Tenant\RoleController as TenantRoleController;
 use App\Http\Controllers\DirectMessageController;
 use App\Http\Controllers\AnnouncementController;
+use App\Http\Controllers\Auth\TwoFactorChallengeController;
 
 /*
 |--------------------------------------------------------------------------
@@ -57,6 +58,12 @@ Route::get('grid', [PagesController::class, 'grid']);
 
 
 Auth::routes();
+
+Route::middleware('guest')->group(function () {
+    Route::get('login/two-factor', [TwoFactorChallengeController::class, 'show'])->name('two-factor.challenge');
+    Route::post('login/two-factor', [TwoFactorChallengeController::class, 'store'])->name('two-factor.verify');
+    Route::post('login/two-factor/resend', [TwoFactorChallengeController::class, 'resend'])->name('two-factor.resend');
+});
 
 Route::get('dashboard', [DashboardController::class, 'index'])->middleware('auth')->name('dashboard');
 Route::get('dashboard/export', [DashboardController::class, 'exportCsv'])->middleware(['auth', 'can:reports.export'])->name('dashboard.export');
@@ -117,6 +124,8 @@ Route::patch('pharmacy/prescriptions/{prescription}', [PrescriptionController::c
 Route::resource('products', ProductController::class);
 Route::resource('manufacturers', ManufacturerController::class)->except(['show']);
 Route::resource('suppliers', SupplierController::class)->except(['show']);
+Route::get('users/profile', [UserController::class, 'profile'])->name('profile');
+Route::put('users/profile', [UserController::class, 'updateProfile'])->name('profile.update');
 Route::resource('users', UserController::class);
 Route::resource('customers', CustomerController::class)->only(['index', 'store', 'update', 'destroy']);
 

@@ -8,7 +8,9 @@ use App\Models\User;
 use App\Support\CurrentSite;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 
 
 class UserController extends Controller
@@ -104,7 +106,140 @@ class UserController extends Controller
 
     public function profile()
     {
-        return view('users.profile');
+        $user = auth()->user()->load(['site:id,name,code', 'company:id,company_name']);
+
+        $parts = preg_split('/\s+/', trim((string) $user->name), 2);
+        $firstName = $user->first_name ?? ($parts[0] ?? '');
+        $lastName = $user->last_name ?? ($parts[1] ?? '');
+
+        return view('users.profile', compact('user', 'firstName', 'lastName'));
+    }
+
+    /**
+     * Self-service profile: basic info, password, or 2FA preference toggles (DreamsPOS-style sections).
+     * Admin user CRUD remains on {@see update()}.
+     */
+    public function updateProfile(Request $request)
+    {
+        return match ($request->input('_section', 'profile')) {
+            'password' => $this->updateProfilePasswordOnly($request),
+            'security' => $this->updateProfileSecurityPrefs($request),
+            default => $this->updateProfileBasicInfo($request),
+        };
+    }
+
+    private function updateProfileBasicInfo(Request $request)
+    {
+        $user = $request->user();
+
+        $validated = $request->validate([
+            'first_name' => 'required|string|max:100',
+            'last_name' => 'nullable|string|max:100',
+            'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
+            'mobile' => ['required', 'string', 'min:10', 'max:10'],
+            'address_line1' => 'nullable|string|max:255',
+            'address_line2' => 'nullable|string|max:255',
+            'country' => 'nullable|string|max:120',
+            'city' => 'nullable|string|max:120',
+            'state_region' => 'nullable|string|max:120',
+            'postal_code' => 'nullable|string|max:32',
+            'user_img' => 'nullable|image|max:2048',
+        ]);
+
+        $user->first_name = ucwords(strtolower($validated['first_name']));
+        $lastRaw = $validated['last_name'] ?? null;
+        $user->last_name = $lastRaw !== null && trim((string) $lastRaw) !== ''
+            ? ucwords(strtolower(trim((string) $lastRaw)))
+            : null;
+        $user->name = trim($user->first_name.' '.($user->last_name ?? ''));
+        $user->email = strtolower($validated['email']);
+        $user->mobile = $validated['mobile'];
+        $user->address_line1 = $this->nullableTrimmedString($validated['address_line1'] ?? null);
+        $user->address_line2 = $this->nullableTrimmedString($validated['address_line2'] ?? null);
+        $user->country = $this->nullableTrimmedString($validated['country'] ?? null);
+        $user->city = $this->nullableTrimmedString($validated['city'] ?? null);
+        $user->state_region = $this->nullableTrimmedString($validated['state_region'] ?? null);
+        $user->postal_code = $this->nullableTrimmedString($validated['postal_code'] ?? null);
+        $user->address = $user->address_line1;
+
+        if ($request->hasFile('user_img')) {
+            $fileNameWithExt = $request->file('user_img')->getClientOriginalName();
+            $filename = pathinfo($fileNameWithExt, PATHINFO_FILENAME);
+            $extension = $request->file('user_img')->getClientOriginalExtension();
+            $fileNameToStore = $filename.'_'.time().'.'.$extension;
+            $request->file('user_img')->storeAs('public/users', $fileNameToStore);
+            if ($user->user_img && $user->user_img !== 'user.png') {
+                Storage::delete('public/users/'.$user->user_img);
+            }
+            $user->user_img = $fileNameToStore;
+        }
+
+        $user->save();
+
+        Log::channel('audit')->info('profile.updated', [
+            'user_id' => $user->id,
+            'site_id' => $user->site_id,
+            'company_id' => $user->company_id,
+            'section' => 'basic',
+            'email_changed' => $user->wasChanged('email'),
+            'avatar_changed' => $request->hasFile('user_img'),
+        ]);
+
+        return redirect()->route('profile')->with('success', __('Profile updated successfully.'));
+    }
+
+    private function updateProfilePasswordOnly(Request $request)
+    {
+        $user = $request->user();
+
+        $validated = $request->validate([
+            'current_password' => 'required|string',
+            'password' => 'required|string|min:6|max:255|confirmed',
+        ]);
+
+        if (! Hash::check($validated['current_password'], $user->getAuthPassword())) {
+            return redirect()->route('profile')
+                ->withErrors(['current_password' => __('The current password is incorrect.')])
+                ->withInput();
+        }
+
+        $user->password = Hash::make($validated['password']);
+        $user->confirm_password = Hash::make($validated['password']);
+        $user->save();
+
+        Log::channel('audit')->info('profile.updated', [
+            'user_id' => $user->id,
+            'site_id' => $user->site_id,
+            'company_id' => $user->company_id,
+            'section' => 'password',
+        ]);
+
+        return redirect()->route('profile')->with('success', __('Password updated successfully.'));
+    }
+
+    private function updateProfileSecurityPrefs(Request $request)
+    {
+        $user = $request->user();
+
+        $request->validate([
+            'two_factor_sms' => 'nullable|boolean',
+            'two_factor_email' => 'nullable|boolean',
+        ]);
+
+        $prefs = $user->notification_preferences ?? [];
+        $prefs['two_factor_sms'] = $request->boolean('two_factor_sms');
+        $prefs['two_factor_email'] = $request->boolean('two_factor_email');
+        $user->notification_preferences = $prefs;
+        $user->save();
+
+        Log::channel('audit')->info('profile.updated', [
+            'user_id' => $user->id,
+            'site_id' => $user->site_id,
+            'company_id' => $user->company_id,
+            'section' => 'security',
+        ]);
+
+        return redirect()->route('profile')->with('success', __('Security preferences saved.'));
     }
 
     /**
@@ -336,5 +471,14 @@ class UserController extends Controller
         if ((int) $target->site_id !== (int) CurrentSite::id()) {
             abort(403);
         }
+    }
+
+    private function nullableTrimmedString(?string $value): ?string
+    {
+        if ($value === null || trim($value) === '') {
+            return null;
+        }
+
+        return trim($value);
     }
 }

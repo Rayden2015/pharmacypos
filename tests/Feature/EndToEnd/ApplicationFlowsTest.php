@@ -141,6 +141,7 @@ class ApplicationFlowsTest extends TestCase
         $this->actingAs($user)
             ->get(route('settings.index'))
             ->assertOk()
+            ->assertSee('Profile', false)
             ->assertSee('Localization', false);
 
         $this->actingAs($user)

@@ -19,7 +19,11 @@
     </coverage>
     <!-- Default log channel (stack → daily_env) writes to storage/logs/YYYY-MM-DD-testing.log
          while PHPUnit runs. That is separate from *-local.log (APP_ENV=local: artisan serve, etc.).
-         Audit events still go to storage/logs/audit-YYYY-MM-DD.log when code uses Log::channel('audit'). -->
+         Audit events go to storage/logs/audit-YYYY-MM-DD.log when code uses Log::channel('audit').
+         Profile self-service writes profile.updated with section basic|password|security plus user_id,
+         site_id, company_id (null for platform super admins), and for basic: email_changed, avatar_changed.
+         Email 2FA at login writes auth.two_factor.* (email_code_sent, email_send_failed, email_code_failed,
+         email_locked_out, email_resend_limit, email_completed) to the audit channel. -->
     <php>
         <server name="APP_ENV" value="testing"/>
         <server name="BCRYPT_ROUNDS" value="4"/>

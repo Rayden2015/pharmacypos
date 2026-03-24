@@ -10,6 +10,15 @@
                 <div class="col">
                     <div class="card radius-10 h-100">
                         <div class="card-body">
+                            <h5 class="card-title">Profile</h5>
+                            <p class="text-muted small mb-3">Your name, email, phone, photo, and password.</p>
+                            <a href="{{ route('profile') }}" class="btn btn-primary btn-sm">Open</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="card radius-10 h-100">
+                        <div class="card-body">
                             <h5 class="card-title">Localization</h5>
                             <p class="text-muted small mb-3">Currency, language, timezone, and how dates and times appear across the app.</p>
                             <a href="{{ route('settings.localization') }}" class="btn btn-primary btn-sm">Open</a>
