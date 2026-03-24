@@ -32,7 +32,12 @@ class InventoryNavigationTest extends TestCase
             'status' => '1',
         ]);
 
-        return $this->grantPermissions($user, ['inventory.view', 'inventory.receive', 'products.view']);
+        return $this->grantPermissions($user, [
+            'inventory.view',
+            'inventory.receive',
+            'products.view',
+            'prescriptions.manage',
+        ]);
     }
 
     public function test_inventory_pages_are_reachable(): void

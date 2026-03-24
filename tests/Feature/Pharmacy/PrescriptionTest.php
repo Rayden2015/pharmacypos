@@ -8,10 +8,12 @@ use App\Models\Prescription;
 use App\Models\Site;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\GrantsTenantPermissions;
 use Tests\TestCase;
 
 class PrescriptionTest extends TestCase
 {
+    use GrantsTenantPermissions;
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -22,7 +24,9 @@ class PrescriptionTest extends TestCase
 
     private function makeUser(): User
     {
-        return User::create([
+        $this->seedPermissionsCatalog();
+
+        $user = User::create([
             'name' => 'Rx User',
             'email' => uniqid('rx', true).'@example.test',
             'password' => bcrypt('secret'),
@@ -31,11 +35,31 @@ class PrescriptionTest extends TestCase
             'mobile' => '0244333000',
             'status' => '1',
         ]);
+
+        return $this->grantPermissions($user, ['prescriptions.manage']);
     }
 
     public function test_guest_is_redirected_from_prescriptions(): void
     {
         $this->get(route('pharmacy.prescriptions'))->assertRedirect(route('login'));
+    }
+
+    public function test_user_without_prescriptions_permission_gets_403(): void
+    {
+        $this->seedPermissionsCatalog();
+        $user = User::create([
+            'name' => 'No Rx',
+            'email' => uniqid('norx', true).'@example.test',
+            'password' => bcrypt('secret'),
+            'confirm_password' => bcrypt('secret'),
+            'is_admin' => 1,
+            'mobile' => '0244333001',
+            'status' => '1',
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('pharmacy.prescriptions'))
+            ->assertForbidden();
     }
 
     public function test_authenticated_user_can_create_and_complete_prescription(): void

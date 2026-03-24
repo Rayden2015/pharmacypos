@@ -99,6 +99,7 @@
                         </div>
                     </div>
                 </div>
+                @can('prescriptions.manage')
                 <div class="col">
                     <a href="{{ route('pharmacy.prescriptions') }}" class="text-decoration-none text-reset d-block h-100">
                         <div class="card radius-10 border-start border-0 border-3 border-secondary h-100">
@@ -110,6 +111,7 @@
                         </div>
                     </a>
                 </div>
+                @endcan
                 <div class="col">
                     <a href="{{ route('inventory.low-stock') }}" class="text-decoration-none text-reset d-block h-100">
                         <div class="card radius-10 border-start border-0 border-3 border-danger h-100">
@@ -297,6 +299,7 @@
                         </div>
                     </div>
                 </div>
+                @can('prescriptions.manage')
                 <div class="col-lg-4">
                     <div class="card radius-10 h-100">
                         <div class="card-header bg-transparent border-0 pb-0">
@@ -309,6 +312,7 @@
                         </div>
                     </div>
                 </div>
+                @endcan
             </div>
 
             <div class="row row-cols-1 row-cols-md-2 row-cols-xl-4 g-3 mb-4">

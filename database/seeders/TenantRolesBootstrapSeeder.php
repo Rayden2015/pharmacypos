@@ -49,6 +49,7 @@ class TenantRolesBootstrapSeeder extends Seeder
             $cashier = Role::findOrCreate('Cashier', 'web');
             $cashier->syncPermissions($this->pickPermissions($allPermissions, [
                 'pos.access', 'products.view', 'customers.manage', 'transactions.view',
+                'prescriptions.manage',
             ]));
         }
 

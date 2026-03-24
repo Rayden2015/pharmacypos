@@ -93,6 +93,7 @@
                 </a>
             </li>
             @endcan
+            @can('prescriptions.manage')
             <li>
                 <a href="javascript:;" class="has-arrow">
                     <div class="parent-icon"><i class='bx bx-first-aid'></i></div>
@@ -107,6 +108,7 @@
                     </li>
                 </ul>
             </li>
+            @endcan
             <li>
                 <a href="javascript:;" class="has-arrow">
                     <div class="parent-icon"><i class='bx bx-group'></i></div>
@@ -147,6 +149,7 @@
                 </a>
             </li>
             @endcan
+            @can('prescriptions.manage')
             <li>
                 <a href="javascript:;" class="has-arrow">
                     <div class="parent-icon"><i class='bx bx-first-aid'></i></div>
@@ -161,6 +164,7 @@
                     </li>
                 </ul>
             </li>
+            @endcan
             <li>
                 <a href="javascript:;" class="has-arrow">
                     <div class="parent-icon"><i class='bx bx-group'></i></div>

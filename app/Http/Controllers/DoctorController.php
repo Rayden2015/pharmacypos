@@ -12,7 +12,7 @@ class DoctorController extends Controller
 {
     public function __construct()
     {
-        $this->middleware('auth');
+        $this->middleware(['auth', 'can:prescriptions.manage']);
     }
 
     public function index(Request $request): View

@@ -7,10 +7,12 @@ use App\Models\Prescription;
 use App\Models\Site;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\GrantsTenantPermissions;
 use Tests\TestCase;
 
 class DoctorsTest extends TestCase
 {
+    use GrantsTenantPermissions;
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -21,7 +23,9 @@ class DoctorsTest extends TestCase
 
     private function makeUser(): User
     {
-        return User::create([
+        $this->seedPermissionsCatalog();
+
+        $user = User::create([
             'name' => 'Doc User',
             'email' => uniqid('doc', true).'@example.test',
             'password' => bcrypt('secret'),
@@ -30,11 +34,31 @@ class DoctorsTest extends TestCase
             'mobile' => '0244222000',
             'status' => '1',
         ]);
+
+        return $this->grantPermissions($user, ['prescriptions.manage']);
     }
 
     public function test_guest_cannot_access_doctors(): void
     {
         $this->get(route('pharmacy.doctors.index'))->assertRedirect(route('login'));
+    }
+
+    public function test_user_without_prescriptions_permission_gets_403_on_doctors(): void
+    {
+        $this->seedPermissionsCatalog();
+        $user = User::create([
+            'name' => 'No Rx',
+            'email' => uniqid('norx', true).'@example.test',
+            'password' => bcrypt('secret'),
+            'confirm_password' => bcrypt('secret'),
+            'is_admin' => 1,
+            'mobile' => '0244333002',
+            'status' => '1',
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('pharmacy.doctors.index'))
+            ->assertForbidden();
     }
 
     public function test_user_can_create_list_and_delete_doctor(): void
