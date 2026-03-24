@@ -7,7 +7,9 @@
             </div>
             @include('inc.msg')
             <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-                <p class="text-muted mb-0">Organization-wide or branch-only posts for your team.</p>
+                <p class="text-muted mb-0">Organization-wide or branch-only posts for your team.
+                    <a href="{{ route('settings.notifications') }}" class="ms-1 small">Notification settings</a>
+                </p>
                 @if (auth()->user()->canPublishAnnouncements())
                     <a href="{{ route('notifications.create') }}" class="btn btn-primary btn-sm">New announcement</a>
                 @endif

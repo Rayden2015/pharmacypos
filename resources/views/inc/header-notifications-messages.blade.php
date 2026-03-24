@@ -4,7 +4,11 @@
     $mUnread = $headerUnreadDms ?? 0;
     $annPreviews = $headerAnnouncementPreviews ?? collect();
     $dmPreviews = $headerDmPreviews ?? collect();
+    $tenantComms = auth()->check() && auth()->user()->canUseTenantCommunications();
+    $annOn = $tenantComms && auth()->user()->notificationPreference('announcements_enabled', true);
+    $dmOn = $tenantComms && auth()->user()->notificationPreference('direct_messages_enabled', true);
 @endphp
+@if ($annOn)
 <li class="nav-item dropdown dropdown-large">
     <a class="nav-link dropdown-toggle dropdown-toggle-nocaret position-relative" href="#" role="button" data-bs-toggle="dropdown" data-header-alerts="notifications" aria-expanded="false" title="Announcements">
         <span class="alert-count {{ $nUnread > 0 ? '' : 'd-none' }}">{{ $nUnread > 99 ? '99+' : $nUnread }}</span>
@@ -33,7 +37,7 @@
                                 @if ($a->site_id === null)
                                     Whole organization
                                 @else
-                                    Branch: {{ $a->site?->name ?? '—' }}
+                                    Branch: {{ $a->site ? $a->site->name : '—' }}
                                 @endif
                             </p>
                         </div>
@@ -52,6 +56,8 @@
         </div>
     </div>
 </li>
+@endif
+@if ($dmOn)
 <li class="nav-item dropdown dropdown-large">
     <a class="nav-link dropdown-toggle dropdown-toggle-nocaret position-relative" href="#" role="button" data-bs-toggle="dropdown" data-header-alerts="messages" aria-expanded="false" title="Direct messages">
         <span class="alert-count alert-count--messages {{ $mUnread > 0 ? '' : 'd-none' }}">{{ $mUnread > 99 ? '99+' : $mUnread }}</span>
@@ -93,3 +99,4 @@
         </div>
     </div>
 </li>
+@endif

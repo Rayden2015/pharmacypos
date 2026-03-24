@@ -38,34 +38,47 @@ class HeaderCommunicationsComposer
         $companyId = (int) $user->company_id;
         $uid = (int) $user->id;
 
-        $unreadAnnouncements = Announcement::query()
-            ->visibleTo($user)
-            ->unreadFor($user)
-            ->count();
+        $announcementsOn = $user->notificationPreference('announcements_enabled', true);
+        $dmsOn = $user->notificationPreference('direct_messages_enabled', true);
 
-        $unreadDms = DirectMessage::query()
-            ->where('company_id', $companyId)
-            ->where('recipient_id', $uid)
-            ->whereNull('read_at')
-            ->count();
+        if ($announcementsOn) {
+            $unreadAnnouncements = Announcement::query()
+                ->visibleTo($user)
+                ->unreadFor($user)
+                ->count();
 
-        $readIds = AnnouncementRead::query()
-            ->where('user_id', $uid)
-            ->pluck('announcement_id');
+            $readIds = AnnouncementRead::query()
+                ->where('user_id', $uid)
+                ->pluck('announcement_id');
 
-        $announcementPreviews = Announcement::query()
-            ->visibleTo($user)
-            ->with(['site:id,name'])
-            ->orderByDesc('created_at')
-            ->limit(5)
-            ->get()
-            ->map(function (Announcement $a) use ($readIds) {
-                $a->setAttribute('unread', ! $readIds->contains($a->id));
+            $announcementPreviews = Announcement::query()
+                ->visibleTo($user)
+                ->with(['site:id,name'])
+                ->orderByDesc('created_at')
+                ->limit(5)
+                ->get()
+                ->map(function (Announcement $a) use ($readIds) {
+                    $a->setAttribute('unread', ! $readIds->contains($a->id));
 
-                return $a;
-            });
+                    return $a;
+                });
+        } else {
+            $unreadAnnouncements = 0;
+            $announcementPreviews = collect();
+        }
 
-        $dmPreviews = $this->dmThreadPreviews($companyId, $uid, 5);
+        if ($dmsOn) {
+            $unreadDms = DirectMessage::query()
+                ->where('company_id', $companyId)
+                ->where('recipient_id', $uid)
+                ->whereNull('read_at')
+                ->count();
+
+            $dmPreviews = $this->dmThreadPreviews($companyId, $uid, 5);
+        } else {
+            $unreadDms = 0;
+            $dmPreviews = collect();
+        }
 
         $view->with([
             'headerUnreadAnnouncements' => $unreadAnnouncements,

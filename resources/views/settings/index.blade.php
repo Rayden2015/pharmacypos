@@ -6,6 +6,13 @@
                 <div class="breadcrumb-title pe-3">Settings</div>
             </div>
             @include('inc.msg')
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Notifications</h5>
+                    <p class="text-muted small mb-3">Control in-app alerts (announcements, messages) and email opt-ins for future automated mail.</p>
+                    <a href="{{ route('settings.notifications') }}" class="btn btn-outline-primary btn-sm">Notification preferences</a>
+                </div>
+            </div>
             <div class="card">
                 <div class="card-body">
                     <h5 class="card-title">Currency</h5>

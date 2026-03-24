@@ -148,5 +148,7 @@ Route::middleware(['auth', 'can:reports.export'])->group(function () {
 
 Route::get('settings', [SettingsController::class, 'index'])->name('settings.index');
 Route::put('settings', [SettingsController::class, 'update'])->name('settings.update');
+Route::get('settings/notifications', [SettingsController::class, 'notifications'])->name('settings.notifications');
+Route::put('settings/notifications', [SettingsController::class, 'updateNotifications'])->name('settings.notifications.update');
 
 Route::middleware(['auth', 'tenant.roles'])->resource('roles', TenantRoleController::class)->except(['show']);

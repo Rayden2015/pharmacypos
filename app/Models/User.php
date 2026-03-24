@@ -49,6 +49,7 @@ class User extends Authenticatable
         'user_img',
         'status',
         'address',
+        'notification_preferences',
 
     ];
 
@@ -71,7 +72,23 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
         'is_super_admin' => 'boolean',
+        'notification_preferences' => 'array',
     ];
+
+    /**
+     * Per-user notification toggles (see settings/notifications).
+     *
+     * @param  bool  $default  When the key is missing or preferences are null.
+     */
+    public function notificationPreference(string $key, bool $default = true): bool
+    {
+        $prefs = $this->notification_preferences;
+        if (! is_array($prefs) || ! array_key_exists($key, $prefs)) {
+            return $default;
+        }
+
+        return filter_var($prefs[$key], FILTER_VALIDATE_BOOLEAN);
+    }
 
     public function site()
     {
