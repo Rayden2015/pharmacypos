@@ -4,5 +4,5 @@
     <a href="{{ route('super-admin.subscriptions.index') }}" class="btn btn-sm {{ request()->routeIs('super-admin.subscriptions.*') ? 'btn-primary' : 'btn-outline-primary' }}">Subscriptions</a>
     <a href="{{ route('super-admin.packages.index') }}" class="btn btn-sm {{ request()->routeIs('super-admin.packages.*') ? 'btn-primary' : 'btn-outline-primary' }}">Packages</a>
     <a href="{{ route('super-admin.domain') }}" class="btn btn-sm {{ request()->routeIs('super-admin.domain') ? 'btn-primary' : 'btn-outline-primary' }}">Domain</a>
-    <a href="{{ route('super-admin.payments.index') }}" class="btn btn-sm {{ request()->routeIs('super-admin.payments.*') ? 'btn-primary' : 'btn-outline-primary' }}">Purchase transactions</a>
+    <a href="{{ route('super-admin.payments.index') }}" class="btn btn-sm {{ request()->routeIs('super-admin.payments.*') ? 'btn-primary' : 'btn-outline-primary' }}">Subscription payments</a>
 </div>
