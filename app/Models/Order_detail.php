@@ -34,4 +34,22 @@ class Order_detail extends Model
     {
         return $this->belongsTo('App\Models\Order');
     }
+
+    public function saleReturnLines()
+    {
+        return $this->hasMany(SaleReturnLine::class, 'order_detail_id');
+    }
+
+    /**
+     * Units already put back to stock for this invoice line.
+     */
+    public function quantityReturned(): int
+    {
+        return (int) $this->saleReturnLines()->sum('quantity');
+    }
+
+    public function quantityReturnable(): int
+    {
+        return max(0, (int) $this->quantity - $this->quantityReturned());
+    }
 }

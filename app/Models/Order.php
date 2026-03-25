@@ -29,6 +29,12 @@ class Order extends Model
     {
         return $this->hasOne(Transaction::class, 'order_id');
     }
+
+    public function saleReturns()
+    {
+        return $this->hasMany(SaleReturn::class, 'order_id');
+    }
+
     public function product(){
         return $this->belongsTo('App\Models\Product');
     }

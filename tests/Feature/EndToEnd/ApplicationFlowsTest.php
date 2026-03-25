@@ -11,6 +11,7 @@ use Tests\TestCase;
 
 /**
  * HTTP flows from login through inventory and settings (closest to E2E without a browser).
+ * Sales report KPIs, search, CSV, and print are covered in {@see SalesReportEndToEndTest}.
  */
 class ApplicationFlowsTest extends TestCase
 {

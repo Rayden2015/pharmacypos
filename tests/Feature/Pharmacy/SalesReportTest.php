@@ -49,7 +49,9 @@ class SalesReportTest extends TestCase
             ->get(route('reports.sales'))
             ->assertOk()
             ->assertSee('Sales report', false)
-            ->assertSee('Invoice', false);
+            ->assertSee('Invoice no.', false)
+            ->assertSee('Net revenue', false)
+            ->assertSee('Total sales amount', false);
     }
 
     public function test_sales_report_lists_order_with_totals(): void
@@ -158,7 +160,9 @@ class SalesReportTest extends TestCase
         $response->assertOk();
         $response->assertHeader('content-disposition');
         $csv = $response->streamedContent();
-        $this->assertStringContainsString('Invoice', $csv);
+        $this->assertStringContainsString('Invoice no.', $csv);
+        $this->assertStringContainsString('Sales amount', $csv);
+        $this->assertStringContainsString('Net revenue', $csv);
         $this->assertStringContainsString('CSV Customer', $csv);
         $this->assertStringContainsString('MoMo', $csv);
     }
@@ -174,6 +178,57 @@ class SalesReportTest extends TestCase
             ]))
             ->assertOk()
             ->assertSee('Sales report', false)
-            ->assertSee('Invoice', false);
+            ->assertSee('Invoice no.', false)
+            ->assertSee('Net revenue', false);
+    }
+
+    public function test_sales_report_search_by_customer_and_invoice(): void
+    {
+        $user = $this->makeUser();
+
+        $order = new Order;
+        $order->name = 'UniqueSearchCustomer';
+        $order->mobile = '0244999888';
+        $order->site_id = $user->site_id ?? \App\Models\Site::defaultId();
+        $order->save();
+
+        Order_detail::create([
+            'order_id' => $order->id,
+            'product_id' => Product::create([
+                'product_name' => 'S '.uniqid(),
+                'description' => 'd',
+                'manufacturer_id' => Manufacturer::firstOrCreate(['name' => 'Ms'], ['name' => 'Ms'])->id,
+                'price' => 10,
+                'supplierprice' => 5,
+                'quantity' => 5,
+                'stock_alert' => 1,
+                'form' => 'Tablet',
+                'expiredate' => '2030-01-01',
+                'product_img' => 'product.png',
+            ])->id,
+            'quantity' => 1,
+            'unitprice' => 10,
+            'discount' => 0,
+            'amount' => 10,
+            'unit_of_measure' => null,
+            'volume' => null,
+        ]);
+
+        $d = now()->toDateString();
+
+        $this->actingAs($user)
+            ->get(route('reports.sales', ['start_date' => $d, 'end_date' => $d, 'q' => 'UniqueSearch']))
+            ->assertOk()
+            ->assertSee('UniqueSearchCustomer', false);
+
+        $this->actingAs($user)
+            ->get(route('reports.sales', ['start_date' => $d, 'end_date' => $d, 'q' => '0244999888']))
+            ->assertOk()
+            ->assertSee('UniqueSearchCustomer', false);
+
+        $this->actingAs($user)
+            ->get(route('reports.sales', ['start_date' => $d, 'end_date' => $d, 'q' => '#ORD-'.str_pad((string) $order->id, 5, '0', STR_PAD_LEFT)]))
+            ->assertOk()
+            ->assertSee('UniqueSearchCustomer', false);
     }
 }

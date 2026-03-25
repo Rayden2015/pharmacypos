@@ -45,7 +45,7 @@ class Product extends Model
         'company_id',
         'product_name', 'slug', 'sku', 'item_code', 'selling_type', 'category', 'sub_category',
         'barcode_symbology', 'tax_type', 'discount_type', 'discount_value', 'product_type',
-        'warranty_term', 'manufactured_date', 'warehouse_note',
+        'warranty_term', 'manufactured_date', 'warehouse_note', 'rack_location',
         'alias', 'description', 'manufacturer_id', 'preferred_supplier_id',
         'price', 'quantity', 'product_img',
         'supplierprice', 'stock_alert', 'form', 'unit_of_measure', 'volume', 'expiredate',

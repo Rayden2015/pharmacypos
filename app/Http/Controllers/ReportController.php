@@ -9,6 +9,7 @@ use App\Support\ReportAuditLogger;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ReportController extends Controller
@@ -106,10 +107,13 @@ class ReportController extends Controller
             ? Site::query()->where('is_active', true)->orderBy('name')->get(['id', 'name', 'code'])
             : Site::query()->forUserTenant($viewer)->where('is_active', true)->orderBy('name')->get(['id', 'name', 'code']);
 
+        $salesKpis = $this->buildSalesKpis($request, $startDate, $endDate);
+
         ReportAuditLogger::log($request, 'sales.view', [
             'start_date' => $startDate,
             'end_date' => $endDate,
             'site_id' => $siteFilter,
+            'q' => $request->filled('q') ? $request->input('q') : null,
         ]);
 
         return view('reports.sales', compact(
@@ -117,7 +121,8 @@ class ReportController extends Controller
             'sites',
             'startDate',
             'endDate',
-            'siteFilter'
+            'siteFilter',
+            'salesKpis'
         ));
     }
 
@@ -133,6 +138,7 @@ class ReportController extends Controller
             'start_date' => $startDate,
             'end_date' => $endDate,
             'site_id' => $siteFilter,
+            'q' => $request->filled('q') ? $request->input('q') : null,
         ]);
 
         $filename = sprintf(
@@ -145,14 +151,14 @@ class ReportController extends Controller
             $out = fopen('php://output', 'w');
             fprintf($out, chr(0xEF).chr(0xBB).chr(0xBF));
             fputcsv($out, [
-                'Invoice',
+                'Invoice no.',
                 'Date',
                 'Branch',
                 'Customer',
                 'Mobile',
-                'Gross',
-                'Disc %',
-                'Total',
+                'Sales amount',
+                'Disc. %',
+                'Net revenue',
                 'Payment method',
                 'Paid',
                 'Status',
@@ -199,10 +205,8 @@ class ReportController extends Controller
 
         $orders = $this->salesOrdersQuery($request, $startDate, $endDate)->get();
 
-        $totalNet = 0.0;
         foreach ($orders as $order) {
             $this->applySalesMetrics($order);
-            $totalNet += (float) $order->sales_net;
         }
 
         $branchLabel = null;
@@ -210,10 +214,14 @@ class ReportController extends Controller
             $branchLabel = Site::query()->whereKey($siteFilter)->value('name');
         }
 
+        $salesKpis = $this->buildSalesKpis($request, $startDate, $endDate);
+        $totalNet = $salesKpis['net'];
+
         ReportAuditLogger::log($request, 'sales.print', [
             'start_date' => $startDate,
             'end_date' => $endDate,
             'site_id' => $siteFilter,
+            'q' => $request->filled('q') ? $request->input('q') : null,
         ]);
 
         return view('reports.sales_print', compact(
@@ -222,7 +230,8 @@ class ReportController extends Controller
             'endDate',
             'siteFilter',
             'branchLabel',
-            'totalNet'
+            'totalNet',
+            'salesKpis'
         ));
     }
 
@@ -267,7 +276,116 @@ class ReportController extends Controller
             }
         }
 
+        if ($request->filled('q')) {
+            $term = trim((string) $request->input('q'));
+            if ($term !== '') {
+                $this->applySalesSearchFilter($ordersQuery, $term);
+            }
+        }
+
         return $ordersQuery;
+    }
+
+    /**
+     * @return array{
+     *   invoice_count: int,
+     *   gross: float,
+     *   net: float,
+     *   deductions: float,
+     *   prev_invoice_count: int,
+     *   prev_gross: float,
+     *   prev_net: float,
+     *   prev_deductions: float,
+     *   pct_invoices: float|null,
+     *   pct_gross: float|null,
+     *   pct_net: float|null,
+     *   pct_deductions: float|null
+     * }
+     */
+    private function buildSalesKpis(Request $request, string $startDate, string $endDate): array
+    {
+        $curr = $this->salesRangeTotals($request, $startDate, $endDate);
+        $startC = Carbon::parse($startDate)->startOfDay();
+        $endC = Carbon::parse($endDate)->startOfDay();
+        $days = max(1, $startC->diffInDays($endC) + 1);
+        $prevEnd = $startC->copy()->subDay();
+        $prevStart = $prevEnd->copy()->subDays($days - 1);
+        $prev = $this->salesRangeTotals($request, $prevStart->toDateString(), $prevEnd->toDateString());
+
+        return [
+            'invoice_count' => $curr['invoice_count'],
+            'gross' => $curr['gross'],
+            'net' => $curr['net'],
+            'deductions' => $curr['deductions'],
+            'prev_invoice_count' => $prev['invoice_count'],
+            'prev_gross' => $prev['gross'],
+            'prev_net' => $prev['net'],
+            'prev_deductions' => $prev['deductions'],
+            'pct_invoices' => $this->percentChangeFloat((float) $curr['invoice_count'], (float) $prev['invoice_count']),
+            'pct_gross' => $this->percentChangeFloat($curr['gross'], $prev['gross']),
+            'pct_net' => $this->percentChangeFloat($curr['net'], $prev['net']),
+            'pct_deductions' => $this->percentChangeFloat($curr['deductions'], $prev['deductions']),
+        ];
+    }
+
+    /**
+     * @return array{invoice_count: int, gross: float, net: float, deductions: float}
+     */
+    private function salesRangeTotals(Request $request, string $startDate, string $endDate): array
+    {
+        $base = $this->salesOrdersQuery($request, $startDate, $endDate);
+        $invoiceCount = (int) (clone $base)->count();
+        $idSubquery = (clone $base)->select('orders.id');
+
+        $net = (float) Order_detail::query()
+            ->whereIn('order_id', $idSubquery)
+            ->sum('amount');
+
+        $gross = (float) Order_detail::query()
+            ->whereIn('order_id', $idSubquery)
+            ->sum(DB::raw('(quantity * unitprice)'));
+
+        $deductions = max(0.0, $gross - $net);
+
+        return [
+            'invoice_count' => $invoiceCount,
+            'gross' => $gross,
+            'net' => $net,
+            'deductions' => $deductions,
+        ];
+    }
+
+    private function percentChangeFloat(float $current, float $previous): ?float
+    {
+        if (abs($previous) < 0.000001) {
+            return null;
+        }
+
+        return round((($current - $previous) / $previous) * 100, 1);
+    }
+
+    private function applySalesSearchFilter(Builder $ordersQuery, string $term): void
+    {
+        $like = '%'.addcslashes($term, '%_\\').'%';
+        $ordersQuery->where(function (Builder $oq) use ($term, $like) {
+            $oq->where('orders.name', 'like', $like)
+                ->orWhere('orders.mobile', 'like', $like);
+
+            if (preg_match('/#?ORD-?0*(\d+)/i', $term, $m)) {
+                $oq->orWhere('orders.id', (int) $m[1]);
+            }
+
+            $digitsOnly = preg_replace('/\D+/', '', $term);
+            if ($digitsOnly !== '' && ctype_digit($digitsOnly)) {
+                $id = (int) $digitsOnly;
+                if ($id > 0 && $id <= 2147483647) {
+                    $oq->orWhere('orders.id', $id);
+                }
+                if (strlen($digitsOnly) <= 15) {
+                    $oq->orWhereRaw('CAST(orders.id AS CHAR) LIKE ?', ['%'.$digitsOnly.'%']);
+                }
+            }
+        });
     }
 
     private function applySalesMetrics(Order $order): Order

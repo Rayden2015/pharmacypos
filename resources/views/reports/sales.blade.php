@@ -19,7 +19,10 @@
             <div class="card">
                 <div class="card-body">
                     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-                        <p class="text-muted small mb-0">Invoice-style list of POS orders by date range and branch (same data as checkout; totals from line items).</p>
+                        <p class="text-muted small mb-0">
+                            Invoice-style POS sales for the selected range. <strong>Sales amount</strong> is pre-discount line totals; <strong>net revenue</strong> matches checkout line totals.
+                            Tax is not stored per order yet—use <strong>Disc. %</strong> / deductions for POS line discounts. KPI % vs. the previous window of the same length (same filters).
+                        </p>
                         <div class="d-flex flex-wrap gap-2">
                             @can('reports.export')
                             <a href="{{ route('reports.sales.export', request()->except('page')) }}" class="btn btn-outline-secondary btn-sm">Export CSV</a>
@@ -32,14 +35,18 @@
                     </div>
                     <form method="get" action="{{ route('reports.sales') }}" class="row g-2 align-items-end mb-4">
                         <div class="col-12 col-md-3">
+                            <label class="form-label small mb-0">Search</label>
+                            <input type="search" name="q" class="form-control" value="{{ request('q') }}" placeholder="Invoice #, customer, mobile…" autocomplete="off">
+                        </div>
+                        <div class="col-6 col-md-2">
                             <label class="form-label small mb-0">From</label>
                             <input type="date" name="start_date" class="form-control" value="{{ $startDate }}">
                         </div>
-                        <div class="col-12 col-md-3">
+                        <div class="col-6 col-md-2">
                             <label class="form-label small mb-0">To</label>
                             <input type="date" name="end_date" class="form-control" value="{{ $endDate }}">
                         </div>
-                        <div class="col-12 col-md-4">
+                        <div class="col-12 col-md-3">
                             <label class="form-label small mb-0">Branch</label>
                             <select name="site_id" class="form-select">
                                 <option value="">All branches</option>
@@ -55,18 +62,67 @@
                         </div>
                     </form>
 
+                    @php
+                        $pctFmt = function (?float $p): string {
+                            if ($p === null) {
+                                return '—';
+                            }
+                            $sign = $p > 0 ? '+' : '';
+                            return $sign.number_format($p, 1).'%';
+                        };
+                    @endphp
+
+                    <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-4 g-3 mb-4">
+                        <div class="col">
+                            <div class="card radius-10 border-start border-0 border-3 border-primary h-100">
+                                <div class="card-body py-3">
+                                    <p class="mb-0 text-secondary small">Total sales amount</p>
+                                    <h5 class="my-1 text-primary">{{ $currencySymbol }}{{ number_format($salesKpis['gross'], 2) }}</h5>
+                                    <p class="mb-0 font-13 text-muted">vs prior window: {{ $pctFmt($salesKpis['pct_gross']) }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="card radius-10 border-start border-0 border-3 border-warning h-100">
+                                <div class="card-body py-3">
+                                    <p class="mb-0 text-secondary small">Line discounts (gross − net)</p>
+                                    <h5 class="my-1 text-warning text-dark">{{ $currencySymbol }}{{ number_format($salesKpis['deductions'], 2) }}</h5>
+                                    <p class="mb-0 font-13 text-muted">vs prior window: {{ $pctFmt($salesKpis['pct_deductions']) }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="card radius-10 border-start border-0 border-3 border-success h-100">
+                                <div class="card-body py-3">
+                                    <p class="mb-0 text-secondary small">Net revenue</p>
+                                    <h5 class="my-1 text-success">{{ $currencySymbol }}{{ number_format($salesKpis['net'], 2) }}</h5>
+                                    <p class="mb-0 font-13 text-muted">vs prior window: {{ $pctFmt($salesKpis['pct_net']) }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="card radius-10 border-start border-0 border-3 border-secondary h-100">
+                                <div class="card-body py-3">
+                                    <p class="mb-0 text-secondary small">Invoice count</p>
+                                    <h5 class="my-1 text-secondary">{{ number_format($salesKpis['invoice_count']) }}</h5>
+                                    <p class="mb-0 font-13 text-muted">vs prior window: {{ $pctFmt($salesKpis['pct_invoices']) }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="table-responsive">
                         <table class="table table-striped table-hover align-middle mb-0">
                             <thead class="table-light">
                                 <tr>
-                                    <th scope="col">Invoice</th>
+                                    <th scope="col">Invoice no.</th>
                                     <th scope="col">Date</th>
                                     <th scope="col">Branch</th>
                                     <th scope="col">Customer</th>
                                     <th scope="col">Mobile</th>
-                                    <th scope="col" class="text-end">Gross</th>
-                                    <th scope="col" class="text-end">Disc %</th>
-                                    <th scope="col" class="text-end">Total</th>
+                                    <th scope="col" class="text-end">Sales amount</th>
+                                    <th scope="col" class="text-end">Disc. %</th>
+                                    <th scope="col" class="text-end">Net revenue</th>
                                     <th scope="col">Payment</th>
                                     <th scope="col" class="text-end">Paid</th>
                                     <th scope="col">Status</th>

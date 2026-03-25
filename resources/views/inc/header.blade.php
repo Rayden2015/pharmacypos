@@ -76,6 +76,14 @@
                 </a>
             </li>
             @endcan
+            @can('pos.refund')
+            <li>
+                <a href="{{ route('sales.returns.index') }}">
+                    <div class="parent-icon"><i class='bx bx-revision'></i></div>
+                    <div class="menu-title">Sales returns</div>
+                </a>
+            </li>
+            @endcan
             @can('reports.view')
             <li>
                 <a href="{{ route('reports.periodic') }}">
@@ -214,7 +222,7 @@
                     <li><a href="{{ route('inventory.batches') }}"><i class="bx bx-right-arrow-alt"></i>Batch management</a></li>
                     @endcan
                     <li><a href="{{ route('inventory.expiry-tracking') }}"><i class="bx bx-right-arrow-alt"></i>Expiry tracking</a></li>
-                    <li><a href="{{ route('inventory.receipts.index') }}"><i class="bx bx-right-arrow-alt"></i>Inventory logs (receipts)</a></li>
+                    <li><a href="{{ route('inventory.logs') }}"><i class="bx bx-right-arrow-alt"></i>Inventory logs</a></li>
                     <li><a href="{{ route('inventory.catalog.categories') }}"><i class="bx bx-right-arrow-alt"></i>Category</a></li>
                     <li><a href="{{ route('manufacturers.index') }}"><i class="bx bx-right-arrow-alt"></i>Manufacturers</a></li>
                     @can('suppliers.manage')

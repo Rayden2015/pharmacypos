@@ -32,6 +32,7 @@ use App\Http\Controllers\AnnouncementController;
 use App\Http\Controllers\Auth\TwoFactorChallengeController;
 use App\Http\Controllers\DoctorController;
 use App\Http\Controllers\SupplierInvoiceController;
+use App\Http\Controllers\SaleReturnController;
 
 /*
 |--------------------------------------------------------------------------
@@ -93,6 +94,11 @@ Route::middleware(['auth', 'tenant.communications'])->group(function () {
 });
 
 Route::get('orders/customers/lookup', [OrderController::class, 'lookupCustomer'])->name('orders.customers.lookup');
+Route::middleware(['auth', 'pos_staff', 'can:pos.refund'])->group(function () {
+    Route::get('sales/returns', [SaleReturnController::class, 'index'])->name('sales.returns.index');
+    Route::get('sales/returns/{order}/create', [SaleReturnController::class, 'create'])->name('sales.returns.create');
+    Route::post('sales/returns/{order}', [SaleReturnController::class, 'store'])->name('sales.returns.store');
+});
 Route::resource('orders', OrderController::class);
 Route::resource('report', OrderDetailController::class);
 Route::get('products/{product}/inventory-history', [ProductController::class, 'inventoryHistory'])
@@ -115,6 +121,8 @@ Route::get('inventory/catalog/categories', [InventoryController::class, 'catalog
 Route::get('inventory/catalog/brands', [InventoryController::class, 'catalogBrands'])->name('inventory.catalog.brands');
 Route::get('inventory/catalog/units', [InventoryController::class, 'catalogUnits'])->name('inventory.catalog.units');
 Route::get('inventory/expiry-tracking', [InventoryController::class, 'expiryTracking'])->name('inventory.expiry-tracking');
+Route::get('inventory/logs', [InventoryController::class, 'inventoryLogs'])->name('inventory.logs');
+Route::get('inventory/logs/export', [InventoryController::class, 'inventoryLogsExport'])->name('inventory.logs.export');
 Route::middleware(['can:inventory.view'])->group(function () {
     Route::get('inventory/batches/export', [InventoryController::class, 'batchExport'])->name('inventory.batches.export');
     Route::get('inventory/batches', [InventoryController::class, 'batchManagement'])->name('inventory.batches');

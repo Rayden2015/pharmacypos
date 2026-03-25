@@ -6,13 +6,14 @@ use App\Models\Manufacturer;
 use App\Models\Product;
 use App\Models\Site;
 use Laravel\Dusk\Browser;
+use Tests\Browser\Concerns\InteractsWithDuskLogin;
 use Tests\DuskTestCase;
 
 /**
  * Browser tests for Create product (/addproduct).
  *
  * Requires:
- * - App server: `php artisan serve` (default http://127.0.0.1:8000).
+ * - App server: `php artisan serve` and APP_URL including that port (e.g. http://127.0.0.1:8000).
  * - ChromeDriver matching Chrome: `bash scripts/dusk-chromedriver.sh` (legacy `dusk:chrome-driver` fails on Chrome 115+).
  * - `.env.dusk.local` must include APP_KEY and DB settings (see project file; `php artisan dusk` swaps `.env` to this file).
  * - DB: at least one manufacturer and active site (e.g. migrations + seeders).
@@ -22,6 +23,8 @@ use Tests\DuskTestCase;
  */
 class CreateProductBrowserTest extends DuskTestCase
 {
+    use InteractsWithDuskLogin;
+
     /**
      * PHPUnit only reliably picks up @beforeClass on the concrete test class (not always on abstract parents).
      *
@@ -61,17 +64,10 @@ class CreateProductBrowserTest extends DuskTestCase
             $this->markTestSkipped('No active site; run migrations/seeders.');
         }
 
-        $email = env('DUSK_LOGIN_EMAIL', 'admin@gmail.com');
-        $password = env('DUSK_LOGIN_PASSWORD', 'secret');
         $productName = 'Dusk Medicine '.uniqid();
 
-        $this->browse(function (Browser $browser) use ($email, $password, $manufacturerId, $productName) {
-            $browser->visit('/login')
-                ->waitFor('#email', 5)
-                ->type('#email', $email)
-                ->type('#password', $password)
-                ->press('button[type="submit"]')
-                ->waitForLocation('/home', 15);
+        $this->browse(function (Browser $browser) use ($manufacturerId, $productName) {
+            $this->loginAsDuskAdmin($browser, '/login');
 
             $browser->visit('/addproduct')
                 ->waitForText('Create product', 5)

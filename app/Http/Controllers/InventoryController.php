@@ -518,4 +518,156 @@ class InventoryController extends Controller
         return ['key' => 'ok', 'label' => 'OK', 'badge' => 'bg-success'];
     }
 
+    /**
+     * Cross-product inventory ledger (SKU, lot, qty in/out, balance, reference) with filters and CSV export.
+     */
+    public function inventoryLogs(Request $request)
+    {
+        $viewer = $request->user();
+        $sites = Site::query()->forUserTenant($viewer)->where('is_active', true)->orderBy('name')->get(['id', 'name', 'code']);
+        $base = $this->inventoryLogsBaseQuery($request, $viewer);
+        $movements = (clone $base)->paginate(20)->withQueryString();
+
+        return view('inventory.inventory-logs', compact('movements', 'sites'));
+    }
+
+    public function inventoryLogsExport(Request $request): StreamedResponse
+    {
+        $viewer = $request->user();
+        Log::channel('audit')->info('inventory.logs.export', [
+            'user_id' => $viewer->id,
+            'filters' => $request->only(['q', 'site_id', 'date_from', 'date_to', 'type', 'sort']),
+        ]);
+
+        $base = $this->inventoryLogsBaseQuery($request, $viewer);
+        $filename = 'inventory-logs-'.now()->format('Y-m-d-His').'.csv';
+
+        return response()->streamDownload(function () use ($base) {
+            $out = fopen('php://output', 'w');
+            fprintf($out, chr(0xEF).chr(0xBB).chr(0xBF));
+            fputcsv($out, [
+                'Date & time',
+                'SKU',
+                'Item',
+                'Batch / lot',
+                'Storage / rack',
+                'Branch',
+                'Transaction type',
+                'Quantity in',
+                'Quantity out',
+                'Balance stock',
+                'Reference ID',
+                'Note',
+                'User',
+            ]);
+
+            foreach ((clone $base)->lazy(200) as $m) {
+                /** @var InventoryMovement $m */
+                fputcsv($out, [
+                    $m->created_at->format('Y-m-d H:i:s'),
+                    $m->product?->sku ?? $m->product?->item_code ?? '',
+                    $m->product?->product_name ?? '',
+                    $m->batchDisplay(),
+                    $m->product?->rack_location ?? '',
+                    $m->site?->name ?? '',
+                    $m->transactionTypeLabel(),
+                    $m->quantityInDisplay(),
+                    $m->quantityOutDisplay(),
+                    $m->quantity_after,
+                    $m->referenceDisplay(),
+                    $m->note ?? '',
+                    $m->user?->name ?? '',
+                ]);
+            }
+
+            fclose($out);
+        }, $filename, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+        ]);
+    }
+
+    private function inventoryLogsBaseQuery(Request $request, User $viewer): Builder
+    {
+        $q = InventoryMovement::query()
+            ->with([
+                'product:id,product_name,sku,item_code,company_id,rack_location',
+                'stockReceipt:id,batch_number',
+                'stockTransfer:id',
+                'site:id,name,code',
+                'user:id,name',
+            ]);
+
+        $q->whereHas('product', function (Builder $pq) use ($viewer) {
+            if (! $viewer->isSuperAdmin()) {
+                $pq->forTenantCatalog($viewer);
+            }
+        });
+
+        if ($request->filled('site_id')) {
+            $sid = (int) $request->input('site_id');
+            if ($sid > 0) {
+                $q->where('inventory_movements.site_id', $sid);
+            }
+        }
+
+        if ($request->filled('q')) {
+            $term = trim((string) $request->input('q'));
+            if ($term !== '') {
+                $like = '%'.addcslashes($term, '%_\\').'%';
+                $q->whereHas('product', function (Builder $pq) use ($like) {
+                    $pq->where(function (Builder $p2) use ($like) {
+                        $p2->where('product_name', 'like', $like)
+                            ->orWhere('sku', 'like', $like)
+                            ->orWhere('item_code', 'like', $like)
+                            ->orWhere('alias', 'like', $like)
+                            ->orWhere('rack_location', 'like', $like);
+                    });
+                });
+            }
+        }
+
+        if ($request->filled('date_from')) {
+            $q->whereDate('inventory_movements.created_at', '>=', Carbon::parse($request->input('date_from'))->toDateString());
+        }
+        if ($request->filled('date_to')) {
+            $q->whereDate('inventory_movements.created_at', '<=', Carbon::parse($request->input('date_to'))->toDateString());
+        }
+
+        $type = $request->input('type', 'all');
+        if ($type === 'purchase') {
+            $q->where('inventory_movements.change_type', 'receipt');
+        } elseif ($type === 'sales') {
+            $q->where('inventory_movements.change_type', 'sale');
+        } elseif ($type === 'adjustment') {
+            $q->where('inventory_movements.change_type', 'adjustment');
+        } elseif ($type === 'transfer') {
+            $q->whereIn('inventory_movements.change_type', ['transfer_in', 'transfer_out']);
+        } elseif ($type === 'opening') {
+            $q->where('inventory_movements.change_type', 'initial');
+        } elseif ($type === 'return') {
+            $q->where('inventory_movements.change_type', 'sale_return');
+        }
+
+        $sort = $request->input('sort', 'date_desc');
+        if ($sort === 'date_asc') {
+            $q->orderBy('inventory_movements.created_at')->orderBy('inventory_movements.id');
+        } elseif ($sort === 'sku_asc') {
+            $q->orderBy(Product::select('sku')
+                ->whereColumn('products.id', 'inventory_movements.product_id')
+                ->limit(1))
+                ->orderByDesc('inventory_movements.created_at')
+                ->orderByDesc('inventory_movements.id');
+        } elseif ($sort === 'product_asc') {
+            $q->orderBy(Product::select('product_name')
+                ->whereColumn('products.id', 'inventory_movements.product_id')
+                ->limit(1))
+                ->orderByDesc('inventory_movements.created_at')
+                ->orderByDesc('inventory_movements.id');
+        } else {
+            $q->orderByDesc('inventory_movements.created_at')->orderByDesc('inventory_movements.id');
+        }
+
+        return $q;
+    }
+
 }
