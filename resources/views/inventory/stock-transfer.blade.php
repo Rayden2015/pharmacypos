@@ -26,7 +26,7 @@
                                     Quantity is removed from the source site and added to the destination. Totals on the product record stay in sync with the sum across all sites.
                                 </p>
                             </div>
-                            <a href="{{ route('sites.index') }}" class="btn btn-outline-secondary btn-sm">Manage sites</a>
+                            <a href="{{ route('sites.index') }}" class="btn btn-outline-secondary btn-sm">{{ __('Manage branches') }}</a>
                         </div>
 
                         @if ($errors->any())

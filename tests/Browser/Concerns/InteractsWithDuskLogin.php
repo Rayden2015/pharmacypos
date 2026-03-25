@@ -23,8 +23,11 @@ trait InteractsWithDuskLogin
      */
     protected function loginAsDuskAdmin(Browser $browser, string $path = '/'): void
     {
-        $browser->visit($path)
-            ->waitFor('#email', 15)
+        // CSRF 419 in Dusk: ensure a single session + token (fresh cookie; second GET refreshes the form).
+        $browser->driver->manage()->deleteAllCookies();
+
+        $browser->visit($path)->waitFor('#email', 15);
+        $browser->visit($path)->waitFor('#email', 15)
             ->type('#email', $this->duskAdminEmail())
             ->type('#password', $this->duskAdminPassword())
             ->press('#loginForm button[type="submit"]')

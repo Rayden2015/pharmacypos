@@ -18,14 +18,33 @@ class SiteController extends Controller
         $this->middleware('auth');
     }
 
-    public function index(): View
+    public function index(Request $request): View
     {
-        $sites = Site::query()
-            ->forUserTenant(auth()->user())
-            ->orderBy('name')
-            ->paginate(20);
+        $viewer = $request->user();
+        $q = $request->input('q');
 
-        return view('sites.index', compact('sites'));
+        $query = Site::query()
+            ->forUserTenant($viewer)
+            ->orderBy('name');
+
+        if ($viewer->isSuperAdmin()) {
+            $query->with(['company:id,company_name']);
+        }
+
+        if (is_string($q) && trim($q) !== '') {
+            $term = '%'.addcslashes(trim($q), '%_\\').'%';
+            $query->where(function ($sub) use ($term) {
+                $sub->where('name', 'like', $term)
+                    ->orWhere('code', 'like', $term)
+                    ->orWhere('manager_name', 'like', $term)
+                    ->orWhere('phone', 'like', $term)
+                    ->orWhere('email', 'like', $term);
+            });
+        }
+
+        $sites = $query->paginate(20)->withQueryString();
+
+        return view('sites.index', compact('sites', 'q'));
     }
 
     public function create(): View
@@ -45,6 +64,9 @@ class SiteController extends Controller
             'name' => 'required|string|max:255',
             'code' => 'nullable|string|max:32|unique:sites,code',
             'address' => 'nullable|string|max:2000',
+            'manager_name' => 'nullable|string|max:255',
+            'phone' => 'nullable|string|max:64',
+            'email' => 'nullable|email|max:255',
             'is_default' => 'nullable|boolean',
         ];
         if ($viewer->isSuperAdmin()) {
@@ -65,6 +87,9 @@ class SiteController extends Controller
             'name' => $data['name'],
             'code' => $data['code'] ?? null,
             'address' => $data['address'] ?? null,
+            'manager_name' => $data['manager_name'] ?? null,
+            'phone' => $data['phone'] ?? null,
+            'email' => $data['email'] ?? null,
             'is_active' => true,
             'is_default' => ! empty($data['is_default']),
         ]);
@@ -92,6 +117,9 @@ class SiteController extends Controller
             'name' => 'required|string|max:255',
             'code' => 'nullable|string|max:32|unique:sites,code,'.$site->id,
             'address' => 'nullable|string|max:2000',
+            'manager_name' => 'nullable|string|max:255',
+            'phone' => 'nullable|string|max:64',
+            'email' => 'nullable|email|max:255',
             'is_active' => 'nullable|boolean',
             'is_default' => 'nullable|boolean',
         ];
@@ -113,6 +141,9 @@ class SiteController extends Controller
             'name' => $data['name'],
             'code' => $data['code'] ?? null,
             'address' => $data['address'] ?? null,
+            'manager_name' => $data['manager_name'] ?? null,
+            'phone' => $data['phone'] ?? null,
+            'email' => $data['email'] ?? null,
             'is_active' => $request->boolean('is_active'),
             'is_default' => ! empty($data['is_default']),
         ]);

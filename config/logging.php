@@ -85,6 +85,15 @@ return [
             'days' => 30,
         ],
 
+        /*
+        | Optional: add `sentry` to LOG_STACK when SENTRY_LARAVEL_DSN is set (registered by sentry/sentry-laravel).
+        */
+        'sentry' => [
+            'driver' => 'sentry',
+            'level' => env('SENTRY_LOG_LEVEL', env('LOG_LEVEL', 'error')),
+            'bubble' => true,
+        ],
+
         'slack' => [
             'driver' => 'slack',
             'url' => env('LOG_SLACK_WEBHOOK_URL'),

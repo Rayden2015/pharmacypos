@@ -67,7 +67,7 @@ class CreateProductBrowserTest extends DuskTestCase
         $productName = 'Dusk Medicine '.uniqid();
 
         $this->browse(function (Browser $browser) use ($manufacturerId, $productName) {
-            $this->loginAsDuskAdmin($browser, '/login');
+            $this->loginAsDuskAdmin($browser, '/');
 
             $browser->visit('/addproduct')
                 ->waitForText('Create product', 5)

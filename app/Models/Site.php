@@ -29,6 +29,9 @@ class Site extends Model
         'name',
         'code',
         'address',
+        'manager_name',
+        'phone',
+        'email',
         'is_active',
         'is_default',
     ];
@@ -41,6 +44,17 @@ class Site extends Model
     public function company(): BelongsTo
     {
         return $this->belongsTo(Company::class);
+    }
+
+    /**
+     * Human-readable branch reference (e.g. #BRN001) aligned with pharmacy POS branch listings.
+     */
+    public function branchDisplayId(): string
+    {
+        $id = (string) $this->id;
+        $suffix = strlen($id) <= 3 ? str_pad($id, 3, '0', STR_PAD_LEFT) : $id;
+
+        return '#BRN'.$suffix;
     }
 
     public function productSiteStocks(): HasMany

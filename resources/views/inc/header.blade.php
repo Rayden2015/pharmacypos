@@ -272,9 +272,6 @@
                     <div class="menu-title">Administration</div>
                 </a>
                 <ul>
-                    <li>
-                        <a href="{{ route('sites.index') }}"><i class="bx bx-right-arrow-alt"></i> Sites / branches</a>
-                    </li>
                     @if (auth()->check() && ! auth()->user()->isSuperAdmin() && (auth()->user()->isTenantAdmin() || auth()->user()->can('tenant.roles.manage')))
                     <li>
                         <a href="{{ route('roles.index') }}"><i class="bx bx-right-arrow-alt"></i> Roles &amp; permissions</a>
@@ -305,6 +302,9 @@
                             </li>
                             <li>
                                 <a href="{{ route('settings.localization') }}"><i class="bx bx-right-arrow-alt"></i> Localization</a>
+                            </li>
+                            <li>
+                                <a href="{{ route('sites.index') }}"><i class="bx bx-right-arrow-alt"></i> Branches</a>
                             </li>
                             <li>
                                 <a href="{{ route('settings.notifications') }}"><i class="bx bx-right-arrow-alt"></i> Notifications</a>

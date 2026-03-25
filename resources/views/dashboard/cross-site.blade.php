@@ -32,7 +32,7 @@
 
             @if (empty($site_rows))
                 <div class="alert alert-info border-0 shadow-sm">
-                    No active sites found. Add branches under <a href="{{ route('sites.index') }}">Sites / branches</a>.
+                    No active sites found. Add branches under <a href="{{ route('sites.index') }}">Settings → Branches</a>.
                 </div>
             @else
                 <div class="row g-3 mb-4">
