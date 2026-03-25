@@ -16,6 +16,7 @@ use App\Models\SupplierInvoice;
 use App\Models\TenantSubscription;
 use App\Models\User;
 use App\Models\Announcement;
+use App\Models\BackupGenerationRequest;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
@@ -107,6 +108,65 @@ class BackupSettingsService
         }
 
         return $this->writeTenantDatabaseExport((int) $user->company_id);
+    }
+
+    /**
+     * Execute a backup started from Backup settings (async subprocess / artisan).
+     */
+    public function runQueuedBackupGeneration(BackupGenerationRequest $req): void
+    {
+        if ($req->isFinished()) {
+            return;
+        }
+
+        if (function_exists('set_time_limit')) {
+            @set_time_limit(0);
+        }
+        if (function_exists('ini_set')) {
+            @ini_set('max_execution_time', '0');
+        }
+
+        $req->update([
+            'status' => BackupGenerationRequest::STATUS_RUNNING,
+            'started_at' => now(),
+        ]);
+
+        try {
+            $user = User::query()->findOrFail($req->user_id);
+
+            if ($req->kind === BackupGenerationRequest::KIND_SYSTEM) {
+                $path = $this->generateSystemBackup($user);
+            } elseif ($req->kind === BackupGenerationRequest::KIND_DATABASE) {
+                $path = $this->generateDatabaseBackup($user);
+            } else {
+                throw new \InvalidArgumentException('Unknown backup kind: '.$req->kind);
+            }
+
+            $req->update([
+                'status' => BackupGenerationRequest::STATUS_COMPLETED,
+                'output_path' => $path,
+                'completed_at' => now(),
+            ]);
+
+            Log::channel('audit')->info('settings.backup.'.$req->kind.'.generated', [
+                'user_id' => $user->id,
+                'path' => $path,
+                'generation_request_id' => $req->id,
+                'super_admin' => $user->isSuperAdmin(),
+            ]);
+        } catch (\Throwable $e) {
+            $req->update([
+                'status' => BackupGenerationRequest::STATUS_FAILED,
+                'error_message' => $e->getMessage(),
+                'completed_at' => now(),
+            ]);
+
+            Log::channel('audit')->error('settings.backup.'.$req->kind.'.failed', [
+                'user_id' => $req->user_id,
+                'generation_request_id' => $req->id,
+                'message' => $e->getMessage(),
+            ]);
+        }
     }
 
     /**
@@ -259,8 +319,10 @@ class BackupSettingsService
             $dumpPath = $rootPrefix.'/database/'.$name.'.sql';
             $full = $disk->path($dumpPath);
 
+            $mysqldump = $this->resolveMysqlDumpBinary();
+
             $process = new Process([
-                'mysqldump',
+                $mysqldump,
                 '--single-transaction',
                 '--quick',
                 '-h', (string) ($cfg['host'] ?? '127.0.0.1'),
@@ -269,7 +331,7 @@ class BackupSettingsService
                 '-p'.(string) ($cfg['password'] ?? ''),
                 (string) ($cfg['database'] ?? ''),
             ]);
-            $process->setTimeout(600);
+            $process->setTimeout(null);
             $process->run();
 
             if (! $process->isSuccessful()) {
@@ -278,7 +340,7 @@ class BackupSettingsService
                     'exit' => $process->getExitCode(),
                 ]);
                 throw new \RuntimeException(
-                    'mysqldump failed. Ensure mysqldump is installed and DB credentials are correct. '.$process->getErrorOutput()
+                    'mysqldump failed. Ensure mysqldump is installed, BACKUP_MYSQLDUMP points to the binary if needed, and DB credentials are correct. '.$process->getErrorOutput()
                 );
             }
 
@@ -288,6 +350,51 @@ class BackupSettingsService
         }
 
         throw new \RuntimeException('Database driver "'.$connection.'" is not supported for automated full backup. Use SQLite or MySQL.');
+    }
+
+    /**
+     * Resolve mysqldump executable. Web/queue PHP often has a minimal PATH (no Homebrew).
+     */
+    private function resolveMysqlDumpBinary(): string
+    {
+        $configured = trim((string) config('backup.mysql_dump', ''));
+        if ($configured !== '') {
+            if (is_executable($configured)) {
+                return $configured;
+            }
+            throw new \RuntimeException(
+                'BACKUP_MYSQLDUMP is set but is not an executable file: '.$configured
+            );
+        }
+
+        $candidates = [
+            '/opt/homebrew/bin/mysqldump',
+            '/opt/homebrew/opt/mysql-client/bin/mysqldump',
+            '/usr/local/opt/mysql-client/bin/mysqldump',
+            '/usr/local/bin/mysqldump',
+            '/usr/local/mysql/bin/mysqldump',
+            '/usr/bin/mysqldump',
+            '/bin/mysqldump',
+        ];
+        foreach ($candidates as $path) {
+            if (is_executable($path)) {
+                return $path;
+            }
+        }
+
+        $which = new Process(['sh', '-c', 'command -v mysqldump 2>/dev/null']);
+        $which->run();
+        if ($which->isSuccessful()) {
+            $found = trim($which->getOutput());
+            if ($found !== '' && is_executable($found)) {
+                return $found;
+            }
+        }
+
+        throw new \RuntimeException(
+            'mysqldump was not found. Install the MySQL client tools (e.g. `brew install mysql-client` on macOS), '.
+            'or set BACKUP_MYSQLDUMP in .env to the full path (e.g. /opt/homebrew/opt/mysql-client/bin/mysqldump).'
+        );
     }
 
     private function writeTenantDatabaseExport(int $companyId): string

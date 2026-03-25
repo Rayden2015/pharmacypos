@@ -50,8 +50,13 @@ class BackupSettingsTest extends TestCase
 
         $this->actingAs($user)->get(route('settings.backup'))->assertOk();
 
-        $this->actingAs($user)->post(route('settings.backup.system'))->assertRedirect(route('settings.backup'));
-        $this->actingAs($user)->post(route('settings.backup.database'))->assertRedirect(route('settings.backup'));
+        $this->actingAs($user)->post(route('settings.backup.system'))->assertRedirect(route('settings.backup'))->assertSessionHas('success');
+        $this->actingAs($user)->post(route('settings.backup.database'))->assertRedirect(route('settings.backup'))->assertSessionHas('success');
+
+        $this->actingAs($user)
+            ->getJson(route('settings.backup.generation-status'))
+            ->assertOk()
+            ->assertJsonStructure(['requests']);
     }
 
     public function test_super_admin_can_generate_system_manifest_but_database_may_fail_on_memory_sqlite(): void
@@ -69,7 +74,7 @@ class BackupSettingsTest extends TestCase
 
         $this->actingAs($user)->get(route('settings.backup'))->assertOk();
 
-        $this->actingAs($user)->post(route('settings.backup.system'))->assertRedirect(route('settings.backup'));
+        $this->actingAs($user)->post(route('settings.backup.system'))->assertRedirect(route('settings.backup'))->assertSessionHas('success');
 
         $this->actingAs($user)
             ->post(route('settings.backup.database'))

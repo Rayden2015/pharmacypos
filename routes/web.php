@@ -174,6 +174,7 @@ Route::get('settings/notifications', [SettingsController::class, 'notifications'
 Route::put('settings/notifications', [SettingsController::class, 'updateNotifications'])->name('settings.notifications.update');
 
 Route::get('settings/backup', [BackupSettingsController::class, 'index'])->name('settings.backup');
+Route::get('settings/backup/generation-status', [BackupSettingsController::class, 'generationStatus'])->name('settings.backup.generation-status');
 Route::post('settings/backup/system', [BackupSettingsController::class, 'generateSystem'])->name('settings.backup.system');
 Route::post('settings/backup/database', [BackupSettingsController::class, 'generateDatabase'])->name('settings.backup.database');
 Route::get('settings/backup/download/{category}/{filename}', [BackupSettingsController::class, 'download'])
