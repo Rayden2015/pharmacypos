@@ -36,14 +36,14 @@ class TenantRolesBootstrapSeeder extends Seeder
                 'tenant.users.manage', 'sites.manage', 'pos.access', 'pos.refund',
                 'products.view', 'products.manage', 'inventory.view', 'inventory.receive',
                 'inventory.adjust', 'inventory.transfer', 'reports.view', 'reports.export',
-                'settings.manage', 'prescriptions.manage', 'customers.manage',
+                'settings.manage', 'audit.view', 'prescriptions.manage', 'customers.manage',
                 'suppliers.manage', 'transactions.view',
             ]));
 
             $supervisor = Role::findOrCreate('Supervisor', 'web');
             $supervisor->syncPermissions($this->pickPermissions($allPermissions, [
                 'pos.access', 'pos.refund', 'products.view', 'inventory.view',
-                'reports.view', 'prescriptions.manage', 'customers.manage', 'transactions.view',
+                'reports.view', 'audit.view', 'prescriptions.manage', 'customers.manage', 'transactions.view',
             ]));
 
             $cashier = Role::findOrCreate('Cashier', 'web');

@@ -59,6 +59,15 @@ class PrescriptionController extends Controller
         return view('pharmacy.prescriptions', compact('prescriptions', 'doctors', 'filters', 'doctorCount'));
     }
 
+    public function show(Prescription $prescription): View
+    {
+        $this->assertPrescriptionInSiteContext($prescription);
+
+        $prescription->load(['user:id,name', 'doctor:id,name,specialty', 'site:id,name,code']);
+
+        return view('pharmacy.prescription-show', compact('prescription'));
+    }
+
     public function store(Request $request): RedirectResponse
     {
         $data = $request->validate([
@@ -86,6 +95,8 @@ class PrescriptionController extends Controller
 
     public function update(Request $request, Prescription $prescription): RedirectResponse
     {
+        $this->assertPrescriptionInSiteContext($prescription);
+
         $request->validate([
             'status' => 'required|in:pending,completed,cancelled',
         ]);
@@ -98,6 +109,14 @@ class PrescriptionController extends Controller
         }
         $prescription->save();
 
-        return redirect()->route('pharmacy.prescriptions')->with('success', 'Status updated.');
+        return redirect()->back(302, [], route('pharmacy.prescriptions.show', $prescription))
+            ->with('success', 'Status updated.');
+    }
+
+    private function assertPrescriptionInSiteContext(Prescription $prescription): void
+    {
+        if (! Prescription::query()->forCurrentSiteContext()->whereKey($prescription->getKey())->exists()) {
+            abort(404);
+        }
     }
 }

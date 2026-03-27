@@ -126,7 +126,7 @@
                                     @forelse ($prescriptions as $rx)
                                         <tr>
                                             <td class="text-nowrap small">{{ $rx->created_at->format('M j, Y H:i') }}</td>
-                                            <td>{{ $rx->patient_name }}</td>
+                                            <td><a href="{{ route('pharmacy.prescriptions.show', $rx) }}">{{ $rx->patient_name }}</a></td>
                                             <td class="small">{{ $rx->patient_phone ?? '—' }}</td>
                                             <td class="small">
                                                 @if ($rx->doctor)

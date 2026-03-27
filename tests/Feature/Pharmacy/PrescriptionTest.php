@@ -80,12 +80,58 @@ class PrescriptionTest extends TestCase
         $this->assertSame('pending', $rx->status);
 
         $this->actingAs($user)
+            ->from(route('pharmacy.prescriptions'))
             ->patch(route('pharmacy.prescriptions.update', $rx), ['status' => 'completed'])
             ->assertRedirect(route('pharmacy.prescriptions'));
 
         $rx->refresh();
         $this->assertSame('completed', $rx->status);
         $this->assertNotNull($rx->dispensed_at);
+    }
+
+    public function test_prescription_show_displays_detail(): void
+    {
+        $user = $this->makeUser();
+        $rx = Prescription::create([
+            'site_id' => Site::defaultId(),
+            'patient_name' => 'Detail Patient',
+            'patient_phone' => '0244999001',
+            'rx_number' => 'RX-SHOW',
+            'status' => 'pending',
+            'user_id' => $user->id,
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('pharmacy.prescriptions.show', $rx))
+            ->assertOk()
+            ->assertSee('Detail Patient', false)
+            ->assertSee('RX-SHOW', false);
+    }
+
+    public function test_prescription_show_returns_404_outside_user_site(): void
+    {
+        $user = $this->makeUser();
+        $main = Site::query()->where('is_default', true)->firstOrFail();
+        $other = Site::create([
+            'name' => 'Other branch',
+            'code' => 'OTH',
+            'address' => null,
+            'is_active' => true,
+            'is_default' => false,
+        ]);
+        $user->site_id = $main->id;
+        $user->save();
+
+        $rx = Prescription::create([
+            'site_id' => $other->id,
+            'patient_name' => 'Elsewhere',
+            'status' => 'pending',
+            'user_id' => $user->id,
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('pharmacy.prescriptions.show', $rx))
+            ->assertNotFound();
     }
 
     public function test_prescription_list_can_filter_by_doctor(): void

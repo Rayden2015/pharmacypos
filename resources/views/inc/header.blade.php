@@ -309,6 +309,11 @@
                             <li>
                                 <a href="{{ route('settings.notifications') }}"><i class="bx bx-right-arrow-alt"></i> Notifications</a>
                             </li>
+                            @can('audit.view')
+                            <li>
+                                <a href="{{ route('settings.audit-log.index') }}"><i class="bx bx-right-arrow-alt"></i> Audit log</a>
+                            </li>
+                            @endcan
                             @if (auth()->user()->isTenantAdmin())
                             <li>
                                 <a href="{{ route('settings.backup') }}"><i class="bx bx-right-arrow-alt"></i> Backup</a>

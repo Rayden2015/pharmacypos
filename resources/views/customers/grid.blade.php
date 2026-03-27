@@ -108,6 +108,7 @@
                                     <div class="dropdown">
                                         <button class="btn btn-light btn-sm rounded-circle" type="button" data-bs-toggle="dropdown"><i class="bx bx-dots-vertical-rounded"></i></button>
                                         <ul class="dropdown-menu dropdown-menu-end">
+                                            <li><a class="dropdown-item" href="{{ route('customers.edit', $customer) }}"><i class="bx bx-link-external me-1"></i> Open page</a></li>
                                             <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#editCustomer{{ $customer->id }}"><i class="bx bx-edit-alt me-1"></i> Edit</a></li>
                                             <li><a class="dropdown-item text-danger" href="#" data-bs-toggle="modal" data-bs-target="#deleteCustomer{{ $customer->id }}"><i class="bx bx-trash me-1"></i> Delete</a></li>
                                         </ul>
@@ -116,7 +117,7 @@
                                 <div class="text-center">
                                     <div class="cust-avatar mx-auto mb-2">{{ $initials }}</div>
                                     <div class="text-warning fw-semibold small mb-1">{{ $customer->code ?? 'CUST-' }}</div>
-                                    <h6 class="mb-1 fw-bold">{{ $customer->name }}</h6>
+                                    <h6 class="mb-1 fw-bold"><a href="{{ route('customers.edit', $customer) }}" class="text-decoration-none text-dark">{{ $customer->name }}</a></h6>
                                     <div class="mb-2">
                                         @if ($customer->is_active)
                                             <span class="badge bg-success">Active</span>

@@ -26,6 +26,7 @@ class PermissionCatalogSeeder extends Seeder
         'reports.view',
         'reports.export',
         'settings.manage',
+        'audit.view',
         // Rx queue + prescriber directory (doctors); same capability for operational consistency.
         'prescriptions.manage',
         'customers.manage',

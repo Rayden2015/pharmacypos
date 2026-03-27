@@ -6,6 +6,7 @@ use App\Models\Customer;
 use App\Models\Site;
 use App\Support\CurrentSite;
 use Illuminate\Http\Request;
+use Illuminate\View\View;
 use Illuminate\Validation\Rule;
 
 class CustomerController extends Controller
@@ -57,6 +58,15 @@ class CustomerController extends Controller
         }
 
         return view('customers.grid', compact('customers', 'sites', 'stats'));
+    }
+
+    public function edit(Customer $customer): View
+    {
+        $this->authorizeCustomer($customer);
+
+        $sites = Site::query()->where('is_active', true)->orderBy('name')->get(['id', 'name', 'code']);
+
+        return view('customers.edit', compact('customer', 'sites'));
     }
 
     public function store(Request $request)
@@ -120,6 +130,10 @@ class CustomerController extends Controller
         }
 
         $customer->save();
+
+        if ($request->boolean('stay_on_edit')) {
+            return redirect()->route('customers.edit', $customer)->with('success', 'Customer updated successfully.');
+        }
 
         return $this->redirectToCustomerIndex($request)->with('success', 'Customer updated successfully.');
     }

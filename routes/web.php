@@ -11,6 +11,7 @@ use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\OrderDetailController;
 use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\SettingsController;
+use App\Http\Controllers\Settings\AuditLogController;
 use App\Http\Controllers\Settings\BackupSettingsController;
 use App\Http\Controllers\StockReceiptController;
 use App\Http\Controllers\InventoryController;
@@ -130,6 +131,7 @@ Route::middleware(['can:inventory.view'])->group(function () {
 
 Route::get('pharmacy/prescriptions', [PrescriptionController::class, 'index'])->name('pharmacy.prescriptions');
 Route::post('pharmacy/prescriptions', [PrescriptionController::class, 'store'])->name('pharmacy.prescriptions.store');
+Route::get('pharmacy/prescriptions/{prescription}', [PrescriptionController::class, 'show'])->name('pharmacy.prescriptions.show');
 Route::patch('pharmacy/prescriptions/{prescription}', [PrescriptionController::class, 'update'])->name('pharmacy.prescriptions.update');
 Route::resource('pharmacy/doctors', DoctorController::class)->except(['show'])->names([
     'index' => 'pharmacy.doctors.index',
@@ -147,6 +149,7 @@ Route::resource('supplier-invoices', SupplierInvoiceController::class)->except([
 Route::get('users/profile', [UserController::class, 'profile'])->name('profile');
 Route::put('users/profile', [UserController::class, 'updateProfile'])->name('profile.update');
 Route::resource('users', UserController::class);
+Route::get('customers/{customer}/edit', [CustomerController::class, 'edit'])->name('customers.edit');
 Route::resource('customers', CustomerController::class)->only(['index', 'store', 'update', 'destroy']);
 
 
@@ -173,6 +176,12 @@ Route::middleware(['auth', 'can:reports.view'])->group(function () {
 
 Route::middleware(['auth', 'can:reports.export'])->group(function () {
     Route::get('reports/sales/export', [App\Http\Controllers\ReportController::class, 'salesExport'])->name('reports.sales.export');
+});
+
+Route::middleware(['auth', 'can:audit.view'])->group(function () {
+    Route::get('settings/audit-log/export', [AuditLogController::class, 'export'])->name('settings.audit-log.export');
+    Route::get('settings/audit-log', [AuditLogController::class, 'index'])->name('settings.audit-log.index');
+    Route::get('settings/audit-log/{auditLog}', [AuditLogController::class, 'show'])->name('settings.audit-log.show');
 });
 
 Route::get('settings', [SettingsController::class, 'index'])->name('settings.index');

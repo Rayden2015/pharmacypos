@@ -75,7 +75,7 @@
                                     <tr>
                                         <td>{{ $customers->firstItem() + $i }}</td>
                                         <td>{{ $customer->code }}</td>
-                                        <td>{{ $customer->name }}</td>
+                                        <td><a href="{{ route('customers.edit', $customer) }}">{{ $customer->name }}</a></td>
                                         <td>{{ $customer->mobile }}</td>
                                         <td>{{ $customer->email ?? '—' }}</td>
                                         <td>{{ $customer->site->name ?? '—' }}</td>

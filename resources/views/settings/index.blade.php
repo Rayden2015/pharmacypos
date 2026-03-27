@@ -34,6 +34,17 @@
                         </div>
                     </div>
                 </div>
+                @can('audit.view')
+                <div class="col">
+                    <div class="card radius-10 h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">Audit log</h5>
+                            <p class="text-muted small mb-3">Who changed what (filters, export-friendly details).</p>
+                            <a href="{{ route('settings.audit-log.index') }}" class="btn btn-outline-primary btn-sm">Open</a>
+                        </div>
+                    </div>
+                </div>
+                @endcan
                 @if (auth()->user()->isSuperAdmin() || auth()->user()->isTenantAdmin())
                 <div class="col">
                     <div class="card radius-10 h-100">
