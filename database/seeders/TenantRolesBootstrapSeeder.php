@@ -4,10 +4,10 @@ namespace Database\Seeders;
 
 use App\Models\Company;
 use App\Models\User;
+use App\Support\TenantRolesProvisioner;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Collection;
 use Spatie\Permission\Models\Permission;
-use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 
 /**
@@ -26,31 +26,7 @@ class TenantRolesBootstrapSeeder extends Seeder
         $allPermissions = Permission::query()->where('guard_name', 'web')->get();
 
         foreach (Company::query()->orderBy('id')->get() as $company) {
-            $registrar->setPermissionsTeamId($company->id);
-
-            $tenantAdmin = Role::findOrCreate('Tenant Admin', 'web');
-            $tenantAdmin->syncPermissions($allPermissions);
-
-            $manager = Role::findOrCreate('Branch Manager', 'web');
-            $manager->syncPermissions($this->pickPermissions($allPermissions, [
-                'tenant.users.manage', 'sites.manage', 'pos.access', 'pos.refund',
-                'products.view', 'products.manage', 'inventory.view', 'inventory.receive',
-                'inventory.adjust', 'inventory.transfer', 'reports.view', 'reports.export',
-                'settings.manage', 'audit.view', 'prescriptions.manage', 'customers.manage',
-                'suppliers.manage', 'transactions.view',
-            ]));
-
-            $supervisor = Role::findOrCreate('Supervisor', 'web');
-            $supervisor->syncPermissions($this->pickPermissions($allPermissions, [
-                'pos.access', 'pos.refund', 'products.view', 'inventory.view',
-                'reports.view', 'audit.view', 'prescriptions.manage', 'customers.manage', 'transactions.view',
-            ]));
-
-            $cashier = Role::findOrCreate('Cashier', 'web');
-            $cashier->syncPermissions($this->pickPermissions($allPermissions, [
-                'pos.access', 'products.view', 'customers.manage', 'transactions.view',
-                'prescriptions.manage',
-            ]));
+            TenantRolesProvisioner::syncSystemRolesForCompany($company->id, $allPermissions);
         }
 
         foreach (User::query()->where('is_super_admin', false)->whereNotNull('company_id')->get() as $user) {
@@ -88,15 +64,5 @@ class TenantRolesBootstrapSeeder extends Seeder
 
         $registrar->setPermissionsTeamId(null);
         app(PermissionRegistrar::class)->forgetCachedPermissions();
-    }
-
-    /**
-     * @param  Collection<int, Permission>  $all
-     * @param  list<string>  $names
-     * @return array<int, Permission>
-     */
-    private function pickPermissions(Collection $all, array $names): array
-    {
-        return $all->whereIn('name', $names)->values()->all();
     }
 }

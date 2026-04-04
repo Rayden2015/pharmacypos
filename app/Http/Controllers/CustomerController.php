@@ -51,7 +51,7 @@ class CustomerController extends Controller
         $perPage = $view === 'grid' ? 12 : 20;
         $customers = $query->orderBy('name')->paginate($perPage)->withQueryString();
 
-        $sites = Site::query()->where('is_active', true)->orderBy('name')->get(['id', 'name', 'code']);
+        $sites = $this->sitesForCustomerForms($request);
 
         if ($view === 'list') {
             return view('customers.list', compact('customers', 'sites', 'stats'));
@@ -60,11 +60,11 @@ class CustomerController extends Controller
         return view('customers.grid', compact('customers', 'sites', 'stats'));
     }
 
-    public function edit(Customer $customer): View
+    public function edit(Request $request, Customer $customer): View
     {
         $this->authorizeCustomer($customer);
 
-        $sites = Site::query()->where('is_active', true)->orderBy('name')->get(['id', 'name', 'code']);
+        $sites = $this->sitesForCustomerForms($request);
 
         return view('customers.edit', compact('customer', 'sites'));
     }
@@ -155,6 +155,21 @@ class CustomerController extends Controller
         ], function ($v) {
             return $v !== null && $v !== '';
         }));
+    }
+
+    /**
+     * @return \Illuminate\Support\Collection<int, \App\Models\Site>
+     */
+    private function sitesForCustomerForms(Request $request)
+    {
+        $viewer = $request->user();
+        $q = Site::query()->where('is_active', true)->orderBy('name');
+
+        if ($viewer && ! $viewer->isSuperAdmin()) {
+            $q->forUserTenant($viewer);
+        }
+
+        return $q->get(['id', 'name', 'code']);
     }
 
     private function authorizeCustomer(Customer $customer): void

@@ -3,15 +3,44 @@
 namespace App\Models;
 
 use App\Models\Concerns\Auditable;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Supplier extends Model
 {
     use Auditable;
 
     protected $table = 'suppliers';
-    protected $fillable = ['supplier_name', 'address', 'mobile', 'email'];
+
+    protected $fillable = [
+        'company_id',
+        'supplier_name',
+        'address',
+        'mobile',
+        'email',
+    ];
+
+    public function company(): BelongsTo
+    {
+        return $this->belongsTo(Company::class);
+    }
+
+    /**
+     * Tenant staff only see vendors attached to their organization.
+     */
+    public function scopeForUserTenant(Builder $query, ?User $user): Builder
+    {
+        if (! $user || $user->isSuperAdmin()) {
+            return $query;
+        }
+
+        if ($user->company_id) {
+            return $query->where('company_id', $user->company_id);
+        }
+
+        return $query->whereRaw('0 = 1');
+    }
 
     public function stockReceipts()
     {

@@ -11,6 +11,10 @@ return [
     | intentionally not listed on the Backup settings page (on-demand backups
     | use storage/app/backups/platform/ or tenants/{id}/).
     |
+    | Single-tenant restore drill: restore the SQL dump to a scratch instance, then delete or
+    | export rows for other company_id / site_id values before promoting the DB; scheduled
+    | backups are full-database (multi-tenant), not per-tenant slices.
+    |
     */
     'scheduled_enabled' => filter_var(env('BACKUP_SCHEDULE_ENABLED', true), FILTER_VALIDATE_BOOLEAN),
 

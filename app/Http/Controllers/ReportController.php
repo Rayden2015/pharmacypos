@@ -32,18 +32,12 @@ class ReportController extends Controller
             ? Carbon::parse($request->input('end_date'))->toDateString()
             : $today;
 
-        $debt = Order_detail::query()
-            ->join('orders', 'orders.id', '=', 'order_details.order_id')
-            ->whereDate('order_details.created_at', '>=', $start_date)
-            ->whereDate('order_details.created_at', '<=', $end_date)
+        $debt = $this->periodicOrderLinesBase($request, $start_date, $end_date)
             ->select('order_details.*')
             ->with('product')
             ->get();
 
-        $total = (float) Order_detail::query()
-            ->join('orders', 'orders.id', '=', 'order_details.order_id')
-            ->whereDate('order_details.created_at', '>=', $start_date)
-            ->whereDate('order_details.created_at', '<=', $end_date)
+        $total = (float) $this->periodicOrderLinesBase($request, $start_date, $end_date)
             ->sum('order_details.amount');
 
         ReportAuditLogger::log($request, 'periodic.index', [
@@ -64,18 +58,12 @@ class ReportController extends Controller
             ? Carbon::parse($request->input('end_date'))->toDateString()
             : $today;
 
-        $debt = Order_detail::query()
-            ->join('orders', 'orders.id', '=', 'order_details.order_id')
-            ->whereDate('order_details.created_at', '>=', $start_date)
-            ->whereDate('order_details.created_at', '<=', $end_date)
+        $debt = $this->periodicOrderLinesBase($request, $start_date, $end_date)
             ->select('order_details.*')
             ->with('product')
             ->get();
 
-        $total = (float) Order_detail::query()
-            ->join('orders', 'orders.id', '=', 'order_details.order_id')
-            ->whereDate('order_details.created_at', '>=', $start_date)
-            ->whereDate('order_details.created_at', '<=', $end_date)
+        $total = (float) $this->periodicOrderLinesBase($request, $start_date, $end_date)
             ->sum('order_details.amount');
 
         ReportAuditLogger::log($request, 'periodic.print', [
@@ -233,6 +221,30 @@ class ReportController extends Controller
             'totalNet',
             'salesKpis'
         ));
+    }
+
+    /**
+     * Today's sales-style report lines: tenant staff only see their organization's branches.
+     */
+    private function periodicOrderLinesBase(Request $request, string $startDate, string $endDate): Builder
+    {
+        $q = Order_detail::query()
+            ->join('orders', 'orders.id', '=', 'order_details.order_id')
+            ->whereDate('order_details.created_at', '>=', $startDate)
+            ->whereDate('order_details.created_at', '<=', $endDate);
+
+        $viewer = $request->user();
+        if ($viewer && ! $viewer->isSuperAdmin()) {
+            $companyId = (int) ($viewer->company_id ?? 0);
+            if ($companyId > 0) {
+                $q->whereIn(
+                    'orders.site_id',
+                    Site::query()->where('company_id', $companyId)->select('id')
+                );
+            }
+        }
+
+        return $q;
     }
 
     private function resolveSalesDateRange(Request $request): array

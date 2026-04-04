@@ -3,10 +3,12 @@
 namespace Tests\Feature\SuperAdmin;
 
 use App\Models\Company;
+use App\Models\Site;
 use App\Models\SubscriptionPackage;
 use App\Models\SubscriptionPayment;
 use App\Models\TenantSubscription;
 use App\Models\User;
+use Database\Seeders\PermissionCatalogSeeder;
 use Database\Seeders\SubscriptionPackageSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -19,7 +21,22 @@ class SuperAdminTest extends TestCase
     {
         parent::setUp();
         $this->withoutMiddleware(\App\Http\Middleware\VerifyCsrfToken::class);
+        $this->seed(PermissionCatalogSeeder::class);
         $this->seed(SubscriptionPackageSeeder::class);
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function newTenantAdminFields(): array
+    {
+        return [
+            'admin_name' => 'Tenant Owner',
+            'admin_email' => 'owner.'.uniqid('', true).'@example.test',
+            'admin_password' => 'secretpass',
+            'admin_password_confirmation' => 'secretpass',
+            'admin_mobile' => '0244999888',
+        ];
     }
 
     private function makeSuperAdmin(): User
@@ -127,19 +144,77 @@ class SuperAdminTest extends TestCase
         $this->actingAs($admin)->get(route('super-admin.companies.create'))->assertOk();
 
         $email = 'newco.'.uniqid().'@example.test';
-        $response = $this->actingAs($admin)->post(route('super-admin.companies.store'), [
+        $adminFields = $this->newTenantAdminFields();
+        $response = $this->actingAs($admin)->post(route('super-admin.companies.store'), array_merge([
             'company_name' => 'Acme Pharmacies',
             'company_email' => $email,
             'company_mobile' => '',
             'company_address' => 'Accra',
             'is_active' => '1',
-        ]);
+        ], $adminFields));
 
         $response->assertRedirect(route('super-admin.companies.index'));
         $this->assertDatabaseHas('companies', [
             'company_name' => 'Acme Pharmacies',
             'company_email' => $email,
         ]);
+
+        $company = Company::query()->where('company_email', $email)->firstOrFail();
+        $this->assertDatabaseHas('sites', [
+            'company_id' => $company->id,
+            'is_default' => true,
+            'name' => 'Head office',
+        ]);
+        $this->assertDatabaseHas('users', [
+            'email' => $adminFields['admin_email'],
+            'company_id' => $company->id,
+            'tenant_role' => 'tenant_admin',
+        ]);
+        $this->assertDatabaseHas('model_has_roles', [
+            'model_id' => User::query()->where('email', $adminFields['admin_email'])->value('id'),
+            'company_id' => $company->id,
+        ]);
+    }
+
+    public function test_super_admin_can_create_tenant_admin_for_existing_company(): void
+    {
+        $admin = $this->makeSuperAdmin();
+        $company = Company::query()->firstOrFail();
+        $site = Site::query()->where('company_id', $company->id)->first();
+        if (! $site) {
+            $site = Site::query()->create([
+                'company_id' => $company->id,
+                'name' => 'Bootstrap branch',
+                'code' => 'BT-'.$company->id,
+                'is_active' => true,
+                'is_default' => true,
+            ]);
+        }
+
+        $fields = $this->newTenantAdminFields();
+        $this->actingAs($admin)->post(route('super-admin.tenant-admins.store'), array_merge([
+            'company_id' => (string) $company->id,
+            'site_id' => (string) $site->id,
+        ], $fields))->assertRedirect(route('super-admin.companies.index'));
+
+        $this->assertDatabaseHas('users', [
+            'email' => $fields['admin_email'],
+            'company_id' => $company->id,
+            'tenant_role' => 'tenant_admin',
+            'site_id' => $site->id,
+        ]);
+    }
+
+    public function test_super_admin_company_store_requires_tenant_admin(): void
+    {
+        $admin = $this->makeSuperAdmin();
+        $email = 'incomplete.'.uniqid().'@example.test';
+
+        $this->actingAs($admin)->post(route('super-admin.companies.store'), [
+            'company_name' => 'Incomplete Co',
+            'company_email' => $email,
+            'is_active' => '1',
+        ])->assertSessionHasErrors(['admin_name', 'admin_email', 'admin_password']);
     }
 
     public function test_super_admin_can_create_company_with_initial_subscription(): void
@@ -148,12 +223,12 @@ class SuperAdminTest extends TestCase
         $pkg = SubscriptionPackage::query()->where('billing_cycle', 'monthly')->firstOrFail();
 
         $email = 'subco.'.uniqid().'@example.test';
-        $this->actingAs($admin)->post(route('super-admin.companies.store'), [
+        $this->actingAs($admin)->post(route('super-admin.companies.store'), array_merge([
             'company_name' => 'Subscribed Co',
             'company_email' => $email,
             'subscription_package_id' => $pkg->id,
             'is_active' => '1',
-        ])->assertRedirect(route('super-admin.companies.index'));
+        ], $this->newTenantAdminFields()))->assertRedirect(route('super-admin.companies.index'));
 
         $company = Company::query()->where('company_email', $email)->firstOrFail();
         $this->assertDatabaseHas('tenant_subscriptions', [

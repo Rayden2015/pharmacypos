@@ -90,6 +90,8 @@ class SalesReportTest extends TestCase
 
         Transaction::create([
             'order_id' => $order->id,
+            'site_id' => $order->site_id,
+            'company_id' => (int) \App\Models\Site::query()->findOrFail($order->site_id)->company_id,
             'user_id' => $user->id,
             'transaction_amount' => 90,
             'paid_amount' => 100,
@@ -144,6 +146,8 @@ class SalesReportTest extends TestCase
 
         Transaction::create([
             'order_id' => $order->id,
+            'site_id' => $order->site_id,
+            'company_id' => (int) \App\Models\Site::query()->findOrFail($order->site_id)->company_id,
             'user_id' => $user->id,
             'transaction_amount' => 50,
             'paid_amount' => 50,

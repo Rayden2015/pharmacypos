@@ -83,7 +83,10 @@ class SupplierInvoiceController extends Controller
 
     public function create(): View
     {
-        $suppliers = Supplier::query()->orderBy('supplier_name')->get(['id', 'supplier_name']);
+        $suppliers = Supplier::query()
+            ->forUserTenant(auth()->user())
+            ->orderBy('supplier_name')
+            ->get(['id', 'supplier_name']);
 
         return view('supplier-invoices.create', [
             'suppliers' => $suppliers,
@@ -95,7 +98,10 @@ class SupplierInvoiceController extends Controller
     {
         $companyId = (int) auth()->user()->company_id;
         $data = $request->validate([
-            'supplier_id' => ['required', 'exists:suppliers,id'],
+            'supplier_id' => [
+                'required',
+                Rule::exists('suppliers', 'id')->where(fn ($q) => $q->where('company_id', $companyId)),
+            ],
             'invoice_number' => [
                 'required',
                 'string',
@@ -148,7 +154,10 @@ class SupplierInvoiceController extends Controller
     public function edit(SupplierInvoice $supplierInvoice): View
     {
         $this->authorizeCompany($supplierInvoice);
-        $suppliers = Supplier::query()->orderBy('supplier_name')->get(['id', 'supplier_name']);
+        $suppliers = Supplier::query()
+            ->forUserTenant(auth()->user())
+            ->orderBy('supplier_name')
+            ->get(['id', 'supplier_name']);
 
         return view('supplier-invoices.edit', [
             'invoice' => $supplierInvoice->load('supplier'),
@@ -163,7 +172,10 @@ class SupplierInvoiceController extends Controller
         $companyId = (int) auth()->user()->company_id;
 
         $data = $request->validate([
-            'supplier_id' => ['required', 'exists:suppliers,id'],
+            'supplier_id' => [
+                'required',
+                Rule::exists('suppliers', 'id')->where(fn ($q) => $q->where('company_id', $companyId)),
+            ],
             'invoice_number' => [
                 'required',
                 'string',

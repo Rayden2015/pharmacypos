@@ -142,7 +142,7 @@ class Site extends Model
         }
 
         if ($user->isSuperAdmin()) {
-            return static::query()->where('is_active', true)->orderBy('name')->get(['id', 'name', 'code']);
+            return static::query()->where('is_active', true)->orderBy('name')->get(['id', 'name', 'code', 'is_default']);
         }
 
         $companyId = $user->company_id;
@@ -155,7 +155,7 @@ class Site extends Model
             ->where('is_active', true);
 
         if ($user->isTenantAdmin()) {
-            return $base->orderBy('name')->get(['id', 'name', 'code']);
+            return $base->orderBy('name')->get(['id', 'name', 'code', 'is_default']);
         }
 
         $homeId = self::homeSiteIdForUser($user);
@@ -163,6 +163,6 @@ class Site extends Model
             return collect();
         }
 
-        return $base->where('id', $homeId)->orderBy('name')->get(['id', 'name', 'code']);
+        return $base->where('id', $homeId)->orderBy('name')->get(['id', 'name', 'code', 'is_default']);
     }
 }

@@ -4,12 +4,18 @@ namespace App\Http\Controllers\SuperAdmin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Company;
+use App\Models\Site;
 use App\Models\SubscriptionPackage;
 use App\Models\TenantSubscription;
+use App\Models\User;
+use App\Support\TenantRolesProvisioner;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
+use Spatie\Permission\PermissionRegistrar;
 
 class TenantCompanyController extends Controller
 {
@@ -68,39 +74,85 @@ class TenantCompanyController extends Controller
             'slug' => 'nullable|string|max:191|unique:companies,slug',
             'is_active' => 'nullable|boolean',
             'subscription_package_id' => 'nullable|exists:subscription_packages,id',
+            'admin_name' => 'required|string|max:255',
+            'admin_email' => 'required|email|max:255|unique:users,email',
+            'admin_password' => 'required|string|min:8|confirmed',
+            'admin_mobile' => 'nullable|string|max:32',
         ]);
 
         $slug = $data['slug'] ?? Str::slug($data['company_name']);
         $slug = $this->uniqueSlug($slug);
 
-        $company = Company::query()->create([
-            'company_name' => $data['company_name'],
-            'company_email' => $data['company_email'],
-            'company_mobile' => $data['company_mobile'] ?? '',
-            'company_address' => $data['company_address'] ?? '',
-            'slug' => $slug,
-            'is_active' => $request->boolean('is_active', true),
-        ]);
+        $adminEmail = null;
 
-        if (! empty($data['subscription_package_id'])) {
-            $pkg = SubscriptionPackage::query()->findOrFail($data['subscription_package_id']);
-            $starts = now();
-            $ends = $pkg->billing_cycle === 'yearly'
-                ? $starts->copy()->addYear()
-                : $starts->copy()->addDays($pkg->billing_days ?: 30);
-
-            TenantSubscription::query()->create([
-                'company_id' => $company->id,
-                'subscription_package_id' => $pkg->id,
-                'status' => 'active',
-                'payment_method' => 'pending',
-                'amount' => $pkg->price,
-                'starts_at' => $starts,
-                'ends_at' => $ends,
+        DB::transaction(function () use ($request, $data, $slug, &$adminEmail) {
+            $company = Company::query()->create([
+                'company_name' => $data['company_name'],
+                'company_email' => $data['company_email'],
+                'company_mobile' => $data['company_mobile'] ?? '',
+                'company_address' => $data['company_address'] ?? '',
+                'slug' => $slug,
+                'is_active' => $request->boolean('is_active', true),
             ]);
-        }
 
-        return redirect()->route('super-admin.companies.index')->with('success', 'Tenant company created.');
+            if (! empty($data['subscription_package_id'])) {
+                $pkg = SubscriptionPackage::query()->findOrFail($data['subscription_package_id']);
+                $starts = now();
+                $ends = $pkg->billing_cycle === 'yearly'
+                    ? $starts->copy()->addYear()
+                    : $starts->copy()->addDays($pkg->billing_days ?: 30);
+
+                TenantSubscription::query()->create([
+                    'company_id' => $company->id,
+                    'subscription_package_id' => $pkg->id,
+                    'status' => 'active',
+                    'payment_method' => 'pending',
+                    'amount' => $pkg->price,
+                    'starts_at' => $starts,
+                    'ends_at' => $ends,
+                ]);
+            }
+
+            $site = Site::query()->create([
+                'company_id' => $company->id,
+                'name' => 'Head office',
+                'code' => 'HQ-'.$company->id,
+                'address' => null,
+                'is_active' => true,
+                'is_default' => true,
+            ]);
+
+            TenantRolesProvisioner::syncSystemRolesForCompany($company->id);
+
+            $plain = $data['admin_password'];
+            $adminEmail = strtolower($data['admin_email']);
+            $user = User::query()->create([
+                'name' => $data['admin_name'],
+                'email' => $adminEmail,
+                'password' => Hash::make($plain),
+                'confirm_password' => Hash::make($plain),
+                'mobile' => $data['admin_mobile'] ?? null,
+                'address' => null,
+                'status' => '1',
+                'is_admin' => 0,
+                'is_super_admin' => false,
+                'company_id' => $company->id,
+                'site_id' => $site->id,
+                'tenant_role' => 'tenant_admin',
+                'user_img' => 'user.png',
+            ]);
+
+            $registrar = app(PermissionRegistrar::class);
+            $registrar->setPermissionsTeamId($company->id);
+            $user->assignRole('Tenant Admin');
+            $registrar->setPermissionsTeamId(null);
+            app(PermissionRegistrar::class)->forgetCachedPermissions();
+        });
+
+        return redirect()->route('super-admin.companies.index')->with(
+            'success',
+            'Tenant company created. Tenant admin can sign in using '.$adminEmail.'.'
+        );
     }
 
     public function edit(Company $company): View

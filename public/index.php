@@ -35,6 +35,30 @@ require __DIR__.'/../vendor/autoload.php';
 
 /*
 |--------------------------------------------------------------------------
+| PHP 8.3+ deprecations in vendor (Laravel 8 / Mockery / Symfony)
+|--------------------------------------------------------------------------
+|
+| Without this, implicit nullable parameter deprecations are printed into the
+| HTML response when display_errors is on. Load .env early so APP_DEBUG is
+| honored before the kernel boots. When debugging is off, hide deprecations from
+| output; use APP_DEBUG=true locally if you need to see them.
+|
+*/
+if (is_file(dirname(__DIR__).'/.env')) {
+    try {
+        Dotenv\Dotenv::createImmutable(dirname(__DIR__))->safeLoad();
+    } catch (Throwable $e) {
+        // Laravel will report environment problems during bootstrap.
+    }
+}
+$debugEnv = $_ENV['APP_DEBUG'] ?? getenv('APP_DEBUG');
+if (! filter_var($debugEnv, FILTER_VALIDATE_BOOLEAN)) {
+    ini_set('display_errors', '0');
+    error_reporting(E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED);
+}
+
+/*
+|--------------------------------------------------------------------------
 | Run The Application
 |--------------------------------------------------------------------------
 |

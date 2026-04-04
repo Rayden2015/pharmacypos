@@ -25,6 +25,7 @@ use App\Http\Controllers\SuperAdmin\DashboardController as SuperAdminDashboardCo
 use App\Http\Controllers\SuperAdmin\DomainPlaceholderController;
 use App\Http\Controllers\SuperAdmin\SubscriptionPackageController;
 use App\Http\Controllers\SuperAdmin\SubscriptionPaymentController;
+use App\Http\Controllers\SuperAdmin\TenantAdminUserController;
 use App\Http\Controllers\SuperAdmin\TenantCompanyController;
 use App\Http\Controllers\SuperAdmin\TenantSubscriptionController;
 use App\Http\Controllers\Tenant\RoleController as TenantRoleController;
@@ -159,6 +160,8 @@ Route::middleware(['auth', 'superadmin'])->prefix('super-admin')->name('super-ad
     Route::get('/', [SuperAdminDashboardController::class, 'index'])->name('dashboard');
     Route::get('domain', DomainPlaceholderController::class)->name('domain');
     Route::resource('companies', TenantCompanyController::class)->except(['show']);
+    Route::get('tenant-admins/create', [TenantAdminUserController::class, 'create'])->name('tenant-admins.create');
+    Route::post('tenant-admins', [TenantAdminUserController::class, 'store'])->name('tenant-admins.store');
     Route::resource('packages', SubscriptionPackageController::class)->except(['show']);
     Route::get('subscriptions', [TenantSubscriptionController::class, 'index'])->name('subscriptions.index');
     Route::get('subscriptions/create', [TenantSubscriptionController::class, 'create'])->name('subscriptions.create');

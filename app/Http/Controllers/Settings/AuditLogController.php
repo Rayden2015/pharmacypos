@@ -186,8 +186,12 @@ class AuditLogController extends Controller
             abort(403, 'Your account is not linked to an organization.');
         }
 
-        return $q->whereHas('user', function ($uq) use ($companyId) {
-            $uq->where('company_id', $companyId);
+        return $q->where(function ($sub) use ($companyId) {
+            $sub->where('company_id', $companyId)
+                ->orWhere(function ($legacy) use ($companyId) {
+                    $legacy->whereNull('company_id')
+                        ->whereHas('user', fn ($uq) => $uq->where('company_id', $companyId));
+                });
         });
     }
 

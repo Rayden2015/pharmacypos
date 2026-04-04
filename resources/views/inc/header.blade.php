@@ -373,6 +373,43 @@
             <nav class="navbar navbar-expand">
                 <div class="mobile-toggle-menu"><i class='bx bx-menu'></i>
                 </div>
+                @auth
+                    @if (! empty($tenantCompanyName))
+                        <div class="d-none d-md-flex align-items-center me-3 flex-shrink-0 border-start ps-3">
+                            <span class="small text-muted text-uppercase me-2">Tenant</span>
+                            <span class="fw-semibold text-dark text-truncate" style="max-width: 16rem;" title="{{ $tenantCompanyName }}">{{ $tenantCompanyName }}</span>
+                        </div>
+                    @endif
+                    @if (! auth()->user()->isSuperAdmin())
+                        <div class="dropdown d-none d-md-block me-2 flex-shrink-0">
+                            <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="bx bx-cog me-1"></i> Administration
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                                @can('sites.manage')
+                                    <li><a class="dropdown-item" href="{{ route('sites.index') }}"><i class="bx bx-buildings me-2"></i>Branches</a></li>
+                                @endcan
+                                @can('tenant.users.manage')
+                                    <li><a class="dropdown-item" href="{{ route('users.index') }}"><i class="bx bx-group me-2"></i>Staff &amp; users</a></li>
+                                @endcan
+                                @can('tenant.roles.manage')
+                                    <li><a class="dropdown-item" href="{{ route('roles.index') }}"><i class="bx bx-shield me-2"></i>Roles &amp; permissions</a></li>
+                                @endcan
+                                @can('settings.manage')
+                                    <li><a class="dropdown-item" href="{{ route('settings.index') }}"><i class="bx bx-slider me-2"></i>Settings</a></li>
+                                @endcan
+                                @can('audit.view')
+                                    <li><a class="dropdown-item" href="{{ route('settings.audit-log.index') }}"><i class="bx bx-history me-2"></i>Audit log</a></li>
+                                @endcan
+                                @if (auth()->user()->can('settings.manage') || auth()->user()->can('sites.manage') || auth()->user()->can('tenant.users.manage') || auth()->user()->can('tenant.roles.manage') || auth()->user()->can('audit.view'))
+                                    <li><hr class="dropdown-divider"></li>
+                                @endif
+                                <li><a class="dropdown-item" href="{{ route('profile') }}"><i class="bx bx-user me-2"></i>Profile</a></li>
+                                <li><a class="dropdown-item" href="{{ route('settings.localization') }}"><i class="bx bx-globe me-2"></i>Localization</a></li>
+                            </ul>
+                        </div>
+                    @endif
+                @endauth
                 <div class="search-bar flex-grow-1">
                     <div class="position-relative search-bar-box">
                         <input type="text" class="form-control search-control" placeholder="Type to search..."> <span class="position-absolute top-50 search-show translate-middle-y"><i class='bx bx-search'></i></span>
@@ -394,19 +431,24 @@
                         @endcan
                     @endif
                     <a href="{{ route('inventory.receive.create') }}" class="btn btn-success btn-sm px-3">Receive</a>
-                    @if (!empty($showDashboardAllSitesOption) || (isset($sitesForSwitcher) && $sitesForSwitcher->count() > 1))
+                    @if (! empty($showDashboardAllSitesOption) || ! empty($showDashboardAllBranchesOption) || (isset($sitesForSwitcher) && $sitesForSwitcher->count() > 1))
                         <form method="post" action="{{ route('sites.switch') }}" class="d-flex align-items-center gap-1 mb-0">
                             @csrf
-                            <label class="small text-muted mb-0 d-none d-lg-inline">Site</label>
-                            <select name="site_id" class="form-select form-select-sm" style="min-width: 9rem; max-width: 16rem;" title="Active branch for POS &amp; stock; super admins can choose All sites for dashboard totals" onchange="this.form.submit()">
-                                @if (!empty($showDashboardAllSitesOption))
-                                    <option value="all" {{ !empty($dashboardAllSites) ? 'selected' : '' }}>
+                            <label class="small text-muted mb-0 d-none d-lg-inline">Branch</label>
+                            <select name="site_id" class="form-select form-select-sm" style="min-width: 9rem; max-width: 16rem;" title="Active branch for POS and stock. Dashboard totals follow your selection unless you pick all branches or (super admin) all sites." onchange="this.form.submit()">
+                                @if (! empty($showDashboardAllSitesOption))
+                                    <option value="all" {{ ! empty($dashboardAllSites) ? 'selected' : '' }}>
                                         All sites (dashboard)
                                     </option>
                                 @endif
+                                @if (! empty($showDashboardAllBranchesOption))
+                                    <option value="all" {{ ! empty($dashboardAllBranches) ? 'selected' : '' }}>
+                                        All branches (dashboard)
+                                    </option>
+                                @endif
                                 @foreach ($sitesForSwitcher as $s)
-                                    <option value="{{ $s->id }}" {{ empty($dashboardAllSites) && (int) ($currentSiteId ?? 0) === (int) $s->id ? 'selected' : '' }}>
-                                        {{ $s->name }}@if($s->code) · {{ $s->code }}@endif
+                                    <option value="{{ $s->id }}" {{ empty($dashboardAllSites) && empty($dashboardAllBranches) && (int) ($currentSiteId ?? 0) === (int) $s->id ? 'selected' : '' }}>
+                                        {{ $s->name }}@if($s->is_default) (head office)@endif @if($s->code) · {{ $s->code }}@endif
                                     </option>
                                 @endforeach
                             </select>

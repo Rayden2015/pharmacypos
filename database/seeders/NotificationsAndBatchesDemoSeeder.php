@@ -83,9 +83,13 @@ class NotificationsAndBatchesDemoSeeder extends Seeder
             }
 
             $supplier = Supplier::query()->firstOrCreate(
-                ['supplier_name' => 'Demo Wholesale Ltd'],
                 [
                     'supplier_name' => 'Demo Wholesale Ltd',
+                    'company_id' => $companyId,
+                ],
+                [
+                    'supplier_name' => 'Demo Wholesale Ltd',
+                    'company_id' => $companyId,
                     'address' => 'Industrial Area, Accra (demo)',
                     'mobile' => '0244000999',
                     'email' => 'demo-wholesale@example.test',

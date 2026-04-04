@@ -65,6 +65,7 @@ class SupplierInvoiceTest extends TestCase
     {
         $user = $this->makeManager();
         $supplier = Supplier::create([
+            'company_id' => (int) $user->company_id,
             'supplier_name' => 'MedLife Test',
             'address' => 'Addr',
             'mobile' => '0200000000',

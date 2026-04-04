@@ -8,6 +8,7 @@ use App\Models\ProductSiteStock;
 use App\Models\Site;
 use App\Models\Supplier;
 use App\Models\User;
+use App\Models\Company;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Tests\TestCase;
@@ -35,6 +36,7 @@ class CreateProductFormTest extends TestCase
             'is_admin' => 1,
             'mobile' => '0244222000',
             'status' => '1',
+            'company_id' => Company::defaultId(),
         ]);
     }
 
@@ -79,16 +81,21 @@ class CreateProductFormTest extends TestCase
     {
         $user = $this->makeUser();
         $mId = Manufacturer::firstOrCreate(['name' => 'Dream Mfg'], ['name' => 'Dream Mfg'])->id;
+        $siteId = Site::defaultId();
+        $site = Site::query()->findOrFail($siteId);
         $supplier = Supplier::firstOrCreate(
-            ['supplier_name' => 'Wholesale Co'],
             [
                 'supplier_name' => 'Wholesale Co',
+                'company_id' => (int) $site->company_id,
+            ],
+            [
+                'supplier_name' => 'Wholesale Co',
+                'company_id' => (int) $site->company_id,
                 'address' => 'Test address',
                 'mobile' => '0244000001',
                 'email' => 'wholesale@example.test',
             ]
         );
-        $siteId = Site::defaultId();
         $name = 'Full Dream Product '.uniqid('', true);
 
         $payload = array_merge($this->minimalPayload($name, $mId), [

@@ -21,6 +21,7 @@ class BackupGenerationRequest extends Model
 
     protected $fillable = [
         'user_id',
+        'company_id',
         'kind',
         'status',
         'output_path',
@@ -37,6 +38,11 @@ class BackupGenerationRequest extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function company(): BelongsTo
+    {
+        return $this->belongsTo(Company::class);
     }
 
     public function isFinished(): bool

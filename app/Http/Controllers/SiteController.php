@@ -136,6 +136,8 @@ class SiteController extends Controller
             Site::query()->where('company_id', $companyId)->where('id', '!=', $site->id)->update(['is_default' => false]);
         }
 
+        $isDefault = $site->is_default || ! empty($data['is_default']);
+
         $site->update([
             'company_id' => $companyId,
             'name' => $data['name'],
@@ -145,7 +147,7 @@ class SiteController extends Controller
             'phone' => $data['phone'] ?? null,
             'email' => $data['email'] ?? null,
             'is_active' => $request->boolean('is_active'),
-            'is_default' => ! empty($data['is_default']),
+            'is_default' => $isDefault,
         ]);
 
         return redirect()->route('sites.index')->with('success', 'Site updated.');
@@ -156,7 +158,7 @@ class SiteController extends Controller
         $this->authorizeSiteAccess($site);
 
         if ($site->is_default) {
-            return redirect()->route('sites.index')->with('error', 'Cannot delete the default site.');
+            return redirect()->route('sites.index')->with('error', 'Cannot delete the head office (default branch). Edit it instead.');
         }
 
         if (ProductSiteStock::query()->where('site_id', $site->id)->where('quantity', '>', 0)->exists()) {
@@ -177,23 +179,46 @@ class SiteController extends Controller
         $raw = $request->input('site_id');
 
         if ($raw === 'all') {
-            if (! $request->user()->isSuperAdmin()) {
-                throw new AccessDeniedHttpException('Only super admins can view dashboard metrics for all sites.');
+            if ($request->user()->isSuperAdmin()) {
+                session([
+                    'dashboard_all_sites' => true,
+                    'dashboard_all_branches' => false,
+                ]);
+
+                Audit::record(
+                    'site.dashboard_all_scope',
+                    ['dashboard_all_sites' => false],
+                    ['dashboard_all_sites' => true],
+                    null,
+                    null,
+                    auth()->id(),
+                    ['audit_channel' => 'controller']
+                );
+
+                return redirect()->back()->with('success', 'Dashboard view: all sites.');
             }
 
-            session(['dashboard_all_sites' => true]);
+            $branches = Site::forSessionSwitcher($request->user());
+            if ($branches->count() < 2) {
+                throw new AccessDeniedHttpException('All branches dashboard view requires more than one branch.');
+            }
+
+            session([
+                'dashboard_all_branches' => true,
+                'dashboard_all_sites' => false,
+            ]);
 
             Audit::record(
-                'site.dashboard_all_scope',
-                ['dashboard_all_sites' => false],
-                ['dashboard_all_sites' => true],
+                'site.dashboard_all_branches',
+                ['dashboard_all_branches' => false],
+                ['dashboard_all_branches' => true],
                 null,
                 null,
                 auth()->id(),
                 ['audit_channel' => 'controller']
             );
 
-            return redirect()->back()->with('success', 'Dashboard view: all sites.');
+            return redirect()->back()->with('success', 'Dashboard view: all branches in your organization.');
         }
 
         $request->validate([
@@ -215,6 +240,7 @@ class SiteController extends Controller
         session([
             'current_site_id' => (int) $request->site_id,
             'dashboard_all_sites' => false,
+            'dashboard_all_branches' => false,
         ]);
 
         Audit::record(

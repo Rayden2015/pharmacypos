@@ -22,6 +22,18 @@
                     <div class="card-body" style="max-width: 36rem;">
                         <form action="{{ route('suppliers.store') }}" method="post">
                             @csrf
+                            @if(auth()->user()->isSuperAdmin())
+                                <div class="mb-3">
+                                    <label class="form-label">Organization <span class="text-danger">*</span></label>
+                                    <select name="company_id" class="form-select @error('company_id') is-invalid @enderror" required>
+                                        <option value="">— Select company —</option>
+                                        @foreach($companies as $c)
+                                            <option value="{{ $c->id }}" @selected(old('company_id') == $c->id)>{{ $c->company_name }}</option>
+                                        @endforeach
+                                    </select>
+                                    @error('company_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                </div>
+                            @endif
                             <div class="mb-3">
                                 <label class="form-label">Supplier name <span class="text-danger">*</span></label>
                                 <input type="text" name="supplier_name" class="form-control @error('supplier_name') is-invalid @enderror" value="{{ old('supplier_name') }}" required maxlength="255">

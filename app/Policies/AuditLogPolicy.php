@@ -26,11 +26,17 @@ class AuditLogPolicy
             return false;
         }
 
+        $tenantId = (int) $user->company_id;
+
+        if ($auditLog->company_id !== null) {
+            return (int) $auditLog->company_id === $tenantId;
+        }
+
         $actor = $auditLog->user;
         if (! $actor) {
             return false;
         }
 
-        return (int) $actor->company_id === (int) $user->company_id;
+        return (int) $actor->company_id === $tenantId;
     }
 }

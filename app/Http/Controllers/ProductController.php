@@ -54,7 +54,10 @@ class ProductController extends Controller
     {
         return [
             'manufacturers' => Manufacturer::query()->orderBy('name')->get(['id', 'name']),
-            'suppliers' => Supplier::query()->orderBy('supplier_name')->get(['id', 'supplier_name']),
+            'suppliers' => Supplier::query()
+                ->forUserTenant(auth()->user())
+                ->orderBy('supplier_name')
+                ->get(['id', 'supplier_name']),
         ];
     }
 
@@ -112,7 +115,10 @@ class ProductController extends Controller
             'manufactured_date' => 'nullable|date',
             'warehouse_note' => 'nullable|string|max:255',
             'manufacturer_id' => 'required|exists:manufacturers,id',
-            'preferred_supplier_id' => 'nullable|exists:suppliers,id',
+            'preferred_supplier_id' => [
+                'nullable',
+                Rule::exists('suppliers', 'id')->where(fn ($q) => $q->where('company_id', $companyId)),
+            ],
             'alias' => 'nullable|string|max:255',
             'description' => [
                 'nullable',
@@ -333,10 +339,15 @@ class ProductController extends Controller
         $products = Product::findOrFail($id);
         $this->authorizeProductAccess($products);
 
+        $companyId = (int) $products->company_id;
+
         $request->validate([
             'product_name' => 'required|string|max:255',
             'manufacturer_id' => 'required|exists:manufacturers,id',
-            'preferred_supplier_id' => 'nullable|exists:suppliers,id',
+            'preferred_supplier_id' => [
+                'nullable',
+                Rule::exists('suppliers', 'id')->where(fn ($q) => $q->where('company_id', $companyId)),
+            ],
             'alias' => 'nullable|string|max:255',
             'description' => 'nullable|string',
             'price' => 'required|numeric|min:0',

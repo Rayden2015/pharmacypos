@@ -14,7 +14,10 @@
                 <h5 class="mb-0">Manage tenants</h5>
                 <p class="text-muted small mb-0">Each tenant maps to a subscribing organization; branches are sites under the tenant.</p>
             </div>
-            <a href="{{ route('super-admin.companies.create') }}" class="btn btn-primary btn-sm"><i class="bx bx-plus me-1"></i>Add tenant</a>
+            <div class="d-flex flex-wrap gap-2">
+                <a href="{{ route('super-admin.tenant-admins.create') }}" class="btn btn-outline-primary btn-sm"><i class="bx bx-user-plus me-1"></i>Add tenant admin</a>
+                <a href="{{ route('super-admin.companies.create') }}" class="btn btn-primary btn-sm"><i class="bx bx-plus me-1"></i>Add tenant</a>
+            </div>
         </div>
 
         <div class="row row-cols-2 row-cols-md-4 g-3 mb-3">
@@ -97,6 +100,7 @@
                                         @endif
                                     </td>
                                     <td class="text-end">
+                                        <a href="{{ route('super-admin.tenant-admins.create', ['company_id' => $c->id]) }}" class="btn btn-sm btn-outline-secondary" title="Create tenant admin for this organization">Admin</a>
                                         <a href="{{ route('super-admin.companies.edit', $c) }}" class="btn btn-sm btn-outline-primary">Edit</a>
                                         <form action="{{ route('super-admin.companies.destroy', $c) }}" method="post" class="d-inline" onsubmit="return confirm('Delete this tenant?');">
                                             @csrf

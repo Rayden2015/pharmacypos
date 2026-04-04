@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Company;
 use App\Models\StockReceipt;
 use App\Models\Supplier;
 use Illuminate\Http\RedirectResponse;
@@ -17,19 +18,35 @@ class SupplierController extends Controller
 
     public function index(): View
     {
-        $suppliers = Supplier::query()->orderBy('supplier_name')->paginate(20);
+        $suppliers = Supplier::query()
+            ->forUserTenant(auth()->user())
+            ->orderBy('supplier_name')
+            ->paginate(20);
 
         return view('suppliers.index', compact('suppliers'));
     }
 
     public function create(): View
     {
-        return view('suppliers.create');
+        $companies = auth()->user()->isSuperAdmin()
+            ? Company::query()->orderBy('company_name')->get(['id', 'company_name'])
+            : collect();
+
+        return view('suppliers.create', compact('companies'));
     }
 
     public function store(Request $request): RedirectResponse
     {
-        $data = $this->validated($request);
+        $viewer = $request->user();
+        $rules = $this->supplierFieldRules();
+        if ($viewer->isSuperAdmin()) {
+            $rules['company_id'] = 'required|exists:companies,id';
+        } elseif (! $viewer->company_id) {
+            abort(403);
+        }
+
+        $v = $request->validate($rules);
+        $data = $this->payloadFromValidated($v, $viewer);
 
         Supplier::create($data);
 
@@ -38,13 +55,27 @@ class SupplierController extends Controller
 
     public function edit(Supplier $supplier): View
     {
-        return view('suppliers.edit', compact('supplier'));
+        $this->authorize('update', $supplier);
+
+        $companies = auth()->user()->isSuperAdmin()
+            ? Company::query()->orderBy('company_name')->get(['id', 'company_name'])
+            : collect();
+
+        return view('suppliers.edit', compact('supplier', 'companies'));
     }
 
     public function update(Request $request, Supplier $supplier): RedirectResponse
     {
-        $data = $this->validated($request);
+        $this->authorize('update', $supplier);
 
+        $viewer = $request->user();
+        $rules = $this->supplierFieldRules();
+        if ($viewer->isSuperAdmin()) {
+            $rules['company_id'] = 'required|exists:companies,id';
+        }
+
+        $v = $request->validate($rules);
+        $data = $this->payloadFromValidated($v, $viewer);
         $supplier->update($data);
 
         return redirect()->route('suppliers.index')->with('success', 'Supplier updated.');
@@ -52,6 +83,8 @@ class SupplierController extends Controller
 
     public function destroy(Supplier $supplier): RedirectResponse
     {
+        $this->authorize('delete', $supplier);
+
         if (StockReceipt::query()->where('supplier_id', $supplier->id)->exists()) {
             return redirect()->route('suppliers.index')
                 ->with('error', 'Cannot delete: stock receipts reference this supplier.');
@@ -68,22 +101,34 @@ class SupplierController extends Controller
     }
 
     /**
-     * @return array{supplier_name: string, address: string, mobile: string, email: string}
+     * @return array<string, string>
      */
-    private function validated(Request $request): array
+    private function supplierFieldRules(): array
     {
-        $v = $request->validate([
+        return [
             'supplier_name' => 'required|string|max:255',
             'address' => 'nullable|string|max:2000',
             'mobile' => 'nullable|string|max:50',
             'email' => 'nullable|email|max:255',
-        ]);
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $v
+     * @return array{supplier_name: string, address: string, mobile: string, email: string, company_id: int}
+     */
+    private function payloadFromValidated(array $v, \App\Models\User $viewer): array
+    {
+        $companyId = $viewer->isSuperAdmin()
+            ? (int) $v['company_id']
+            : (int) ($viewer->company_id ?? 0);
 
         return [
             'supplier_name' => $v['supplier_name'],
             'address' => $v['address'] ?? '',
             'mobile' => $v['mobile'] ?? '',
             'email' => $v['email'] ?? '',
+            'company_id' => $companyId,
         ];
     }
 }

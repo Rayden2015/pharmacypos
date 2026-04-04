@@ -50,24 +50,40 @@ class AppServiceProvider extends ServiceProvider
                         'sitesForSwitcher' => collect(),
                         'currentSiteId' => null,
                         'dashboardAllSites' => false,
+                        'dashboardAllBranches' => false,
                         'showDashboardAllSitesOption' => false,
+                        'showDashboardAllBranchesOption' => false,
+                        'tenantCompanyName' => null,
                     ]);
 
                     return;
                 }
                 $user = auth()->user();
+                if ($user && ! $user->isSuperAdmin()) {
+                    $user->loadMissing('company:id,company_name');
+                }
+                $tenantCompanyName = ($user && ! $user->isSuperAdmin() && $user->company)
+                    ? $user->company->company_name
+                    : null;
+                $branchCount = $user ? Site::forSessionSwitcher($user)->count() : 0;
                 $view->with([
                     'sitesForSwitcher' => $user ? Site::forSessionSwitcher($user) : collect(),
                     'currentSiteId' => CurrentSite::id(),
                     'dashboardAllSites' => $user ? CurrentSite::dashboardAllSites() : false,
+                    'dashboardAllBranches' => $user ? CurrentSite::dashboardAllBranches() : false,
                     'showDashboardAllSitesOption' => $user && $user->isSuperAdmin(),
+                    'showDashboardAllBranchesOption' => $user && ! $user->isSuperAdmin() && $branchCount > 1,
+                    'tenantCompanyName' => $tenantCompanyName,
                 ]);
             } catch (\Throwable $e) {
                 $view->with([
                     'sitesForSwitcher' => collect(),
                     'currentSiteId' => null,
                     'dashboardAllSites' => false,
+                    'dashboardAllBranches' => false,
                     'showDashboardAllSitesOption' => false,
+                    'showDashboardAllBranchesOption' => false,
+                    'tenantCompanyName' => null,
                 ]);
             }
         });

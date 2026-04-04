@@ -100,6 +100,8 @@ class SalesReportEndToEndTest extends TestCase
 
         Transaction::create([
             'order_id' => $order->id,
+            'site_id' => $siteId,
+            'company_id' => (int) \App\Models\Site::query()->findOrFail($siteId)->company_id,
             'user_id' => $actor->id,
             'transaction_amount' => $lineAmount,
             'paid_amount' => (float) $lineAmount,

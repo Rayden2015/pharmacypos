@@ -164,6 +164,8 @@ class DashboardTest extends TestCase
 
         Transaction::create([
             'order_id' => $order->id,
+            'site_id' => $order->site_id,
+            'company_id' => (int) Site::query()->findOrFail($order->site_id)->company_id,
             'user_id' => $user->id,
             'transaction_amount' => 50,
             'paid_amount' => 50,
@@ -263,7 +265,7 @@ class DashboardTest extends TestCase
             'user_id' => $user->id,
             'site_id' => Site::defaultId(),
             'quantity' => 2,
-            'received_at' => Carbon::now()->startOfMonth()->addDays(3)->toDateString(),
+            'received_at' => Carbon::today()->toDateString(),
             'batch_number' => null,
             'expiry_date' => null,
             'supplier_id' => null,
@@ -325,6 +327,8 @@ class DashboardTest extends TestCase
 
         Transaction::create([
             'order_id' => $order->id,
+            'site_id' => $order->site_id,
+            'company_id' => (int) Site::query()->findOrFail($order->site_id)->company_id,
             'user_id' => $user->id,
             'transaction_amount' => 20,
             'paid_amount' => 5,

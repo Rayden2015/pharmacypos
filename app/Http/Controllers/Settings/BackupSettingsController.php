@@ -76,8 +76,11 @@ class BackupSettingsController extends Controller
 
     private function queueBackupGeneration(Request $request, string $kind): RedirectResponse
     {
+        $actor = $request->user();
+
         $req = BackupGenerationRequest::create([
-            'user_id' => $request->user()->id,
+            'user_id' => $actor->id,
+            'company_id' => $actor->company_id ? (int) $actor->company_id : null,
             'kind' => $kind,
             'status' => BackupGenerationRequest::STATUS_QUEUED,
         ]);

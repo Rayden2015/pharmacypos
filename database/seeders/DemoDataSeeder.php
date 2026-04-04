@@ -110,6 +110,8 @@ class DemoDataSeeder extends Seeder
                 $paid = $grandTotal;
                 $transaction = new Transaction;
                 $transaction->order_id = $order->id;
+                $transaction->site_id = $defaultSiteId;
+                $transaction->company_id = (int) Site::query()->whereKey($defaultSiteId)->value('company_id');
                 $transaction->user_id = $user->id;
                 $transaction->transaction_amount = $grandTotal;
                 $transaction->paid_amount = $paid;

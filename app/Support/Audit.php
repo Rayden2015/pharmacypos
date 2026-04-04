@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Models\AuditLog;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Request;
@@ -38,8 +39,11 @@ class Audit
         ?int $userId = null,
         array $extraContext = []
     ): void {
+        $resolvedUserId = $userId ?? Auth::id();
+
         AuditLog::create([
-            'user_id' => $userId ?? Auth::id(),
+            'user_id' => $resolvedUserId,
+            'company_id' => self::companyIdForAuditActor($resolvedUserId),
             'action' => $action,
             'subject_type' => $subjectType,
             'subject_id' => $subjectId,
@@ -60,8 +64,11 @@ class Audit
         $name = $route ? $route->getName() : null;
         $action = 'http.'.strtolower($req->method()).'.'.($name ?: 'unnamed');
 
+        $uid = Auth::id();
+
         AuditLog::create([
-            'user_id' => Auth::id(),
+            'user_id' => $uid,
+            'company_id' => self::companyIdForAuditActor($uid),
             'action' => $action,
             'subject_type' => null,
             'subject_id' => null,
@@ -73,6 +80,26 @@ class Audit
             ]),
             'created_at' => now(),
         ]);
+    }
+
+    /**
+     * Organization scope for audit rows (null = platform / super-admin actor without tenant).
+     */
+    private static function companyIdForAuditActor(?int $userId): ?int
+    {
+        $auth = Auth::user();
+        if ($userId && $auth && (int) $auth->id === (int) $userId) {
+            $cid = $auth->company_id;
+
+            return $cid ? (int) $cid : null;
+        }
+        if ($userId) {
+            $cid = User::query()->whereKey($userId)->value('company_id');
+
+            return $cid ? (int) $cid : null;
+        }
+
+        return null;
     }
 
     /**

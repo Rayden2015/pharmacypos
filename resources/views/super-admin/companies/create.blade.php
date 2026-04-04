@@ -9,7 +9,7 @@
         @include('inc.msg')
         @include('super-admin.partials.nav-pills')
 
-        <div class="card radius-10" style="max-width: 40rem;">
+        <div class="card radius-10" style="max-width: 44rem;">
             <div class="card-body">
                 <form method="post" action="{{ route('super-admin.companies.store') }}">
                     @csrf
@@ -46,6 +46,36 @@
                             @endforeach
                         </select>
                     </div>
+
+                    <hr class="my-4">
+                    <h6 class="mb-3">Tenant administrator <span class="text-danger">*</span></h6>
+                    <p class="text-muted small">This user can sign in immediately, manage branches and staff, and finish setup for the new organization.</p>
+                    <div class="mb-3">
+                        <label class="form-label">Admin full name <span class="text-danger">*</span></label>
+                        <input type="text" name="admin_name" class="form-control @error('admin_name') is-invalid @enderror" value="{{ old('admin_name') }}" required maxlength="255">
+                        @error('admin_name')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Admin login email <span class="text-danger">*</span></label>
+                        <input type="email" name="admin_email" class="form-control @error('admin_email') is-invalid @enderror" value="{{ old('admin_email') }}" required>
+                        @error('admin_email')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Admin mobile</label>
+                        <input type="text" name="admin_mobile" class="form-control @error('admin_mobile') is-invalid @enderror" value="{{ old('admin_mobile') }}" maxlength="32">
+                        @error('admin_mobile')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Password <span class="text-danger">*</span></label>
+                        <input type="password" name="admin_password" class="form-control @error('admin_password') is-invalid @enderror" required minlength="8" autocomplete="new-password">
+                        @error('admin_password')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        <div class="form-text">Minimum 8 characters. They can change it after login.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Confirm password <span class="text-danger">*</span></label>
+                        <input type="password" name="admin_password_confirmation" class="form-control" required minlength="8" autocomplete="new-password">
+                    </div>
+
                     <button type="submit" class="btn btn-primary">Create</button>
                     <a href="{{ route('super-admin.companies.index') }}" class="btn btn-light">Cancel</a>
                 </form>

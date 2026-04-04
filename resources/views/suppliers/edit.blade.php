@@ -23,6 +23,17 @@
                         <form action="{{ route('suppliers.update', $supplier) }}" method="post">
                             @csrf
                             @method('PUT')
+                            @if(auth()->user()->isSuperAdmin())
+                                <div class="mb-3">
+                                    <label class="form-label">Organization <span class="text-danger">*</span></label>
+                                    <select name="company_id" class="form-select @error('company_id') is-invalid @enderror" required>
+                                        @foreach($companies as $c)
+                                            <option value="{{ $c->id }}" @selected((int) old('company_id', $supplier->company_id) === (int) $c->id)>{{ $c->company_name }}</option>
+                                        @endforeach
+                                    </select>
+                                    @error('company_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                </div>
+                            @endif
                             <div class="mb-3">
                                 <label class="form-label">Supplier name <span class="text-danger">*</span></label>
                                 <input type="text" name="supplier_name" class="form-control @error('supplier_name') is-invalid @enderror" value="{{ old('supplier_name', $supplier->supplier_name) }}" required maxlength="255">

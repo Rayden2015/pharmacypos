@@ -39,13 +39,21 @@ class OrderController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-    public function index()
+    public function index(Request $request)
     {
+        $viewer = $request->user();
         $products = Product::query()->forTenantCatalog()->orderBy('product_name')->get();
-        $orders = Order::all();
-         //Display Last Order details
-         $lastId = Order_detail::max('order_id');
-         $order_receipt = Order_detail::where('order_id', $lastId)->get();
+
+        $ordersQuery = Order::query()
+            ->whereIn('orders.site_id', Site::query()->forUserTenant($viewer)->select('id'))
+            ->orderByDesc('orders.id');
+
+        $orders = $ordersQuery->get();
+
+        $lastId = (clone $ordersQuery)->max('orders.id');
+        $order_receipt = $lastId
+            ? Order_detail::query()->where('order_id', $lastId)->get()
+            : collect();
 
         return view('orders.index', ['products' => $products, 'order' => $orders, 'order_receipt' => $order_receipt]);
     }
@@ -189,6 +197,8 @@ class OrderController extends Controller
 
             $transaction = new Transaction();
             $transaction->order_id = $order_id;
+            $transaction->site_id = $siteId;
+            $transaction->company_id = (int) $site->company_id;
             $transaction->user_id = auth()->user()->id;
             $transaction->balance = $request->balance;
             $transaction->paid_amount = $request->paidAmount;

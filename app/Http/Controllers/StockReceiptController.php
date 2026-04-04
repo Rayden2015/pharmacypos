@@ -11,6 +11,7 @@ use App\Models\Supplier;
 use App\Support\CurrentSite;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 class StockReceiptController extends Controller
@@ -22,8 +23,17 @@ class StockReceiptController extends Controller
 
     public function index()
     {
-        $receipts = StockReceipt::query()
+        $viewer = auth()->user();
+
+        $receiptsQuery = StockReceipt::query()
             ->with(['product:id,product_name,alias', 'supplier:id,supplier_name', 'user:id,name'])
+            ->when($viewer && ! $viewer->isSuperAdmin() && $viewer->company_id, function ($q) use ($viewer) {
+                $q->whereHas('site', function ($sq) use ($viewer) {
+                    $sq->where('company_id', $viewer->company_id);
+                });
+            });
+
+        $receipts = $receiptsQuery
             ->latest('received_at')
             ->latest('id')
             ->paginate(50);
@@ -38,7 +48,10 @@ class StockReceiptController extends Controller
             ->orderBy('product_name')
             ->get(['id', 'product_name', 'alias', 'unit_of_measure', 'volume', 'quantity']);
 
-        $suppliers = Supplier::query()->orderBy('supplier_name')->get(['id', 'supplier_name']);
+        $suppliers = Supplier::query()
+            ->forUserTenant(auth()->user())
+            ->orderBy('supplier_name')
+            ->get(['id', 'supplier_name']);
 
         $prefillProductId = $request->query('product_id');
 
@@ -50,19 +63,25 @@ class StockReceiptController extends Controller
 
     public function store(Request $request)
     {
+        $siteId = $request->filled('site_id') ? (int) $request->input('site_id') : CurrentSite::id();
+        $site = Site::query()->findOrFail($siteId);
+        $this->authorizeSiteForUser($request->user(), $site);
+        $companyId = (int) $site->company_id;
+
         $data = $request->validate([
             'product_id' => ['required', 'exists:products,id'],
             'site_id' => ['nullable', 'exists:sites,id'],
             'quantity' => ['required', 'integer', 'min:1'],
             'batch_number' => ['nullable', 'string', 'max:128'],
             'expiry_date' => ['nullable', 'date'],
-            'supplier_id' => ['nullable', 'exists:suppliers,id'],
+            'supplier_id' => [
+                'nullable',
+                Rule::exists('suppliers', 'id')->where(fn ($q) => $q->where('company_id', $companyId)),
+            ],
             'document_reference' => ['nullable', 'string', 'max:128'],
             'received_at' => ['required', 'date'],
             'notes' => ['nullable', 'string', 'max:2000'],
         ]);
-
-        $siteId = isset($data['site_id']) ? (int) $data['site_id'] : CurrentSite::id();
 
         $receipt = DB::transaction(function () use ($data, $siteId) {
             $site = Site::query()->findOrFail($siteId);
@@ -139,8 +158,20 @@ class StockReceiptController extends Controller
 
     public function show(StockReceipt $stockReceipt)
     {
-        $stockReceipt->load(['product', 'supplier', 'user', 'inventoryMovement']);
+        $this->authorize('view', $stockReceipt);
+
+        $stockReceipt->load(['product', 'supplier', 'user', 'inventoryMovement', 'site']);
 
         return view('stock-receipts.show', compact('stockReceipt'));
+    }
+
+    private function authorizeSiteForUser(\App\Models\User $user, Site $site): void
+    {
+        if ($user->isSuperAdmin()) {
+            return;
+        }
+        if ((int) $site->company_id !== (int) ($user->company_id ?? 0)) {
+            abort(403, 'That branch does not belong to your organization.');
+        }
     }
 }

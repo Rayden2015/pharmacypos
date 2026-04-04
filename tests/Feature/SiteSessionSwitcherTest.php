@@ -193,6 +193,57 @@ class SiteSessionSwitcherTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_tenant_admin_can_select_dashboard_all_branches(): void
+    {
+        $f = $this->twoTenantFixtures();
+        $this->secondSiteSameCompany($f['companyA'], $f['siteA']);
+
+        $admin = User::create([
+            'name' => 'TA All Branches',
+            'email' => uniqid('taab', true).'@example.test',
+            'password' => bcrypt('secret'),
+            'confirm_password' => bcrypt('secret'),
+            'is_admin' => 1,
+            'is_super_admin' => false,
+            'company_id' => $f['companyA']->id,
+            'site_id' => $f['siteA']->id,
+            'tenant_role' => 'tenant_admin',
+            'mobile' => '0244000007',
+            'status' => '1',
+        ]);
+
+        $this->actingAs($admin)
+            ->post(route('sites.switch'), ['site_id' => 'all'])
+            ->assertRedirect();
+
+        $this->assertTrue((bool) session('dashboard_all_branches'));
+        $this->assertFalse((bool) session('dashboard_all_sites'));
+    }
+
+    public function test_cashier_cannot_select_dashboard_all_branches_even_if_bypassing_ui(): void
+    {
+        $f = $this->twoTenantFixtures();
+        $this->secondSiteSameCompany($f['companyA'], $f['siteA']);
+
+        $cashier = User::create([
+            'name' => 'Cashier All',
+            'email' => uniqid('csha', true).'@example.test',
+            'password' => bcrypt('secret'),
+            'confirm_password' => bcrypt('secret'),
+            'is_admin' => 1,
+            'is_super_admin' => false,
+            'company_id' => $f['companyA']->id,
+            'site_id' => $f['siteA']->id,
+            'tenant_role' => 'cashier',
+            'mobile' => '0244000008',
+            'status' => '1',
+        ]);
+
+        $this->actingAs($cashier)
+            ->post(route('sites.switch'), ['site_id' => 'all'])
+            ->assertForbidden();
+    }
+
     public function test_super_admin_session_switcher_includes_active_sites(): void
     {
         $f = $this->twoTenantFixtures();
