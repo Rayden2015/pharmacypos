@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\Company;
 use App\Models\User;
 use App\Support\TenantRolesProvisioner;
+use App\Support\TenantUserRoles;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Collection;
 use Spatie\Permission\Models\Permission;
@@ -30,36 +31,7 @@ class TenantRolesBootstrapSeeder extends Seeder
         }
 
         foreach (User::query()->where('is_super_admin', false)->whereNotNull('company_id')->get() as $user) {
-            $registrar->setPermissionsTeamId($user->company_id);
-            $user->syncRoles([]);
-
-            if ($user->tenant_role === 'tenant_admin') {
-                $user->assignRole('Tenant Admin');
-
-                continue;
-            }
-            if ($user->tenant_role === 'branch_manager') {
-                $user->assignRole('Branch Manager');
-
-                continue;
-            }
-            if ($user->tenant_role === 'supervisor') {
-                $user->assignRole('Supervisor');
-
-                continue;
-            }
-            if ($user->tenant_role === 'cashier') {
-                $user->assignRole('Cashier');
-
-                continue;
-            }
-
-            match ((int) $user->is_admin) {
-                3 => $user->assignRole('Branch Manager'),
-                2 => $user->assignRole('Cashier'),
-                1 => $user->assignRole('Supervisor'),
-                default => $user->assignRole('Cashier'),
-            };
+            TenantUserRoles::syncBuiltInSpatieRole($user);
         }
 
         $registrar->setPermissionsTeamId(null);

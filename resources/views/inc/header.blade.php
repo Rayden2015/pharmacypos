@@ -522,13 +522,7 @@
                         <img src="{{asset('/storage/users/' .Auth::user()->user_img)}}" class="user-img" alt="user">
                         <div class="user-info ps-3">
                             <p class="user-name mb-0">{{ Auth::user()->name }}</p>
-                            <p class="designattion mb-0"> 
-                                
-                                @if (Auth::user()->is_admin == 1) Admin
-                                @elseif (Auth::user()->is_admin == 2) Cashier
-                                @else Manager
-                                @endif
-                            </p>
+                            <p class="designattion mb-0">{{ Auth::user()->hierarchyLabel() }}</p>
                         </div>
                     </a>
                     <ul class="dropdown-menu dropdown-menu-end">

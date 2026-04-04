@@ -6,6 +6,7 @@ use App\Models\Company;
 use App\Models\Site;
 use App\Models\User;
 use App\Support\CurrentSite;
+use App\Support\TenantUserRoles;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
@@ -86,7 +87,12 @@ class UserController extends Controller
         }
 
         if ($request->filled('role')) {
-            $query->where('is_admin', $request->input('role'));
+            $role = $request->input('role');
+            if (is_string($role) && array_key_exists($role, User::HIERARCHY_ROLE_LABELS)) {
+                $query->where('tenant_role', $role);
+            } elseif (in_array((string) $role, ['1', '2', '3'], true)) {
+                $query->where('is_admin', (int) $role);
+            }
         }
 
         $statsBase = User::query()->forCurrentSiteContext();
@@ -262,17 +268,22 @@ class UserController extends Controller
     {
         $viewer = $request->user();
 
+        $makeSuper = $viewer->isSuperAdmin() && $request->boolean('is_super_admin');
+
         $rules = [
             'name' => 'required',
             'email' => 'required',
             'mobile' => ['required', 'string', 'min:10', 'max:10'],
             'address' => 'required',
-            'is_admin' => 'required',
             'status' => 'required',
             'password' => 'required|min:6|max:20',
             'confirm_password' => 'required|same:password',
             'is_super_admin' => 'nullable|boolean',
         ];
+
+        $rules['tenant_role'] = $makeSuper
+            ? 'nullable'
+            : ['required', Rule::in(array_keys(User::HIERARCHY_ROLE_LABELS))];
 
         if ($viewer->isSuperAdmin() && ! $request->boolean('is_super_admin')) {
             $rules['site_id'] = 'required|exists:sites,id';
@@ -296,8 +307,6 @@ class UserController extends Controller
             $fileNameToStore = 'user.png';
         }
 
-        $makeSuper = $viewer->isSuperAdmin() && $request->boolean('is_super_admin');
-
         $data = $request->input();
         $user = new User;
         $user->name = ucwords($data['name']);
@@ -307,13 +316,14 @@ class UserController extends Controller
         $user->mobile = $request->mobile;
         $user->address = ucwords($data['address']);
         $user->status = $request->status;
-        $user->is_admin = $request->is_admin;
         $user->user_img = $fileNameToStore;
 
         if ($makeSuper) {
             $user->is_super_admin = true;
             $user->site_id = $request->filled('site_id') ? (int) $request->site_id : null;
             $user->company_id = null;
+            $user->tenant_role = null;
+            $user->is_admin = 0;
         } else {
             $user->is_super_admin = false;
             if ($viewer->isSuperAdmin()) {
@@ -323,9 +333,16 @@ class UserController extends Controller
             }
             $site = Site::query()->find($user->site_id);
             $user->company_id = $site?->company_id ?? Company::defaultId();
+            $mapped = TenantUserRoles::tenantRoleAndLegacyIsAdmin((string) $request->input('tenant_role'));
+            $user->tenant_role = $mapped['tenant_role'];
+            $user->is_admin = $mapped['is_admin'];
         }
 
         $user->save();
+
+        if (! $user->is_super_admin && $user->company_id) {
+            TenantUserRoles::syncBuiltInSpatieRole($user);
+        }
 
         return redirect()->route('pharmacy.showuser')->with('success', 'User Created Successfully');
     }
@@ -373,16 +390,23 @@ class UserController extends Controller
         $user = User::findOrFail($id);
         $this->authorizeUserAccess($user);
 
+        $viewer = $request->user();
+        $becomesSuper = $viewer->isSuperAdmin() && $request->boolean('is_super_admin');
+
         $this->validate($request, [
             'name' => 'required',
             'email' => 'required',
             'mobile' => ['required', 'string', 'min:10', 'max:10'],
             'address' => 'required',
-            'is_admin' => 'required',
             'status' => 'required',
             'user_img' => 'image|nullable|max:2042',
             'is_super_admin' => 'nullable|boolean',
             'site_id' => 'nullable|exists:sites,id',
+            'tenant_role' => [
+                Rule::requiredIf(fn () => ! $user->is_super_admin && ! $becomesSuper),
+                'nullable',
+                Rule::in(array_keys(User::HIERARCHY_ROLE_LABELS)),
+            ],
         ]);
 
         if ($request->hasFile('user_img')) {
@@ -405,7 +429,6 @@ class UserController extends Controller
         $user->email = strtolower($data['email']);
         $user->mobile = $data['mobile'];
         $user->address = ucwords($data['address']);
-        $user->is_admin = $data['is_admin'];
         $user->status = $data['status'];
         if (! empty($data['password'])) {
             if ($data['password'] === ($data['confirm_password'] ?? '')) {
@@ -415,7 +438,6 @@ class UserController extends Controller
         }
         $user->user_img = $fileNameToStore;
 
-        $viewer = $request->user();
         if ($viewer->isSuperAdmin()) {
             $user->is_super_admin = $request->boolean('is_super_admin');
             if ($user->is_super_admin) {
@@ -428,7 +450,20 @@ class UserController extends Controller
             }
         }
 
+        if ($user->is_super_admin) {
+            $user->tenant_role = null;
+            $user->is_admin = 0;
+        } else {
+            $mapped = TenantUserRoles::tenantRoleAndLegacyIsAdmin((string) $request->input('tenant_role'));
+            $user->tenant_role = $mapped['tenant_role'];
+            $user->is_admin = $mapped['is_admin'];
+        }
+
         $user->save();
+
+        if (! $user->is_super_admin && $user->company_id) {
+            TenantUserRoles::syncBuiltInSpatieRole($user);
+        }
 
         return redirect()->back()->with('success', 'User Updated Successfully');
     }

@@ -198,6 +198,10 @@ class SiteController extends Controller
                 return redirect()->back()->with('success', 'Dashboard view: all sites.');
             }
 
+            if (! $request->user()->isTenantAdmin()) {
+                throw new AccessDeniedHttpException('Only tenant administrators can view dashboard metrics for all branches.');
+            }
+
             $branches = Site::forSessionSwitcher($request->user());
             if ($branches->count() < 2) {
                 throw new AccessDeniedHttpException('All branches dashboard view requires more than one branch.');

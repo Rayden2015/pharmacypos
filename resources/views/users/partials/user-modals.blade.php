@@ -47,14 +47,16 @@
                                             <input type="text" class="form-control border-start-0" id="edit_addr_{{ $user->id }}" name="address" placeholder="Address" value="{{ $user->address }}" required />
                                         </div>
                                     </div>
+                                    @if (! $user->is_super_admin)
                                     <div class="col-6">
                                         <label class="form-label">Role</label>
-                                        <select name="is_admin" class="form-select">
-                                            <option value="1" @if ($user->is_admin == 1) selected @endif>Admin</option>
-                                            <option value="2" @if ($user->is_admin == 2) selected @endif>Cashier</option>
-                                            <option value="3" @if ($user->is_admin == 3) selected @endif>Manager</option>
+                                        <select name="tenant_role" class="form-select" required>
+                                            @foreach (\App\Models\User::HIERARCHY_ROLE_LABELS as $value => $label)
+                                                <option value="{{ $value }}" @selected($user->hierarchyRoleKey() === $value)>{{ $label }}</option>
+                                            @endforeach
                                         </select>
                                     </div>
+                                    @endif
                                     <div class="col-6">
                                         <label class="form-label">Status</label>
                                         <select name="status" class="form-select">

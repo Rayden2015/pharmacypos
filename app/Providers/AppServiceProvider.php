@@ -72,7 +72,7 @@ class AppServiceProvider extends ServiceProvider
                     'dashboardAllSites' => $user ? CurrentSite::dashboardAllSites() : false,
                     'dashboardAllBranches' => $user ? CurrentSite::dashboardAllBranches() : false,
                     'showDashboardAllSitesOption' => $user && $user->isSuperAdmin(),
-                    'showDashboardAllBranchesOption' => $user && ! $user->isSuperAdmin() && $branchCount > 1,
+                    'showDashboardAllBranchesOption' => $user && ! $user->isSuperAdmin() && $user->isTenantAdmin() && $branchCount > 1,
                     'tenantCompanyName' => $tenantCompanyName,
                 ]);
             } catch (\Throwable $e) {

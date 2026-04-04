@@ -16,6 +16,18 @@ class User extends Authenticatable
     use Auditable;
     use HasFactory, HasRoles, Notifiable;
 
+    /**
+     * Built-in tenant hierarchy (forms & badges). Order: tenant admin → branch manager → supervisor → cashier.
+     *
+     * @var array<string, string>
+     */
+    public const HIERARCHY_ROLE_LABELS = [
+        'tenant_admin' => 'Tenant admin',
+        'branch_manager' => 'Branch manager',
+        'supervisor' => 'Supervisor',
+        'cashier' => 'Cashier',
+    ];
+
     protected static function boot()
     {
         parent::boot();
@@ -134,7 +146,7 @@ class User extends Authenticatable
 
     /**
      * Hierarchy: tenant_admin → branch_manager → supervisor → cashier → officer.
-     * Legacy is_admin: 1 ≈ branch admin, 2 = cashier, 3 = manager maps to branch_manager.
+     * Legacy {@see $is_admin} aligns with {@see TenantRolesBootstrapSeeder}: 1 → Supervisor, 2 → Cashier, 3 → Branch manager.
      */
     public function hierarchyLabel(): string
     {
@@ -153,10 +165,57 @@ class User extends Authenticatable
         }
 
         return match ((int) $this->is_admin) {
-            1 => 'Admin (branch)',
+            1 => 'Supervisor',
             2 => 'Cashier',
-            3 => 'Manager',
+            3 => 'Branch manager',
             default => 'Staff',
+        };
+    }
+
+    /**
+     * Role key for employee forms: prefers {@see $tenant_role}, else maps legacy {@see $is_admin}.
+     */
+    public function hierarchyRoleKey(): string
+    {
+        if ($this->tenant_role && array_key_exists($this->tenant_role, self::HIERARCHY_ROLE_LABELS)) {
+            return $this->tenant_role;
+        }
+        if ($this->tenant_role === 'officer') {
+            return 'cashier';
+        }
+
+        return match ((int) $this->is_admin) {
+            1 => 'supervisor',
+            2 => 'cashier',
+            3 => 'branch_manager',
+            default => 'cashier',
+        };
+    }
+
+    /** Bootstrap badge class for employee list / grid role column. */
+    public function employeeRoleBadgeClass(): string
+    {
+        if ($this->is_super_admin) {
+            return 'bg-warning text-dark';
+        }
+        if ($this->tenant_role && array_key_exists($this->tenant_role, self::HIERARCHY_ROLE_LABELS)) {
+            return match ($this->tenant_role) {
+                'tenant_admin' => 'bg-primary',
+                'branch_manager' => 'bg-info text-dark',
+                'supervisor' => 'bg-success',
+                'cashier' => 'bg-secondary',
+                default => 'bg-secondary',
+            };
+        }
+        if ($this->tenant_role === 'officer') {
+            return 'bg-dark';
+        }
+
+        return match ((int) $this->is_admin) {
+            1 => 'bg-success',
+            2 => 'bg-secondary',
+            3 => 'bg-info text-dark',
+            default => 'bg-secondary',
         };
     }
 

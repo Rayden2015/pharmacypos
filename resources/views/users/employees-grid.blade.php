@@ -86,9 +86,9 @@
                             <label class="form-label small text-muted mb-1">Role</label>
                             <select name="role" class="form-select">
                                 <option value="">All</option>
-                                <option value="1" {{ request('role') === '1' ? 'selected' : '' }}>Admin</option>
-                                <option value="2" {{ request('role') === '2' ? 'selected' : '' }}>Cashier</option>
-                                <option value="3" {{ request('role') === '3' ? 'selected' : '' }}>Manager</option>
+                                @foreach (\App\Models\User::HIERARCHY_ROLE_LABELS as $value => $label)
+                                    <option value="{{ $value }}" {{ request('role') === $value ? 'selected' : '' }}>{{ $label }}</option>
+                                @endforeach
                             </select>
                         </div>
                         <div class="col-md-2">
@@ -117,16 +117,7 @@
                                     <div class="emp-id mb-1">EMP ID : POS{{ str_pad((string) $user->id, 4, '0', STR_PAD_LEFT) }}</div>
                                     <h6 class="mb-1 fw-bold">{{ $user->name }}</h6>
                                     <div class="mb-2">
-                                        @if ($user->is_admin == 1)
-                                            <span class="badge bg-success">Admin</span>
-                                        @elseif ($user->is_admin == 2)
-                                            <span class="badge bg-secondary">Cashier</span>
-                                        @else
-                                            <span class="badge bg-info">Manager</span>
-                                        @endif
-                                        @if ($user->is_super_admin)
-                                            <span class="badge bg-warning text-dark">Super</span>
-                                        @endif
+                                        @include('users.partials.employee-role-badge', ['user' => $user])
                                     </div>
                                 </div>
                                 <hr class="my-3">

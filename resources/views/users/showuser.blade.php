@@ -66,14 +66,7 @@
                                                 @endif
                                             </td>
                                             <td>
-                                                @if ($user->is_admin == 1) 
-                                                <span class="badge bg-success">Admin</span>
-                                                @elseif ($user->is_admin == 2) 
-                                                <span class="badge bg-secondary">Cashier</span>
-                                                @else 
-                                                <span class="badge bg-info">Manager</span>
-                                                @endif
-
+                                                @include('users.partials.employee-role-badge', ['user' => $user])
                                             </td>
                                             <td>
                                                 @if ($user->status == 1)

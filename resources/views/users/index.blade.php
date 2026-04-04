@@ -135,15 +135,15 @@
                                             </div>
                                         </div>
                                         <div class="col-6">
-                                            <label for="inputChoosePassword" class="form-label">Employee Role
+                                            <label for="inputChoosePassword" class="form-label">Employee role
                                             </label>
-                                            <select name="is_admin" id="" class="form-select" required>
-                                                <option>Select User Type</option>
-                                                <option value="1" {{old('is_admin') == "1" ? 'selected' : ''}}>Admin</option>
-                                                <option value="2" {{old('is_admin') == "2" ? 'selected' : ''}}>Cashier</option>
-                                                <option value="3" {{old('is_admin') == "3" ? 'selected' : ''}}>Manager</option>
+                                            <select name="tenant_role" id="inputTenantRole" class="form-select" required>
+                                                <option value="" disabled {{ old('tenant_role') ? '' : 'selected' }}>Select role</option>
+                                                @foreach (\App\Models\User::HIERARCHY_ROLE_LABELS as $value => $label)
+                                                    <option value="{{ $value }}" {{ old('tenant_role') === $value ? 'selected' : '' }}>{{ $label }}</option>
+                                                @endforeach
                                             </select>
-
+                                            <small class="text-muted">Tenant admin → branch manager → supervisor → cashier.</small>
                                         </div>
                                         <div class="col-6">
                                             <label for="inputChoosePassword" class="form-label">Employee Status
