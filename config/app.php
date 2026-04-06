@@ -58,6 +58,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Static asset cache busting
+    |--------------------------------------------------------------------------
+    |
+    | Set ASSET_VERSION on each deploy (e.g. git rev-parse --short HEAD). URLs for
+    | versioned_asset() pick up ?v=... so clients load new JS/CSS. Omit locally if desired.
+    |
+    */
+
+    'asset_version' => env('ASSET_VERSION'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Timezone
     |--------------------------------------------------------------------------
     |

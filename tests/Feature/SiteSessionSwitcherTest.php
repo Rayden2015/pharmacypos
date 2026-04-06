@@ -213,11 +213,16 @@ class SiteSessionSwitcherTest extends TestCase
         ]);
 
         $this->actingAs($admin)
-            ->post(route('sites.switch'), ['site_id' => 'all'])
+            ->post(route('sites.switch'), ['site_id' => 'all_branches'])
             ->assertRedirect();
 
         $this->assertTrue((bool) session('dashboard_all_branches'));
         $this->assertFalse((bool) session('dashboard_all_sites'));
+
+        $this->actingAs($admin)
+            ->post(route('sites.switch'), ['site_id' => 'all'])
+            ->assertRedirect();
+        $this->assertTrue((bool) session('dashboard_all_branches'));
     }
 
     public function test_cashier_cannot_select_dashboard_all_branches_even_if_bypassing_ui(): void
@@ -240,7 +245,80 @@ class SiteSessionSwitcherTest extends TestCase
         ]);
 
         $this->actingAs($cashier)
+            ->post(route('sites.switch'), ['site_id' => 'all_branches'])
+            ->assertForbidden();
+
+        $this->actingAs($cashier)
             ->post(route('sites.switch'), ['site_id' => 'all'])
+            ->assertForbidden();
+    }
+
+    public function test_tenant_admin_cannot_select_all_sites_even_if_bypassing_ui(): void
+    {
+        $f = $this->twoTenantFixtures();
+        $this->secondSiteSameCompany($f['companyA'], $f['siteA']);
+
+        $admin = User::create([
+            'name' => 'TA No All Sites',
+            'email' => uniqid('tans', true).'@example.test',
+            'password' => bcrypt('secret'),
+            'confirm_password' => bcrypt('secret'),
+            'is_admin' => 1,
+            'is_super_admin' => false,
+            'company_id' => $f['companyA']->id,
+            'site_id' => $f['siteA']->id,
+            'tenant_role' => 'tenant_admin',
+            'mobile' => '0244000021',
+            'status' => '1',
+        ]);
+
+        $this->actingAs($admin)
+            ->post(route('sites.switch'), ['site_id' => 'all_sites'])
+            ->assertForbidden();
+    }
+
+    public function test_super_admin_can_select_dashboard_all_sites_via_all_sites_value(): void
+    {
+        $f = $this->twoTenantFixtures();
+        $super = User::create([
+            'name' => 'SA All Sites Value',
+            'email' => uniqid('saasv', true).'@example.test',
+            'password' => bcrypt('secret'),
+            'confirm_password' => bcrypt('secret'),
+            'is_admin' => 1,
+            'is_super_admin' => true,
+            'company_id' => null,
+            'site_id' => $f['siteA']->id,
+            'mobile' => '0244000022',
+            'status' => '1',
+        ]);
+
+        $this->actingAs($super)
+            ->post(route('sites.switch'), ['site_id' => 'all_sites'])
+            ->assertRedirect();
+
+        $this->assertTrue((bool) session('dashboard_all_sites'));
+        $this->assertFalse((bool) session('dashboard_all_branches'));
+    }
+
+    public function test_super_admin_cannot_select_all_branches_value(): void
+    {
+        $f = $this->twoTenantFixtures();
+        $super = User::create([
+            'name' => 'SA No All Branches',
+            'email' => uniqid('sanab', true).'@example.test',
+            'password' => bcrypt('secret'),
+            'confirm_password' => bcrypt('secret'),
+            'is_admin' => 1,
+            'is_super_admin' => true,
+            'company_id' => null,
+            'site_id' => $f['siteA']->id,
+            'mobile' => '0244000023',
+            'status' => '1',
+        ]);
+
+        $this->actingAs($super)
+            ->post(route('sites.switch'), ['site_id' => 'all_branches'])
             ->assertForbidden();
     }
 

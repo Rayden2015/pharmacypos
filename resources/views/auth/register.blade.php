@@ -91,7 +91,7 @@
         <div class="hero-wrap min-vh-100">
             <div class="hero-mask opacity-4 bg-secondary"></div>
             <div class="hero-bg hero-bg-scroll"
-                style="background-image:url('{{ asset('assets/images/login-bg-5.jpg') }}');"></div>
+                style="background-image:url('{{ versioned_asset('assets/images/login-bg-5.jpg') }}');"></div>
             <div class="hero-content d-flex min-vh-100">
                 <div class="container my-auto">
                     <div class="row">

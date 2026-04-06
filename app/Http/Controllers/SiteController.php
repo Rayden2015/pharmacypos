@@ -78,7 +78,9 @@ class SiteController extends Controller
             ? (int) $data['company_id']
             : (int) ($viewer->company_id ?? Company::defaultId());
 
-        if (! empty($data['is_default'])) {
+        $wantsDefaultOnCreate = $request->boolean('is_default');
+
+        if ($wantsDefaultOnCreate) {
             Site::query()->where('company_id', $companyId)->update(['is_default' => false]);
         }
 
@@ -91,7 +93,7 @@ class SiteController extends Controller
             'phone' => $data['phone'] ?? null,
             'email' => $data['email'] ?? null,
             'is_active' => true,
-            'is_default' => ! empty($data['is_default']),
+            'is_default' => $wantsDefaultOnCreate,
         ]);
 
         return redirect()->route('sites.index')->with('success', 'Site created.');
@@ -132,11 +134,13 @@ class SiteController extends Controller
             ? (int) $data['company_id']
             : (int) $site->company_id;
 
-        if (! empty($data['is_default'])) {
+        $wantsDefault = $request->has('is_default')
+            ? $request->boolean('is_default')
+            : (bool) $site->is_default;
+
+        if ($wantsDefault) {
             Site::query()->where('company_id', $companyId)->where('id', '!=', $site->id)->update(['is_default' => false]);
         }
-
-        $isDefault = $site->is_default || ! empty($data['is_default']);
 
         $site->update([
             'company_id' => $companyId,
@@ -147,8 +151,21 @@ class SiteController extends Controller
             'phone' => $data['phone'] ?? null,
             'email' => $data['email'] ?? null,
             'is_active' => $request->boolean('is_active'),
-            'is_default' => $isDefault,
+            'is_default' => $wantsDefault,
         ]);
+
+        if (! Site::query()->where('company_id', $companyId)->where('is_default', true)->exists()) {
+            $pick = Site::query()
+                ->where('company_id', $companyId)
+                ->where('id', '!=', $site->id)
+                ->orderBy('id')
+                ->first();
+            if ($pick) {
+                $pick->update(['is_default' => true]);
+            } else {
+                $site->update(['is_default' => true]);
+            }
+        }
 
         return redirect()->route('sites.index')->with('success', 'Site updated.');
     }
@@ -176,28 +193,35 @@ class SiteController extends Controller
 
     public function switch(Request $request): RedirectResponse
     {
-        $raw = $request->input('site_id');
+        $raw = (string) $request->input('site_id');
 
-        if ($raw === 'all') {
-            if ($request->user()->isSuperAdmin()) {
-                session([
-                    'dashboard_all_sites' => true,
-                    'dashboard_all_branches' => false,
-                ]);
+        $wantsAllSites = $raw === 'all_sites' || ($raw === 'all' && $request->user()->isSuperAdmin());
+        $wantsAllBranches = $raw === 'all_branches' || ($raw === 'all' && ! $request->user()->isSuperAdmin());
 
-                Audit::record(
-                    'site.dashboard_all_scope',
-                    ['dashboard_all_sites' => false],
-                    ['dashboard_all_sites' => true],
-                    null,
-                    null,
-                    auth()->id(),
-                    ['audit_channel' => 'controller']
-                );
-
-                return redirect()->back()->with('success', 'Dashboard view: all sites.');
+        if ($wantsAllSites) {
+            if (! $request->user()->isSuperAdmin()) {
+                throw new AccessDeniedHttpException('Only super admins can view dashboard metrics for all sites.');
             }
 
+            session([
+                'dashboard_all_sites' => true,
+                'dashboard_all_branches' => false,
+            ]);
+
+            Audit::record(
+                'site.dashboard_all_scope',
+                ['dashboard_all_sites' => false],
+                ['dashboard_all_sites' => true],
+                null,
+                null,
+                auth()->id(),
+                ['audit_channel' => 'controller']
+            );
+
+            return redirect()->back()->with('success', 'Dashboard view: all sites.');
+        }
+
+        if ($wantsAllBranches) {
             if (! $request->user()->isTenantAdmin()) {
                 throw new AccessDeniedHttpException('Only tenant administrators can view dashboard metrics for all branches.');
             }

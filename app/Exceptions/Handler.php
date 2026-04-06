@@ -2,6 +2,7 @@
 
 namespace App\Exceptions;
 
+use App\Support\RequestCorrelation;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
@@ -114,6 +115,7 @@ class Handler extends ExceptionHandler
             $request = request();
 
             return array_merge(parent::context(), array_filter([
+                'request_id' => RequestCorrelation::id(),
                 'route_action' => Route::currentRouteAction(),
                 'path' => $request?->path(),
                 'http_method' => $request?->method(),
@@ -165,6 +167,7 @@ class Handler extends ExceptionHandler
 
         return response()->view('errors.500', [
             'incidentId' => $incidentId,
+            'requestId' => RequestCorrelation::id(),
             'showDetail' => (bool) $super,
             'detailMessage' => $super ? $e->getMessage() : null,
         ], 500);
@@ -252,12 +255,15 @@ class Handler extends ExceptionHandler
             'exception_line' => $e->getLine(),
         ]));
 
-        $payload = [
+        $payload = array_filter([
             'message' => $super
                 ? $e->getMessage()
                 : 'Something went wrong. Please try again later.',
             'incident_id' => $incidentId,
-        ];
+            'request_id' => RequestCorrelation::id(),
+        ], static function ($v) {
+            return $v !== null && $v !== '';
+        });
 
         return response()->json($payload, 500);
     }

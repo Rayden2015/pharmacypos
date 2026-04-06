@@ -208,7 +208,7 @@ class ProductController extends Controller
             : null;
         $products->price = $request->price;
         $products->quantity = $request->quantity;
-        $products->supplierprice = $request->supplierprice;
+        $products->supplierprice = $this->normalizedSupplierPrice($request->input('supplierprice'));
         $products->stock_alert = $this->normalizedStockAlert($request->input('stock_alert'));
         $products->form = $request->form;
         $products->unit_of_measure = $request->filled('unit_of_measure') ? $request->unit_of_measure : null;
@@ -436,7 +436,7 @@ class ProductController extends Controller
                 ? (int) $data['preferred_supplier_id']
                 : null;
             $products->price = $data['price'];
-            $products->supplierprice = $data['supplierprice'];
+            $products->supplierprice = $this->normalizedSupplierPrice($data['supplierprice'] ?? null);
             $products->stock_alert = $this->normalizedStockAlert($data['stock_alert'] ?? null, $products->stock_alert);
             $products->form = $data['form'];
             $products->unit_of_measure = ! empty($data['unit_of_measure']) ? $data['unit_of_measure'] : null;
@@ -469,8 +469,17 @@ class ProductController extends Controller
     }
 
     /**
-     * Stock alert threshold: DB column is NOT NULL; empty request values become null via middleware.
+     * Supplier cost: DB column is NOT NULL; empty request values become null via TrimStrings / ConvertEmptyStringsToNull.
      */
+    private function normalizedSupplierPrice(mixed $value): float
+    {
+        if ($value === null || $value === '') {
+            return 0.0;
+        }
+
+        return (float) $value;
+    }
+
     private function normalizedStockAlert($value, ?int $fallbackWhenEmpty = null): int
     {
         $fallback = $fallbackWhenEmpty ?? 100;

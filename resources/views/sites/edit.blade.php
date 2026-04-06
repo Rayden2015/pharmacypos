@@ -63,8 +63,9 @@
                                 <label class="form-check-label" for="is_active">Active</label>
                             </div>
                             <div class="form-check mb-3">
+                                <input type="hidden" name="is_default" value="0">
                                 <input class="form-check-input" type="checkbox" name="is_default" value="1" id="is_default" {{ old('is_default', $site->is_default) ? 'checked' : '' }}>
-                                <label class="form-check-label" for="is_default">Default site</label>
+                                <label class="form-check-label" for="is_default">Default site (head office)</label>
                             </div>
                             <button type="submit" class="btn btn-primary">Save</button>
                             <a href="{{ route('sites.index') }}" class="btn btn-light">Back</a>

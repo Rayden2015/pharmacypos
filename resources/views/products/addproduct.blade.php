@@ -324,10 +324,11 @@
                                             </div>
                                             <div class="form-check form-check-inline mb-0">
                                                 <input type="hidden" name="feature_expiry" value="0">
-                                                <input class="form-check-input" type="checkbox" name="feature_expiry" id="feature_expiry" value="1" {{ old('feature_expiry', '1') === '1' ? 'checked' : '' }}>
+                                                <input class="form-check-input" type="checkbox" name="feature_expiry" id="feature_expiry" value="1" {{ old('feature_expiry', '0') === '1' ? 'checked' : '' }}>
                                                 <label class="form-check-label" for="feature_expiry">Expiry</label>
                                             </div>
                                         </div>
+                                        <p class="small text-muted mb-3">Leave <strong>Expiry</strong> off until you know the batch date; the product is still saved with a placeholder catalog date for reporting.</p>
                                         <div class="row g-3">
                                             <div class="col-md-6" id="wrap_warranty">
                                                 <label class="form-label">Warranty</label>

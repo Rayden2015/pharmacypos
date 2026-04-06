@@ -391,7 +391,9 @@ class UserController extends Controller
         $this->authorizeUserAccess($user);
 
         $viewer = $request->user();
-        $becomesSuper = $viewer->isSuperAdmin() && $request->boolean('is_super_admin');
+        $willBeSuperAdmin = $viewer->isSuperAdmin()
+            ? $request->boolean('is_super_admin')
+            : (bool) $user->is_super_admin;
 
         $this->validate($request, [
             'name' => 'required',
@@ -402,11 +404,10 @@ class UserController extends Controller
             'user_img' => 'image|nullable|max:2042',
             'is_super_admin' => 'nullable|boolean',
             'site_id' => 'nullable|exists:sites,id',
-            'tenant_role' => [
-                Rule::requiredIf(fn () => ! $user->is_super_admin && ! $becomesSuper),
-                'nullable',
+            'tenant_role' => array_filter([
+                ! $willBeSuperAdmin ? 'required' : 'nullable',
                 Rule::in(array_keys(User::HIERARCHY_ROLE_LABELS)),
-            ],
+            ]),
         ]);
 
         if ($request->hasFile('user_img')) {

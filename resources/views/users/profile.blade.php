@@ -38,7 +38,7 @@
                     <div class="card radius-10">
                         <div class="card-body text-center">
                             <div class="position-relative d-inline-block mb-2">
-                                <img src="{{ asset('storage/users/'.$avatar) }}" alt=""
+                                <img src="{{ versioned_asset('storage/users/'.$avatar) }}" alt=""
                                     class="rounded-circle p-1 bg-primary" width="120" height="120" style="object-fit: cover;">
                             </div>
                             <h5 class="mb-1">{{ $u->name }}</h5>

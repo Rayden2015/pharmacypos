@@ -70,7 +70,7 @@
     #invoice-POS #top .logo {
         height: 60px;
         width: 60px;
-        background: url({{ asset('dash/img/favicon.png') }}) no-repeat;
+        background: url({{ versioned_asset('dash/img/favicon.png') }}) no-repeat;
         background-size: 60px 60px;
     }
 

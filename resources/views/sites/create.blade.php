@@ -58,6 +58,7 @@
                                 </div>
                             </div>
                             <div class="form-check mb-3">
+                                <input type="hidden" name="is_default" value="0">
                                 <input class="form-check-input" type="checkbox" name="is_default" value="1" id="is_default" {{ old('is_default') ? 'checked' : '' }}>
                                 <label class="form-check-label" for="is_default">Set as default site</label>
                             </div>

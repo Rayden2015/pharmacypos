@@ -3,14 +3,20 @@
 namespace App\Support;
 
 use App\Models\Company;
+use App\Models\Order;
 use App\Models\Order_detail;
+use App\Models\Product;
 use App\Models\Site;
+use App\Models\StockReceipt;
 use App\Models\Supplier;
 use App\Models\Transaction;
 use App\Models\User;
 
 /**
  * Detects and repairs common multi-tenant / multi-branch data drift for existing installs.
+ *
+ * Violations include alignment checks (users, suppliers, transactions, order lines) and structural
+ * counts (orders.site_id, products.company_id, sites.company_id, stock_receipts.site_id).
  */
 final class TenantDataConformance
 {
@@ -104,6 +110,42 @@ final class TenantDataConformance
                 'type' => 'order_line_product_company_mismatch',
                 'message' => $badLines.' order line(s) reference a product from a different organization than the order branch',
                 'meta' => ['count' => $badLines],
+            ];
+        }
+
+        $ordersMissingSite = (int) Order::query()->whereNull('site_id')->count();
+        if ($ordersMissingSite > 0) {
+            $out[] = [
+                'type' => 'order_missing_site',
+                'message' => $ordersMissingSite.' order(s) have null site_id (branch is required for tenant scoping)',
+                'meta' => ['count' => $ordersMissingSite],
+            ];
+        }
+
+        $productsMissingCompany = (int) Product::query()->whereNull('company_id')->count();
+        if ($productsMissingCompany > 0) {
+            $out[] = [
+                'type' => 'product_missing_company',
+                'message' => $productsMissingCompany.' product row(s) have null company_id',
+                'meta' => ['count' => $productsMissingCompany],
+            ];
+        }
+
+        $sitesMissingCompany = (int) Site::query()->whereNull('company_id')->count();
+        if ($sitesMissingCompany > 0) {
+            $out[] = [
+                'type' => 'site_missing_company',
+                'message' => $sitesMissingCompany.' site row(s) have null company_id',
+                'meta' => ['count' => $sitesMissingCompany],
+            ];
+        }
+
+        $receiptsMissingSite = (int) StockReceipt::query()->whereNull('site_id')->count();
+        if ($receiptsMissingSite > 0) {
+            $out[] = [
+                'type' => 'stock_receipt_missing_site',
+                'message' => $receiptsMissingSite.' stock receipt row(s) have null site_id',
+                'meta' => ['count' => $receiptsMissingSite],
             ];
         }
 

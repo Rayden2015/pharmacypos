@@ -437,12 +437,12 @@
                             <label class="small text-muted mb-0 d-none d-lg-inline">Branch</label>
                             <select name="site_id" class="form-select form-select-sm" style="min-width: 9rem; max-width: 16rem;" title="Active branch for POS and stock. Dashboard totals follow your selection unless you pick all branches or (super admin) all sites." onchange="this.form.submit()">
                                 @if (! empty($showDashboardAllSitesOption))
-                                    <option value="all" {{ ! empty($dashboardAllSites) ? 'selected' : '' }}>
+                                    <option value="all_sites" {{ ! empty($dashboardAllSites) ? 'selected' : '' }}>
                                         All sites (dashboard)
                                     </option>
                                 @endif
                                 @if (! empty($showDashboardAllBranchesOption))
-                                    <option value="all" {{ ! empty($dashboardAllBranches) ? 'selected' : '' }}>
+                                    <option value="all_branches" {{ ! empty($dashboardAllBranches) ? 'selected' : '' }}>
                                         All branches (dashboard)
                                     </option>
                                 @endif
@@ -519,7 +519,7 @@
                 @endif
             @else
                     <a class="d-flex align-items-center nav-link dropdown-toggle dropdown-toggle-nocaret" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        <img src="{{asset('/storage/users/' .Auth::user()->user_img)}}" class="user-img" alt="user">
+                        <img src="{{versioned_asset('/storage/users/' .Auth::user()->user_img)}}" class="user-img" alt="user">
                         <div class="user-info ps-3">
                             <p class="user-name mb-0">{{ Auth::user()->name }}</p>
                             <p class="designattion mb-0">{{ Auth::user()->hierarchyLabel() }}</p>

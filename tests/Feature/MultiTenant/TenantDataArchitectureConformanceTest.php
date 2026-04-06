@@ -207,6 +207,20 @@ class TenantDataArchitectureConformanceTest extends TestCase
         $this->assertNotContains('supplier_missing_company', array_column(TenantDataConformance::violations(), 'type'));
     }
 
+    public function test_detects_orders_without_branch(): void
+    {
+        $x = $this->twoPharmacyTenants();
+
+        Order::query()->create([
+            'name' => 'Legacy',
+            'mobile' => '0',
+            'site_id' => null,
+        ]);
+
+        $types = array_column(TenantDataConformance::violations(), 'type');
+        $this->assertContains('order_missing_site', $types);
+    }
+
     public function test_reports_order_lines_that_reference_skus_from_another_organization(): void
     {
         $x = $this->twoPharmacyTenants();

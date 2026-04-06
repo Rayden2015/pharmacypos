@@ -1,5 +1,6 @@
 <?php
 
+use App\Logging\ApplyRequestCorrelationTap;
 use Monolog\Handler\NullHandler;
 use Monolog\Handler\StreamHandler;
 use Monolog\Handler\SyslogUdpHandler;
@@ -49,12 +50,14 @@ return [
             'driver' => 'single',
             'path' => storage_path('logs/' . date('Y-m-d') . '-' . preg_replace('/[^a-zA-Z0-9._-]/', '-', env('APP_ENV', 'local')) . '.log'),
             'level' => env('LOG_LEVEL', 'debug'),
+            'tap' => [ApplyRequestCorrelationTap::class],
         ],
 
         'single' => [
             'driver' => 'single',
             'path' => storage_path('logs/laravel.log'),
             'level' => env('LOG_LEVEL', 'debug'),
+            'tap' => [ApplyRequestCorrelationTap::class],
         ],
 
         'daily' => [
@@ -62,6 +65,7 @@ return [
             'path' => storage_path('logs/laravel.log'),
             'level' => env('LOG_LEVEL', 'debug'),
             'days' => 14,
+            'tap' => [ApplyRequestCorrelationTap::class],
         ],
 
         /*
@@ -72,6 +76,7 @@ return [
             'path' => storage_path('logs/audit.log'),
             'level' => 'info',
             'days' => 90,
+            'tap' => [ApplyRequestCorrelationTap::class],
         ],
 
         /*
@@ -83,6 +88,7 @@ return [
             'path' => storage_path('logs/vendor-payments.log'),
             'level' => 'info',
             'days' => 30,
+            'tap' => [ApplyRequestCorrelationTap::class],
         ],
 
         /*
@@ -141,6 +147,16 @@ return [
             'path' => storage_path('logs/laravel.log'),
         ],
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Request correlation (X-Request-ID)
+    |--------------------------------------------------------------------------
+    |
+    | AssignRequestCorrelationId middleware sets a per-request id; ApplyRequestCorrelationTap
+    | appends it to Monolog "extra" on tapped channels so log lines can be joined across services.
+    |
+    */
 
     /*
     |--------------------------------------------------------------------------

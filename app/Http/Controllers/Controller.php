@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\RequestCorrelation;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Foundation\Bus\DispatchesJobs;
 use Illuminate\Foundation\Validation\ValidatesRequests;
@@ -25,14 +26,17 @@ class Controller extends BaseController
         $response = parent::callAction($method, $parameters);
 
         if ($this->shouldLogControllerSuccess()) {
-            Log::info('controller.action.success', [
+            Log::info('controller.action.success', array_filter([
+                'request_id' => RequestCorrelation::id(),
                 'controller' => static::class,
                 'action' => $method,
                 'status' => $this->responseStatusCode($response),
                 'path' => request()?->path(),
                 'http_method' => request()?->method(),
                 'user_id' => request()?->user()?->id,
-            ]);
+            ], static function ($v) {
+                return $v !== null && $v !== '';
+            }));
         }
 
         return $response;

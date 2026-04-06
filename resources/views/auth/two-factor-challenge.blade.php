@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ __('Verification code') }} — {{ config('app.name', 'Pharmacy POS') }}</title>
-    <link href="{{ asset('dash/css/bootstrap.min.css') }}" rel="stylesheet">
+    <link href="{{ versioned_asset('dash/css/bootstrap.min.css') }}" rel="stylesheet">
 </head>
 <body class="bg-light">
 <div class="container py-5">

@@ -247,6 +247,32 @@ class MultiBranchPharmacySetupTest extends TestCase
         $this->assertSame('Renamed head office', $x['siteA']->name);
     }
 
+    public function test_tenant_admin_can_clear_default_from_head_office_and_promote_another_branch(): void
+    {
+        $x = $this->twoPharmacyTenants();
+        $branch2 = Site::query()->create([
+            'company_id' => $x['companyA']->id,
+            'name' => 'Annex',
+            'code' => 'ANX-'.substr(uniqid(), -5),
+            'is_active' => true,
+            'is_default' => false,
+        ]);
+
+        $adminA = $this->makeTenantAdminForCompany($x['companyA'], $x['siteA']);
+
+        $this->actingAs($adminA)->put(route('sites.update', $x['siteA']), [
+            'name' => $x['siteA']->name,
+            'code' => $x['siteA']->code,
+            'is_active' => '1',
+            'is_default' => '0',
+        ])->assertRedirect(route('sites.index'));
+
+        $x['siteA']->refresh();
+        $branch2->refresh();
+        $this->assertFalse($x['siteA']->is_default);
+        $this->assertTrue($branch2->is_default);
+    }
+
     public function test_tenant_admin_cannot_open_edit_for_another_tenants_branch(): void
     {
         $x = $this->twoPharmacyTenants();

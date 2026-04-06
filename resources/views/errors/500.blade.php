@@ -8,6 +8,9 @@
         <p class="small mb-2"><strong>{{ __('Reference') }}:</strong> <code>{{ $incidentId }}</code></p>
         <p class="small text-muted mb-0">{{ __('Share this reference with support if the problem continues.') }}</p>
     @endif
+    @if (!empty($requestId))
+        <p class="small mb-0 mt-2"><strong>{{ __('Request') }}:</strong> <code>{{ $requestId }}</code></p>
+    @endif
     @if (!empty($showDetail) && !empty($detailMessage))
         <hr class="my-3">
         <p class="small font-monospace text-break text-danger mb-0">{{ $detailMessage }}</p>
