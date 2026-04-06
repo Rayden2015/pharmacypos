@@ -192,6 +192,42 @@ class User extends Authenticatable
         };
     }
 
+    /**
+     * Spatie role id for this user's organization (for employee forms). Null if custom/no role or super admin.
+     */
+    public function primarySpatieRoleIdForCompany(): ?int
+    {
+        if (! $this->company_id || $this->is_super_admin) {
+            return null;
+        }
+
+        $registrar = app(\Spatie\Permission\PermissionRegistrar::class);
+        $registrar->setPermissionsTeamId($this->company_id);
+        $role = $this->roles()->reorder()->first();
+        $registrar->setPermissionsTeamId(null);
+
+        if ($role) {
+            return (int) $role->id;
+        }
+
+        $fallbackName = match ($this->tenant_role) {
+            'tenant_admin' => 'Tenant Admin',
+            'branch_manager' => 'Branch Manager',
+            'supervisor' => 'Supervisor',
+            'cashier' => 'Cashier',
+            default => null,
+        };
+        if (! $fallbackName) {
+            return null;
+        }
+
+        return (int) \Spatie\Permission\Models\Role::query()
+            ->where('company_id', $this->company_id)
+            ->where('guard_name', 'web')
+            ->where('name', $fallbackName)
+            ->value('id');
+    }
+
     /** Bootstrap badge class for employee list / grid role column. */
     public function employeeRoleBadgeClass(): string
     {
@@ -271,6 +307,42 @@ class User extends Authenticatable
         return $this->belongsToMany(Announcement::class, 'announcement_reads')
             ->withPivot('read_at')
             ->withTimestamps();
+    }
+
+    /**
+     * True when a real upload exists (not the default user.png placeholder).
+     */
+    public function hasProfilePhoto(): bool
+    {
+        $img = $this->user_img ?? '';
+
+        return $img !== '' && $img !== 'user.png';
+    }
+
+    /**
+     * Public URL for the profile image, or null to show a silhouette placeholder in the UI.
+     * Uses an application route so images load without requiring the public/storage symlink.
+     */
+    public function profilePhotoUrl(): ?string
+    {
+        if (! $this->hasProfilePhoto()) {
+            return null;
+        }
+
+        return $this->avatarUrl();
+    }
+
+    /**
+     * Image URL for avatar (custom upload or default user.png) — always goes through {@see route('public.user-avatar')}.
+     */
+    public function avatarUrl(): string
+    {
+        $name = $this->user_img;
+        if ($name === null || $name === '') {
+            $name = 'user.png';
+        }
+
+        return route('public.user-avatar', ['filename' => basename($name)]);
     }
 
     /** Tenant staff messaging & announcements (not platform super admins). */

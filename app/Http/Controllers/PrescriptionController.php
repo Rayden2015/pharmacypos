@@ -75,6 +75,7 @@ class PrescriptionController extends Controller
             'patient_phone' => 'nullable|string|max:50',
             'rx_number' => 'nullable|string|max:100',
             'notes' => 'nullable|string|max:5000',
+            'attachment' => 'nullable|image|max:10240',
             'doctor_id' => [
                 'nullable',
                 'integer',
@@ -83,6 +84,11 @@ class PrescriptionController extends Controller
                 }),
             ],
         ]);
+
+        if ($request->hasFile('attachment')) {
+            $data['attachment_path'] = $request->file('attachment')->store('prescriptions', 'public');
+        }
+        unset($data['attachment']);
 
         $data['user_id'] = $request->user()->id;
         $data['status'] = 'pending';

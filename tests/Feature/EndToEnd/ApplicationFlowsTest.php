@@ -104,7 +104,6 @@ class ApplicationFlowsTest extends TestCase
 
         $response = $this->actingAs($user)->post(route('products.store'), [
             'product_name' => $name,
-            'site_id' => \App\Models\Site::defaultId(),
             'selling_type' => 'retail',
             'discount_type' => 'none',
             'product_type' => 'single',

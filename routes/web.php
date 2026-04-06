@@ -35,6 +35,7 @@ use App\Http\Controllers\Auth\TwoFactorChallengeController;
 use App\Http\Controllers\DoctorController;
 use App\Http\Controllers\SupplierInvoiceController;
 use App\Http\Controllers\SaleReturnController;
+use App\Http\Controllers\PublicUserAvatarController;
 
 /*
 |--------------------------------------------------------------------------
@@ -51,6 +52,9 @@ Route::get('/', function () {
     return view('auth.login');
 });
 
+Route::get('files/user-avatars/{filename}', [PublicUserAvatarController::class, 'show'])
+    ->where('filename', '.+')
+    ->name('public.user-avatar');
 
 Route::get('/home', [HomeController::class, 'index'])->name('home');
 
@@ -84,6 +88,7 @@ Route::middleware(['auth', 'tenant.communications'])->group(function () {
     Route::prefix('messages')->name('messages.')->group(function () {
         Route::get('/', [DirectMessageController::class, 'index'])->name('index');
         Route::post('mark-all-read', [DirectMessageController::class, 'markAllRead'])->name('mark-all-read');
+        Route::get('{user}/updates', [DirectMessageController::class, 'poll'])->name('poll')->whereNumber('user');
         Route::get('{user}', [DirectMessageController::class, 'show'])->name('show')->whereNumber('user');
         Route::post('/', [DirectMessageController::class, 'store'])->name('store');
     });
@@ -115,6 +120,7 @@ Route::get('inventory/manage-stock', [InventoryController::class, 'manageStock']
 Route::get('inventory/stock-adjustment', [InventoryController::class, 'createStockAdjustment'])->name('inventory.stock-adjustment.create');
 Route::post('inventory/stock-adjustment', [InventoryController::class, 'storeStockAdjustment'])->name('inventory.stock-adjustment.store');
 Route::get('inventory/stock-transfer', [InventoryController::class, 'stockTransfer'])->name('inventory.stock-transfer');
+Route::get('inventory/stock-transfer/availability', [InventoryController::class, 'stockTransferAvailability'])->name('inventory.stock-transfer.availability');
 Route::post('inventory/stock-transfer', [InventoryController::class, 'storeStockTransfer'])->name('inventory.stock-transfer.store');
 
 Route::post('sites/switch', [SiteController::class, 'switch'])->name('sites.switch');
@@ -172,12 +178,13 @@ Route::middleware(['auth', 'superadmin'])->prefix('super-admin')->name('super-ad
 });
 Route::middleware(['auth', 'can:reports.view'])->group(function () {
     Route::get('reports/periodic', [App\Http\Controllers\ReportController::class, 'periodic'])->name('reports.periodic');
-    Route::get('reports/periodicprint', [App\Http\Controllers\ReportController::class, 'periodicprint'])->name('reports.periodicprint');
     Route::get('reports/sales/print', [App\Http\Controllers\ReportController::class, 'salesPrint'])->name('reports.sales.print');
     Route::get('reports/sales', [App\Http\Controllers\ReportController::class, 'sales'])->name('reports.sales');
 });
 
 Route::middleware(['auth', 'can:reports.export'])->group(function () {
+    Route::get('reports/periodic/export', [App\Http\Controllers\ReportController::class, 'periodicExport'])->name('reports.periodic.export');
+    Route::get('reports/periodic/pdf', [App\Http\Controllers\ReportController::class, 'periodicPdf'])->name('reports.periodic.pdf');
     Route::get('reports/sales/export', [App\Http\Controllers\ReportController::class, 'salesExport'])->name('reports.sales.export');
 });
 

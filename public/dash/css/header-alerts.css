@@ -93,3 +93,22 @@
     background: #f62718;
     border: 2px solid #fff;
 }
+
+/* Topbar search: theme hides the field below 1024px and shows only a search icon; keep inline input visible. */
+@media screen and (max-width: 1024px) {
+    .topbar .navbar .search-bar {
+        display: flex !important;
+        align-items: center;
+        position: relative !important;
+        left: auto !important;
+        width: auto !important;
+        min-width: 0;
+        height: auto !important;
+        padding: 0 !important;
+        background: transparent !important;
+        z-index: auto !important;
+    }
+    .topbar .navbar .mobile-search-icon {
+        display: none !important;
+    }
+}

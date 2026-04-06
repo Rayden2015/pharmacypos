@@ -20,6 +20,7 @@ class Prescription extends Model
         'rx_number',
         'status',
         'notes',
+        'attachment_path',
         'user_id',
         'order_id',
         'dispensed_at',

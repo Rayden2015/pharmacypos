@@ -36,7 +36,7 @@
     <link rel="stylesheet" href="{{ versioned_asset('dash/css/header-colors-1.css') }}" />
 
 
-    <title>{{ config('app.name', 'Laravel') }}</title>
+    <title>@hasSection('document_title')@yield('document_title') — @elseif (! empty($documentTitlePharmacyName)){{ $documentTitlePharmacyName }} — @endif{{ config('app.name', 'Laravel') }}</title>
     
 </head>
 

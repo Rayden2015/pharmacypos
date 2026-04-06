@@ -8,6 +8,7 @@ use App\Models\Product;
 use App\Models\ProductSiteStock;
 use App\Models\Site;
 use App\Models\Supplier;
+use App\Support\CurrentSite;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -85,13 +86,34 @@ class ProductController extends Controller
 
         $featureExpiry = (string) $request->input('feature_expiry') === '1';
 
-        $request->validate([
-            'site_id' => 'required|exists:sites,id',
-        ]);
-
-        $site = Site::query()->findOrFail((int) $request->input('site_id'));
-        $this->authorizeSiteForUser($request->user(), $site);
-        $companyId = (int) $site->company_id;
+        $viewer = $request->user();
+        if ($viewer->isSuperAdmin()) {
+            $request->validate([
+                'site_id' => 'required|exists:sites,id',
+            ]);
+            $stockSite = Site::query()->findOrFail((int) $request->input('site_id'));
+            $companyId = (int) $stockSite->company_id;
+            $stockSiteId = (int) $stockSite->id;
+        } else {
+            $companyId = (int) ($viewer->company_id ?? 0);
+            if ($companyId <= 0) {
+                abort(403, 'Your account is not linked to an organization.');
+            }
+            $stockSiteId = CurrentSite::id();
+            $stockSite = Site::query()->find($stockSiteId);
+            if (
+                ! $stockSite
+                || (int) $stockSite->company_id !== $companyId
+            ) {
+                $homeId = Site::homeSiteIdForUser($viewer);
+                if ($homeId === null) {
+                    abort(403, 'No valid branch for your organization. Ask an administrator to assign a branch.');
+                }
+                $stockSiteId = $homeId;
+                $stockSite = Site::query()->findOrFail($stockSiteId);
+            }
+            $this->authorizeSiteForUser($viewer, $stockSite);
+        }
 
         $request->validate([
             'product_name' => 'required|string|max:255',
@@ -179,7 +201,7 @@ class ProductController extends Controller
             : '2099-12-31';
 
         $products = new Product;
-        $products->initial_site_id = (int) $request->input('site_id');
+        $products->initial_site_id = $stockSiteId;
         $products->company_id = $companyId;
         $products->product_name = $request->product_name;
         $products->slug = $slug;

@@ -57,18 +57,32 @@
                                 <div id="collapseInfo" class="accordion-collapse collapse show" aria-labelledby="headingInfo" data-bs-parent="#productAccordion">
                                     <div class="accordion-body">
                                         <div class="row g-3">
-                                            <div class="col-md-6">
-                                                <label class="form-label">Store (branch) <span class="text-danger">*</span></label>
-                                                <select name="site_id" class="form-select @error('site_id') is-invalid @enderror" required>
-                                                    @foreach ($sites as $s)
-                                                        <option value="{{ $s->id }}" {{ (string) old('site_id', $default_site_id ?? null) === (string) $s->id ? 'selected' : '' }}>
-                                                            {{ $s->name }}@if($s->code) · {{ $s->code }}@endif
-                                                        </option>
-                                                    @endforeach
-                                                </select>
-                                                @error('site_id')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
-                                                <div class="form-text">Initial stock is posted to this branch.</div>
-                                            </div>
+                                            @if (auth()->user()->isSuperAdmin())
+                                                <div class="col-md-6">
+                                                    <label class="form-label">Branch (opening stock) <span class="text-danger">*</span></label>
+                                                    <select name="site_id" class="form-select @error('site_id') is-invalid @enderror" required>
+                                                        @foreach ($sites as $s)
+                                                            <option value="{{ $s->id }}" {{ (string) old('site_id', $default_site_id ?? null) === (string) $s->id ? 'selected' : '' }}>
+                                                                {{ $s->name }}@if($s->code) · {{ $s->code }}@endif
+                                                            </option>
+                                                        @endforeach
+                                                    </select>
+                                                    @error('site_id')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                                                    <div class="form-text">Sets the tenant and where initial quantity is posted.</div>
+                                                </div>
+                                            @else
+                                                <div class="col-md-6">
+                                                    <label class="form-label">Opening stock branch</label>
+                                                    <div class="border rounded px-3 py-2 bg-light small mb-0">
+                                                        @if ($stockSiteHint ?? null)
+                                                            <strong>{{ $stockSiteHint->name }}</strong>@if ($stockSiteHint->code)<span class="text-muted"> · {{ $stockSiteHint->code }}</span>@endif
+                                                        @else
+                                                            <span class="text-muted">Current branch (header switcher)</span>
+                                                        @endif
+                                                    </div>
+                                                    <div class="form-text">This medicine is added to your catalog for <strong>every branch</strong> in your pharmacy. The quantity below is posted only at this branch; use Receive stock or transfers for other locations.</div>
+                                                </div>
+                                            @endif
                                             <div class="col-md-6">
                                                 <label class="form-label">Warehouse <span class="text-muted">(optional)</span></label>
                                                 <input type="text" name="warehouse_note" class="form-control @error('warehouse_note') is-invalid @enderror" value="{{ old('warehouse_note') }}" placeholder="Shelf, bin, or cold room" maxlength="255">

@@ -40,7 +40,7 @@
                             <div class="row g-3">
                                 <div class="col-md-6">
                                     <label class="form-label">From site <span class="text-danger">*</span></label>
-                                    <select name="from_site_id" class="form-select" required>
+                                    <select name="from_site_id" id="stock-transfer-from-site-id" class="form-select" required>
                                         <option value="">— Select —</option>
                                         @foreach ($sites as $s)
                                             <option value="{{ $s->id }}" {{ (string) old('from_site_id') === (string) $s->id ? 'selected' : '' }}>
@@ -62,14 +62,15 @@
                                 </div>
                                 <div class="col-md-8">
                                     <label class="form-label">Product <span class="text-danger">*</span></label>
-                                    <select name="product_id" class="single-select w-100" required data-placeholder="Select product">
+                                    <select name="product_id" id="stock-transfer-product-id" class="single-select w-100" required data-placeholder="Select product">
                                         <option value=""></option>
                                         @foreach ($products as $p)
                                             <option value="{{ $p->id }}" {{ (string) old('product_id') === (string) $p->id ? 'selected' : '' }}>
-                                                {{ $p->product_name }} — total on hand {{ $p->quantity }}
+                                                {{ $p->product_name }} (all branches: {{ $p->quantity }})
                                             </option>
                                         @endforeach
                                     </select>
+                                    <div id="stock-transfer-source-qty" class="small mt-2 d-none" role="status" aria-live="polite"></div>
                                 </div>
                                 <div class="col-md-4">
                                     <label class="form-label">Quantity <span class="text-danger">*</span></label>
@@ -90,4 +91,51 @@
             </div>
         </div>
     </div>
+@endsection
+
+@section('script')
+<script>
+    $(function () {
+        var url = @json(route('inventory.stock-transfer.availability'));
+        var $box = $('#stock-transfer-source-qty');
+        var $from = $('#stock-transfer-from-site-id');
+        var $product = $('#stock-transfer-product-id');
+
+        function refreshSourceAvailability() {
+            var fromId = $from.val();
+            var productId = $product.val();
+            if (!fromId || !productId) {
+                $box.addClass('d-none').empty();
+                return;
+            }
+            $box.removeClass('d-none alert alert-info alert-success alert-warning alert-danger').addClass('alert alert-secondary py-2 mb-0');
+            $box.text('Loading available quantity…');
+            $.getJSON(url, { from_site_id: fromId, product_id: productId })
+                .done(function (data) {
+                    var n = parseInt(data.available, 10);
+                    if (isNaN(n)) {
+                        n = 0;
+                    }
+                    $box.removeClass('alert-secondary');
+                    if (n > 0) {
+                        $box.addClass('alert-success');
+                        $box.html('<strong>Available at source branch:</strong> ' + n + ' unit(s).');
+                    } else {
+                        $box.addClass('alert-warning');
+                        $box.html('<strong>Available at source branch:</strong> 0 units. You cannot transfer until stock is received or adjusted here.');
+                    }
+                })
+                .fail(function (xhr) {
+                    var msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Could not load quantity for this branch and product.';
+                    $box.removeClass('alert-secondary alert-success').addClass('alert-danger');
+                    $box.text(msg);
+                });
+        }
+
+        $from.on('change', refreshSourceAvailability);
+        $product.on('change', refreshSourceAvailability);
+        $product.on('select2:select select2:clear', refreshSourceAvailability);
+        refreshSourceAvailability();
+    });
+</script>
 @endsection

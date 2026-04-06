@@ -88,19 +88,13 @@
             <li>
                 <a href="{{ route('reports.periodic') }}">
                     <div class="parent-icon"><i class='bx bx-line-chart'></i></div>
-                    <div class="menu-title">Today's sales</div>
+                    <div class="menu-title">Line items report</div>
                 </a>
             </li>
             <li>
                 <a href="{{ route('reports.sales') }}">
                     <div class="parent-icon"><i class='bx bx-receipt'></i></div>
                     <div class="menu-title">Sales report</div>
-                </a>
-            </li>
-            <li>
-                <a href="{{ route('reports.periodicprint') }}" target="_blank" rel="noopener">
-                    <div class="parent-icon"><i class='bx bx-printer'></i></div>
-                    <div class="menu-title">Print today's sales</div>
                 </a>
             </li>
             @endcan
@@ -144,19 +138,13 @@
             <li>
                 <a href="{{ route('reports.periodic') }}">
                     <div class="parent-icon"><i class='bx bx-line-chart'></i></div>
-                    <div class="menu-title">Today's sales</div>
+                    <div class="menu-title">Line items report</div>
                 </a>
             </li>
             <li>
                 <a href="{{ route('reports.sales') }}">
                     <div class="parent-icon"><i class='bx bx-receipt'></i></div>
                     <div class="menu-title">Sales report</div>
-                </a>
-            </li>
-            <li>
-                <a href="{{ route('reports.periodicprint') }}" target="_blank" rel="noopener">
-                    <div class="parent-icon"><i class='bx bx-printer'></i></div>
-                    <div class="menu-title">Print today's sales</div>
                 </a>
             </li>
             @endcan
@@ -376,37 +364,7 @@
                 @auth
                     @if (! empty($tenantCompanyName))
                         <div class="d-none d-md-flex align-items-center me-3 flex-shrink-0 border-start ps-3">
-                            <span class="small text-muted text-uppercase me-2">Tenant</span>
                             <span class="fw-semibold text-dark text-truncate" style="max-width: 16rem;" title="{{ $tenantCompanyName }}">{{ $tenantCompanyName }}</span>
-                        </div>
-                    @endif
-                    @if (! auth()->user()->isSuperAdmin())
-                        <div class="dropdown d-none d-md-block me-2 flex-shrink-0">
-                            <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                <i class="bx bx-cog me-1"></i> Administration
-                            </button>
-                            <ul class="dropdown-menu dropdown-menu-end shadow-sm">
-                                @can('sites.manage')
-                                    <li><a class="dropdown-item" href="{{ route('sites.index') }}"><i class="bx bx-buildings me-2"></i>Branches</a></li>
-                                @endcan
-                                @can('tenant.users.manage')
-                                    <li><a class="dropdown-item" href="{{ route('users.index') }}"><i class="bx bx-group me-2"></i>Staff &amp; users</a></li>
-                                @endcan
-                                @can('tenant.roles.manage')
-                                    <li><a class="dropdown-item" href="{{ route('roles.index') }}"><i class="bx bx-shield me-2"></i>Roles &amp; permissions</a></li>
-                                @endcan
-                                @can('settings.manage')
-                                    <li><a class="dropdown-item" href="{{ route('settings.index') }}"><i class="bx bx-slider me-2"></i>Settings</a></li>
-                                @endcan
-                                @can('audit.view')
-                                    <li><a class="dropdown-item" href="{{ route('settings.audit-log.index') }}"><i class="bx bx-history me-2"></i>Audit log</a></li>
-                                @endcan
-                                @if (auth()->user()->can('settings.manage') || auth()->user()->can('sites.manage') || auth()->user()->can('tenant.users.manage') || auth()->user()->can('tenant.roles.manage') || auth()->user()->can('audit.view'))
-                                    <li><hr class="dropdown-divider"></li>
-                                @endif
-                                <li><a class="dropdown-item" href="{{ route('profile') }}"><i class="bx bx-user me-2"></i>Profile</a></li>
-                                <li><a class="dropdown-item" href="{{ route('settings.localization') }}"><i class="bx bx-globe me-2"></i>Localization</a></li>
-                            </ul>
                         </div>
                     @endif
                 @endauth
@@ -427,7 +385,7 @@
                         <a href="{{ route('orders.index') }}" class="btn btn-primary btn-sm px-3">POS</a>
                         @endcan
                         @can('reports.view')
-                        <a href="{{ route('reports.periodic') }}" class="btn btn-outline-primary btn-sm px-3">Today's sales</a>
+                        <a href="{{ route('reports.periodic') }}" class="btn btn-outline-primary btn-sm px-3">Line items</a>
                         @endcan
                     @endif
                     <a href="{{ route('inventory.receive.create') }}" class="btn btn-success btn-sm px-3">Receive</a>
@@ -457,48 +415,6 @@
                 </div>
                 <div class="top-menu ms-auto">
                     <ul class="navbar-nav align-items-center">
-                        <li class="nav-item mobile-search-icon">
-                            <a class="nav-link" href="#">	<i class='bx bx-search'></i>
-                            </a>
-                        </li>
-                        <li class="nav-item dropdown dropdown-large">
-                            <a class="nav-link dropdown-toggle dropdown-toggle-nocaret" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">	<i class='bx bx-category'></i>
-                            </a>
-                            <div class="dropdown-menu dropdown-menu-end">
-                                <div class="row row-cols-3 g-3 p-3">
-                                    <div class="col text-center">
-                                        <div class="app-box mx-auto bg-gradient-cosmic text-white"><i class='bx bx-group'></i>
-                                        </div>
-                                        <div class="app-title">Teams</div>
-                                    </div>
-                                    <div class="col text-center">
-                                        <div class="app-box mx-auto bg-gradient-burning text-white"><i class='bx bx-atom'></i>
-                                        </div>
-                                        <div class="app-title">Projects</div>
-                                    </div>
-                                    <div class="col text-center">
-                                        <div class="app-box mx-auto bg-gradient-lush text-white"><i class='bx bx-shield'></i>
-                                        </div>
-                                        <div class="app-title">Tasks</div>
-                                    </div>
-                                    <div class="col text-center">
-                                        <div class="app-box mx-auto bg-gradient-kyoto text-dark"><i class='bx bx-notification'></i>
-                                        </div>
-                                        <div class="app-title">Feeds</div>
-                                    </div>
-                                    <div class="col text-center">
-                                        <div class="app-box mx-auto bg-gradient-blues text-dark"><i class='bx bx-file'></i>
-                                        </div>
-                                        <div class="app-title">Files</div>
-                                    </div>
-                                    <div class="col text-center">
-                                        <div class="app-box mx-auto bg-gradient-moonlit text-white"><i class='bx bx-filter-alt'></i>
-                                        </div>
-                                        <div class="app-title">Alerts</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </li>
                         @auth
                             @include('inc.header-notifications-messages')
                         @endauth
@@ -519,7 +435,7 @@
                 @endif
             @else
                     <a class="d-flex align-items-center nav-link dropdown-toggle dropdown-toggle-nocaret" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        <img src="{{versioned_asset('/storage/users/' .Auth::user()->user_img)}}" class="user-img" alt="user">
+                        <img src="{{ Auth::user()->avatarUrl() }}" class="user-img" alt="user">
                         <div class="user-info ps-3">
                             <p class="user-name mb-0">{{ Auth::user()->name }}</p>
                             <p class="designattion mb-0">{{ Auth::user()->hierarchyLabel() }}</p>
@@ -533,12 +449,6 @@
                         <li><a class="dropdown-item" href="{{ route('settings.localization') }}"><i class="bx bx-globe"></i><span>Localization</span></a>
                         </li>
                         <li><a class="dropdown-item" href="{{ route('settings.notifications') }}"><i class="bx bx-bell"></i><span>Notifications</span></a>
-                        </li>
-                        <li><a class="dropdown-item" href="javascript:;"><i class='bx bx-home-circle'></i><span>Dashboard</span></a>
-                        </li>
-                        <li><a class="dropdown-item" href="javascript:;"><i class='bx bx-dollar-circle'></i><span>Earnings</span></a>
-                        </li>
-                        <li><a class="dropdown-item" href="javascript:;"><i class='bx bx-download'></i><span>Downloads</span></a>
                         </li>
                         <li>
                             <div class="dropdown-divider mb-0"></div>

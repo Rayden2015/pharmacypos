@@ -60,6 +60,15 @@
                             @endif
                             <dt class="col-sm-3">{{ __('Notes') }}</dt>
                             <dd class="col-sm-9">@if ($prescription->notes){!! nl2br(e($prescription->notes)) !!}@else — @endif</dd>
+                            @if ($prescription->attachment_path)
+                                <dt class="col-sm-3">{{ __('Attachment') }}</dt>
+                                <dd class="col-sm-9">
+                                    <a href="{{ asset('storage/'.$prescription->attachment_path) }}" target="_blank" rel="noopener">{{ __('Open image') }}</a>
+                                    <div class="mt-2 border rounded overflow-hidden bg-light" style="max-width: 28rem;">
+                                        <img src="{{ asset('storage/'.$prescription->attachment_path) }}" alt="{{ __('Prescription image') }}" class="img-fluid d-block">
+                                    </div>
+                                </dd>
+                            @endif
                         </dl>
                         @if ($prescription->status === 'pending')
                             <hr class="my-4">

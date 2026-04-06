@@ -50,9 +50,9 @@
                                     @if (! $user->is_super_admin)
                                     <div class="col-6">
                                         <label class="form-label">Role</label>
-                                        <select name="tenant_role" class="form-select" required>
-                                            @foreach (\App\Models\User::HIERARCHY_ROLE_LABELS as $value => $label)
-                                                <option value="{{ $value }}" @selected($user->hierarchyRoleKey() === $value)>{{ $label }}</option>
+                                        <select name="role_id" class="form-select" required>
+                                            @foreach ($assignableRoles as $role)
+                                                <option value="{{ $role->id }}" @selected((int) $user->primarySpatieRoleIdForCompany() === (int) $role->id)>{{ $role->name }}</option>
                                             @endforeach
                                         </select>
                                     </div>

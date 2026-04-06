@@ -113,7 +113,7 @@
                                     </div>
                                 </div>
                                 <div class="text-center">
-                                    <img src="{{ versioned_asset('storage/users/'.$user->user_img) }}" class="emp-avatar mb-2" alt="">
+                                    <img src="{{ $user->avatarUrl() }}" class="emp-avatar mb-2" alt="">
                                     <div class="emp-id mb-1">EMP ID : POS{{ str_pad((string) $user->id, 4, '0', STR_PAD_LEFT) }}</div>
                                     <h6 class="mb-1 fw-bold">{{ $user->name }}</h6>
                                     <div class="mb-2">
@@ -141,7 +141,7 @@
                 {{ $users->links() }}
             </div>
 
-            @include('users.partials.user-modals', ['users' => $users, 'sites' => $sites])
+            @include('users.partials.user-modals', ['users' => $users, 'sites' => $sites, 'assignableRoles' => $assignableRoles])
         </div>
     </div>
 </div>

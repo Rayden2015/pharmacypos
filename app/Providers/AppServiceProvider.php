@@ -30,6 +30,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot()
     {
+        if (! $this->app->environment('local')) {
+            ini_set('display_errors', '0');
+            ini_set('log_errors', '1');
+        }
+
         Schema::defaultStringLength(191);
 
         $symbol = '#';
@@ -42,6 +47,25 @@ class AppServiceProvider extends ServiceProvider
         }
 
         View::share('currencySymbol', $symbol);
+
+        View::composer('layouts.dash', function ($view) {
+            $documentTitlePharmacyName = null;
+            try {
+                if (Schema::hasTable('sites')) {
+                    $user = auth()->user();
+                    if ($user && ! $user->isSuperAdmin() && $user->company_id) {
+                        $user->loadMissing('company:id,company_name');
+                        $documentTitlePharmacyName = $user->company?->company_name;
+                    } elseif ($user && $user->isSuperAdmin()) {
+                        $site = Site::query()->with('company:id,company_name')->find(CurrentSite::id());
+                        $documentTitlePharmacyName = $site?->company?->company_name;
+                    }
+                }
+            } catch (\Throwable $e) {
+                $documentTitlePharmacyName = null;
+            }
+            $view->with('documentTitlePharmacyName', $documentTitlePharmacyName ? trim((string) $documentTitlePharmacyName) : null);
+        });
 
         View::composer('inc.header', function ($view) {
             try {

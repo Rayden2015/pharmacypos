@@ -100,59 +100,28 @@
             <div class="page-content">
                 <!--breadcrumb-->
                 <div class="page-breadcrumb d-none d-sm-flex align-items-center mb-3">
-                    <div class="breadcrumb-title pe-3">Employee</div>
-                   
-
+                    <div class="breadcrumb-title pe-3">Line items report</div>
                 </div>
                 <hr />
                 @include('inc.msg')
                 <div class="card">
                     <div class="card-body">
-                        <form action="{{ route('reports.periodic') }}" method="GET">
+                        <form action="{{ route('reports.periodic') }}" method="GET" id="periodic-range-form">
                             <div class="row">
-    
-                                {{-- <div class="form-inline">
-                                    <div class="form-group row">
-    
-                                        <div class="col-lg-9">
-                                            <input type="date" class="form-control" name="start_date">
-                                            <input type="date" class="form-control" name="end_date">
-                                        </div>
-                                    </div>
-    
-                                    <button class="btn btn-primary ml-2" type="submit">GET</button>
-    
-                                    <a href="periodic" class="btn btn-primary ml-1">
-                                        RESET
-                                    </a>
-                                </div> --}}
-    
-                                <div class="input-group mb-3">
-                                    <input type="date" class="form-control noprint" name="start_date" value="{{ $start_date }}" required aria-label="Start date">
-                                    <input type="date" class="form-control noprint" name="end_date" value="{{ $end_date }}" required aria-label="End date">
-                                    <button class="btn btn-primary ml-2 noprint" type="submit">Generate</button>
-    
-                                    <a href="{{ route('reports.periodic') }}" class="btn btn-outline-secondary pull-left ml-4 noprint">Today</a>
-    
-                                    {{-- <a href="{{ url('buses/'.$currentURL) }}" target="_blank">  Get user detail </a> --}}
-                                </div>
-    
-    
-                            </div>
-                        </form>
-    
-                        <form action="{{ route('reports.periodicprint') }}" method="GET" target="_blank">
-                            <div class="row">
-                                <div class="input-group mb-3">
-                                    <input type="date" class="form-control noprint" name="start_date" value="{{ $start_date }}" required aria-label="Print start date">
-                                    <input type="date" class="form-control noprint" name="end_date" value="{{ $end_date }}" required aria-label="Print end date">
-                                    <button type="submit" class="btn btn-primary noprint">Print</button>
-                                    <a href="{{ route('reports.periodic') }}" class="btn btn-outline-secondary pull-left ml-4 noprint">Today</a>
-    
-                                    {{-- <a href="{{ url('buses/'.$currentURL) }}" target="_blank">  Get user detail </a> --}}
+                                <div class="input-group flex-wrap mb-3 gap-2">
+                                    <input type="date" class="form-control noprint" name="start_date" id="periodic-start" value="{{ $start_date }}" required aria-label="Start date" form="periodic-range-form">
+                                    <input type="date" class="form-control noprint" name="end_date" id="periodic-end" value="{{ $end_date }}" required aria-label="End date" form="periodic-range-form">
+                                    <button class="btn btn-primary noprint" type="submit">Generate</button>
+                                    <a href="{{ route('reports.periodic') }}" class="btn btn-outline-secondary noprint">Today</a>
+                                    <button type="button" class="btn btn-outline-primary noprint" onclick="window.print()">Print view</button>
+                                    @can('reports.export')
+                                    <a href="{{ route('reports.periodic.export', ['start_date' => $start_date, 'end_date' => $end_date]) }}" class="btn btn-outline-secondary noprint">Export CSV</a>
+                                    <a href="{{ route('reports.periodic.pdf', ['start_date' => $start_date, 'end_date' => $end_date]) }}" class="btn btn-outline-secondary noprint">Export PDF</a>
+                                    @endcan
                                 </div>
                             </div>
                         </form>
+                        <p class="text-muted small noprint mb-0">Choose dates, generate the table, then use <strong>Print view</strong> for the current range, or export CSV/PDF for the same range.</p>
                     </div>
                 </div>
                 

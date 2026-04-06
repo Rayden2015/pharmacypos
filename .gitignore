@@ -39,3 +39,5 @@ Archive.zip
 /storage/app/public/products/*.jpg
 /storage/app/public/products/*.jpeg
 /storage/app/public/products/*.png
+/storage/app/public/prescriptions/*
+/storage/app/public/users/*

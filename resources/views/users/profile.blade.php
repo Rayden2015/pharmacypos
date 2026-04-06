@@ -2,7 +2,6 @@
 @section('content')
     @php
         $u = $user ?? auth()->user();
-        $avatar = $u->user_img ?? 'user.png';
         $prefs = $u->notification_preferences ?? [];
         $tfSms = (bool) ($prefs['two_factor_sms'] ?? false);
         $tfEmail = (bool) ($prefs['two_factor_email'] ?? false);
@@ -38,7 +37,7 @@
                     <div class="card radius-10">
                         <div class="card-body text-center">
                             <div class="position-relative d-inline-block mb-2">
-                                <img src="{{ versioned_asset('storage/users/'.$avatar) }}" alt=""
+                                <img src="{{ $u->avatarUrl() }}" alt=""
                                     class="rounded-circle p-1 bg-primary" width="120" height="120" style="object-fit: cover;">
                             </div>
                             <h5 class="mb-1">{{ $u->name }}</h5>

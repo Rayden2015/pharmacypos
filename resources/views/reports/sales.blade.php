@@ -29,7 +29,7 @@
                             @endcan
                             @can('reports.view')
                             <a href="{{ route('reports.sales.print', request()->except('page')) }}" class="btn btn-outline-secondary btn-sm" target="_blank" rel="noopener">Print</a>
-                            <a href="{{ route('reports.periodic') }}" class="btn btn-outline-secondary btn-sm">Line items (today)</a>
+                            <a href="{{ route('reports.periodic') }}" class="btn btn-outline-secondary btn-sm">Line items report</a>
                             @endcan
                         </div>
                     </div>

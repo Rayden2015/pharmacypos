@@ -76,6 +76,57 @@
                     </form>
                 </div>
             </div>
+
+            <div class="card border-0 shadow-sm mt-4">
+                <div class="card-header d-flex flex-wrap align-items-center justify-content-between gap-2">
+                    <div>
+                        <h6 class="mb-0">Sales history</h6>
+                        <p class="text-muted small mb-0">POS orders across all branches in your organization. Rows match on the <strong>last 9 digits</strong> of the phone (international and local formats).</p>
+                    </div>
+                    <a href="{{ route('orders.index') }}" class="btn btn-sm btn-outline-primary">Open POS</a>
+                </div>
+                <div class="card-body p-0">
+                    @if ($salesOrders->total() === 0)
+                        <p class="text-muted small mb-0 px-3 py-4">No matching sales yet, or the mobile number is too short to match.</p>
+                    @else
+                        <div class="table-responsive">
+                            <table class="table table-hover table-sm mb-0 align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th scope="col">Invoice</th>
+                                        <th scope="col">Date</th>
+                                        <th scope="col">Branch</th>
+                                        <th scope="col" class="text-end">Lines</th>
+                                        <th scope="col" class="text-end">Total</th>
+                                        <th scope="col" class="text-end">Paid</th>
+                                        <th scope="col" class="text-end">Balance</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach ($salesOrders as $sale)
+                                        @php
+                                            $lineTotal = $sale->orderdetail->sum('amount');
+                                            $tx = $sale->transaction;
+                                        @endphp
+                                        <tr>
+                                            <td class="text-nowrap">#{{ $sale->id }}</td>
+                                            <td class="text-nowrap">{{ $sale->created_at?->timezone(config('app.timezone'))->format('M j, Y g:i a') ?? '—' }}</td>
+                                            <td>{{ $sale->site?->name ?? '—' }}@if ($sale->site?->code)<span class="text-muted small"> · {{ $sale->site->code }}</span>@endif</td>
+                                            <td class="text-end">{{ $sale->orderdetail->count() }}</td>
+                                            <td class="text-end">{{ $currencySymbol }}{{ number_format((float) $lineTotal, 2) }}</td>
+                                            <td class="text-end">{{ $tx ? $currencySymbol . number_format((float) $tx->paid_amount, 2) : '—' }}</td>
+                                            <td class="text-end">{{ $tx ? $currencySymbol . number_format((float) $tx->balance, 2) : '—' }}</td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="px-3 py-3 border-top">
+                            {{ $salesOrders->links() }}
+                        </div>
+                    @endif
+                </div>
+            </div>
         </div>
     </div>
 </div>

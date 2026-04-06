@@ -61,6 +61,30 @@ class PosCustomerTest extends TestCase
             ->assertJsonPath('name', 'Registered Customer');
     }
 
+    public function test_pos_lookup_matches_local_and_international_last_nine_digits(): void
+    {
+        $user = $this->makePosUser();
+        $site = Site::query()->findOrFail($user->site_id ?? Site::defaultId());
+
+        $tail = '5'.substr(preg_replace('/\D/', '', uniqid('', true)), 0, 8);
+        $local = '0'.$tail;
+        $international = '+2333'.$tail;
+
+        Customer::create([
+            'name' => 'Intl Stored',
+            'mobile' => $international,
+            'site_id' => $site->id,
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($user)
+            ->getJson(route('orders.customers.lookup', ['phone' => $local]))
+            ->assertOk()
+            ->assertJsonPath('found', true)
+            ->assertJsonPath('name', 'Intl Stored')
+            ->assertJsonPath('mobile', $international);
+    }
+
     public function test_pos_order_creates_customer_when_name_and_mobile_provided(): void
     {
         $user = $this->makePosUser();

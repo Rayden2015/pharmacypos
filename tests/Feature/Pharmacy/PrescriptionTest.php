@@ -8,6 +8,8 @@ use App\Models\Prescription;
 use App\Models\Site;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Tests\Concerns\GrantsTenantPermissions;
 use Tests\TestCase;
 
@@ -78,6 +80,7 @@ class PrescriptionTest extends TestCase
         $rx = Prescription::query()->where('rx_number', 'RX-100')->first();
         $this->assertNotNull($rx);
         $this->assertSame('pending', $rx->status);
+        $this->assertNull($rx->attachment_path);
 
         $this->actingAs($user)
             ->from(route('pharmacy.prescriptions'))
@@ -87,6 +90,35 @@ class PrescriptionTest extends TestCase
         $rx->refresh();
         $this->assertSame('completed', $rx->status);
         $this->assertNotNull($rx->dispensed_at);
+    }
+
+    public function test_prescription_store_accepts_image_attachment(): void
+    {
+        Storage::fake('public');
+        $user = $this->makeUser();
+        $file = UploadedFile::fake()->image('rx-scan.png', 40, 40);
+
+        $this->actingAs($user)
+            ->post(route('pharmacy.prescriptions.store'), [
+                'patient_name' => 'Attach Patient',
+                'patient_phone' => '0244000002',
+                'rx_number' => 'RX-IMG',
+                'notes' => 'With scan',
+                'attachment' => $file,
+            ])
+            ->assertRedirect(route('pharmacy.prescriptions'));
+
+        $rx = Prescription::query()->where('rx_number', 'RX-IMG')->first();
+        $this->assertNotNull($rx);
+        $this->assertNotNull($rx->attachment_path);
+        $this->assertStringStartsWith('prescriptions/', $rx->attachment_path);
+        Storage::disk('public')->assertExists($rx->attachment_path);
+
+        $this->actingAs($user)
+            ->get(route('pharmacy.prescriptions.show', $rx))
+            ->assertOk()
+            ->assertSee('Attach Patient', false)
+            ->assertSee(e(asset('storage/'.$rx->attachment_path)), false);
     }
 
     public function test_prescription_show_displays_detail(): void

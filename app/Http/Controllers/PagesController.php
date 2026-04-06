@@ -8,6 +8,7 @@ use App\Models\Site;
 use App\Models\Supplier;
 use App\Support\CurrentSite;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class PagesController extends Controller
 {
@@ -28,7 +29,16 @@ class PagesController extends Controller
 
     public function addproduct()
     {
-        $viewer = auth()->user();
+        $viewer = Auth::user();
+
+        $sitesQuery = Site::query()
+            ->forUserTenant($viewer)
+            ->where('is_active', true)
+            ->orderBy('name');
+
+        $stockSite = Site::query()
+            ->whereKey(CurrentSite::id())
+            ->first(['id', 'name', 'code', 'company_id']);
 
         return view('products.addproduct', [
             'manufacturers' => Manufacturer::query()->orderBy('name')->get(['id', 'name']),
@@ -36,12 +46,11 @@ class PagesController extends Controller
                 ->forUserTenant($viewer)
                 ->orderBy('supplier_name')
                 ->get(['id', 'supplier_name']),
-            'sites' => Site::query()
-                ->forUserTenant($viewer)
-                ->where('is_active', true)
-                ->orderBy('name')
-                ->get(['id', 'name', 'code']),
+            'sites' => $viewer->isSuperAdmin()
+                ? $sitesQuery->get(['id', 'name', 'code'])
+                : collect(),
             'default_site_id' => CurrentSite::id(),
+            'stockSiteHint' => $stockSite,
             'formCatalog' => config('product_form'),
         ]);
     }

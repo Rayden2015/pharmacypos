@@ -9,6 +9,7 @@ use App\Models\Site;
 use App\Models\Supplier;
 use App\Models\User;
 use App\Models\Company;
+use App\Support\CurrentSite;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Tests\TestCase;
@@ -46,7 +47,6 @@ class CreateProductFormTest extends TestCase
     private function minimalPayload(string $productName, int $manufacturerId): array
     {
         return [
-            'site_id' => Site::defaultId(),
             'product_name' => $productName,
             'selling_type' => 'retail',
             'discount_type' => 'none',
@@ -81,7 +81,8 @@ class CreateProductFormTest extends TestCase
     {
         $user = $this->makeUser();
         $mId = Manufacturer::firstOrCreate(['name' => 'Dream Mfg'], ['name' => 'Dream Mfg'])->id;
-        $siteId = Site::defaultId();
+        $this->actingAs($user);
+        $siteId = CurrentSite::id();
         $site = Site::query()->findOrFail($siteId);
         $supplier = Supplier::firstOrCreate(
             [
@@ -116,7 +117,7 @@ class CreateProductFormTest extends TestCase
             'manufactured_date' => '2025-01-15',
         ]);
 
-        $response = $this->actingAs($user)->post(route('products.store'), $payload);
+        $response = $this->post(route('products.store'), $payload);
 
         $response->assertRedirect('/products');
 

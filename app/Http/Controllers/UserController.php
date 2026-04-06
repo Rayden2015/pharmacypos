@@ -8,10 +8,12 @@ use App\Models\User;
 use App\Support\CurrentSite;
 use App\Support\TenantUserRoles;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use Spatie\Permission\Models\Role;
 
 
 class UserController extends Controller
@@ -42,8 +44,9 @@ class UserController extends Controller
             ->paginate(5);
 
         $sites = Site::query()->forUserTenant(auth()->user())->where('is_active', true)->orderBy('name')->get(['id', 'name', 'code']);
+        $assignableRoles = $this->assignableRolesForForms();
 
-        return view('users.index', compact('users', 'sites'));
+        return view('users.index', compact('users', 'sites', 'assignableRoles'));
     }
 
     /**
@@ -58,8 +61,9 @@ class UserController extends Controller
             ->paginate(15);
 
         $sites = Site::query()->forUserTenant(auth()->user())->where('is_active', true)->orderBy('name')->get(['id', 'name', 'code']);
+        $assignableRoles = $this->assignableRolesForForms();
 
-        return view('users.showuser', compact('users', 'sites'));
+        return view('users.showuser', compact('users', 'sites', 'assignableRoles'));
     }
 
     /**
@@ -106,8 +110,9 @@ class UserController extends Controller
         $users = $query->orderBy('name')->paginate(12)->withQueryString();
 
         $sites = Site::query()->forUserTenant(auth()->user())->where('is_active', true)->orderBy('name')->get(['id', 'name', 'code']);
+        $assignableRoles = $this->assignableRolesForForms();
 
-        return view('users.employees-grid', compact('users', 'sites', 'stats'));
+        return view('users.employees-grid', compact('users', 'sites', 'stats', 'assignableRoles'));
     }
 
     public function profile()
@@ -169,15 +174,10 @@ class UserController extends Controller
         $user->address = $user->address_line1;
 
         if ($request->hasFile('user_img')) {
-            $fileNameWithExt = $request->file('user_img')->getClientOriginalName();
-            $filename = pathinfo($fileNameWithExt, PATHINFO_FILENAME);
-            $extension = $request->file('user_img')->getClientOriginalExtension();
-            $fileNameToStore = $filename.'_'.time().'.'.$extension;
-            $request->file('user_img')->storeAs('public/users', $fileNameToStore);
             if ($user->user_img && $user->user_img !== 'user.png') {
                 Storage::delete('public/users/'.$user->user_img);
             }
-            $user->user_img = $fileNameToStore;
+            $user->user_img = $this->storePublicUserAvatar($request->file('user_img'));
         }
 
         $user->save();
@@ -281,14 +281,28 @@ class UserController extends Controller
             'is_super_admin' => 'nullable|boolean',
         ];
 
-        $rules['tenant_role'] = $makeSuper
-            ? 'nullable'
-            : ['required', Rule::in(array_keys(User::HIERARCHY_ROLE_LABELS))];
-
-        if ($viewer->isSuperAdmin() && ! $request->boolean('is_super_admin')) {
-            $rules['site_id'] = 'required|exists:sites,id';
+        $targetCompanyId = null;
+        if (! $makeSuper) {
+            if ($viewer->isSuperAdmin()) {
+                $rules['site_id'] = 'required|exists:sites,id';
+            } else {
+                $rules['site_id'] = 'nullable|exists:sites,id';
+            }
+            if ($viewer->isSuperAdmin()) {
+                $targetCompanyId = (int) Site::query()->whereKey((int) $request->input('site_id'))->value('company_id');
+            } else {
+                $targetCompanyId = (int) (Site::query()->whereKey((int) CurrentSite::id())->value('company_id') ?: $viewer->company_id);
+            }
+            $rules['role_id'] = ['required', 'integer', Rule::exists('roles', 'id')->where(function ($q) use ($targetCompanyId) {
+                $q->where('guard_name', 'web')->where('company_id', $targetCompanyId);
+            })];
         } else {
-            $rules['site_id'] = 'nullable|exists:sites,id';
+            $rules['role_id'] = 'nullable';
+            if ($viewer->isSuperAdmin() && ! $request->boolean('is_super_admin')) {
+                $rules['site_id'] = 'required|exists:sites,id';
+            } else {
+                $rules['site_id'] = 'nullable|exists:sites,id';
+            }
         }
 
         $this->validate($request, $rules);
@@ -298,11 +312,7 @@ class UserController extends Controller
         }
 
         if ($request->hasFile('user_img')) {
-            $fileNameWithExt = $request->file('user_img')->getClientOriginalName();
-            $filename = pathinfo($fileNameWithExt, PATHINFO_FILENAME);
-            $extension = $request->file('user_img')->getClientOriginalExtension();
-            $fileNameToStore = $filename.'_'.time().'.'.$extension;
-            $request->file('user_img')->storeAs('public/users', $fileNameToStore);
+            $fileNameToStore = $this->storePublicUserAvatar($request->file('user_img'));
         } else {
             $fileNameToStore = 'user.png';
         }
@@ -333,15 +343,22 @@ class UserController extends Controller
             }
             $site = Site::query()->find($user->site_id);
             $user->company_id = $site?->company_id ?? Company::defaultId();
-            $mapped = TenantUserRoles::tenantRoleAndLegacyIsAdmin((string) $request->input('tenant_role'));
-            $user->tenant_role = $mapped['tenant_role'];
-            $user->is_admin = $mapped['is_admin'];
+            $user->tenant_role = null;
+            $user->is_admin = 0;
         }
 
         $user->save();
 
         if (! $user->is_super_admin && $user->company_id) {
-            TenantUserRoles::syncBuiltInSpatieRole($user);
+            TenantUserRoles::syncSpatieRoleAssignment($user, (int) $request->input('role_id'));
+        } elseif ($user->is_super_admin) {
+            $registrar = app(\Spatie\Permission\PermissionRegistrar::class);
+            if ($user->company_id) {
+                $registrar->setPermissionsTeamId($user->company_id);
+            }
+            $user->syncRoles([]);
+            $registrar->setPermissionsTeamId(null);
+            app(\Spatie\Permission\PermissionRegistrar::class)->forgetCachedPermissions();
         }
 
         return redirect()->route('pharmacy.showuser')->with('success', 'User Created Successfully');
@@ -374,8 +391,9 @@ class UserController extends Controller
             ->paginate(5);
 
         $sites = Site::query()->forUserTenant(auth()->user())->where('is_active', true)->orderBy('name')->get(['id', 'name', 'code']);
+        $assignableRoles = $this->assignableRolesForForms();
 
-        return view('users.index', compact('users', 'sites'));
+        return view('users.index', compact('users', 'sites', 'assignableRoles'));
     }
 
     /**
@@ -395,7 +413,12 @@ class UserController extends Controller
             ? $request->boolean('is_super_admin')
             : (bool) $user->is_super_admin;
 
-        $this->validate($request, [
+        $targetCompanyId = (int) $user->company_id;
+        if ($viewer->isSuperAdmin() && $request->filled('site_id')) {
+            $targetCompanyId = (int) Site::query()->whereKey((int) $request->input('site_id'))->value('company_id');
+        }
+
+        $rules = [
             'name' => 'required',
             'email' => 'required',
             'mobile' => ['required', 'string', 'min:10', 'max:10'],
@@ -404,23 +427,20 @@ class UserController extends Controller
             'user_img' => 'image|nullable|max:2042',
             'is_super_admin' => 'nullable|boolean',
             'site_id' => 'nullable|exists:sites,id',
-            'tenant_role' => array_filter([
-                ! $willBeSuperAdmin ? 'required' : 'nullable',
-                Rule::in(array_keys(User::HIERARCHY_ROLE_LABELS)),
-            ]),
-        ]);
+        ];
+        $rules['role_id'] = $willBeSuperAdmin
+            ? 'nullable'
+            : ['required', 'integer', Rule::exists('roles', 'id')->where(function ($q) use ($targetCompanyId) {
+                $q->where('guard_name', 'web')->where('company_id', $targetCompanyId);
+            })];
+
+        $this->validate($request, $rules);
 
         if ($request->hasFile('user_img')) {
-            //Get file name
-            $fileNameWithExt = $request->file('user_img')->getClientOriginalName();
-            //File name
-            $filename = pathinfo($fileNameWithExt, PATHINFO_FILENAME);
-
-            $extension = $request->file('user_img')->getClientOriginalExtension();
-
-            $fileNameToStore = $filename. '_' .time(). '.' .$extension;
-
-            $request->file('user_img')->storeAs('public/users', $fileNameToStore);
+            if ($user->user_img && $user->user_img !== 'user.png') {
+                Storage::delete('public/users/'.$user->user_img);
+            }
+            $fileNameToStore = $this->storePublicUserAvatar($request->file('user_img'));
         } else {
             $fileNameToStore = $user->user_img;
         }
@@ -454,16 +474,20 @@ class UserController extends Controller
         if ($user->is_super_admin) {
             $user->tenant_role = null;
             $user->is_admin = 0;
-        } else {
-            $mapped = TenantUserRoles::tenantRoleAndLegacyIsAdmin((string) $request->input('tenant_role'));
-            $user->tenant_role = $mapped['tenant_role'];
-            $user->is_admin = $mapped['is_admin'];
         }
 
         $user->save();
 
         if (! $user->is_super_admin && $user->company_id) {
-            TenantUserRoles::syncBuiltInSpatieRole($user);
+            TenantUserRoles::syncSpatieRoleAssignment($user, (int) $request->input('role_id'));
+        } else {
+            $registrar = app(\Spatie\Permission\PermissionRegistrar::class);
+            if ($user->company_id) {
+                $registrar->setPermissionsTeamId($user->company_id);
+            }
+            $user->syncRoles([]);
+            $registrar->setPermissionsTeamId(null);
+            app(\Spatie\Permission\PermissionRegistrar::class)->forgetCachedPermissions();
         }
 
         return redirect()->back()->with('success', 'User Updated Successfully');
@@ -493,6 +517,40 @@ class UserController extends Controller
         $user->delete();
 
         return back()->with('success', 'User Deleted Successfully');
+    }
+
+    private function storePublicUserAvatar(UploadedFile $file): string
+    {
+        $ext = strtolower($file->getClientOriginalExtension() ?: 'jpg');
+        if (! in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp'], true)) {
+            $ext = 'jpg';
+        }
+        $name = 'u_'.bin2hex(random_bytes(12)).'.'.$ext;
+        $file->storeAs('public/users', $name);
+
+        return $name;
+    }
+
+    /**
+     * Spatie roles defined for the active company context (tenant users: their org; super admin: current branch’s company).
+     *
+     * @return \Illuminate\Support\Collection<int, \Spatie\Permission\Models\Role>
+     */
+    private function assignableRolesForForms()
+    {
+        $viewer = auth()->user();
+        $companyId = $viewer->isSuperAdmin()
+            ? (int) (Site::query()->whereKey((int) CurrentSite::id())->value('company_id') ?? 0)
+            : (int) ($viewer->company_id ?? 0);
+        if ($companyId < 1) {
+            return collect();
+        }
+
+        return Role::query()
+            ->where('company_id', $companyId)
+            ->where('guard_name', 'web')
+            ->orderBy('name')
+            ->get();
     }
 
     private function authorizeUserAccess(User $target): void

@@ -7,6 +7,8 @@ use App\Models\Order_detail;
 use App\Models\Site;
 use App\Support\ReportAuditLogger;
 use Carbon\Carbon;
+use Dompdf\Dompdf;
+use Dompdf\Options;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -24,17 +26,12 @@ class ReportController extends Controller
      */
     public function periodic(Request $request)
     {
-        $today = Carbon::today()->toDateString();
-        $start_date = $request->filled('start_date')
-            ? Carbon::parse($request->input('start_date'))->toDateString()
-            : $today;
-        $end_date = $request->filled('end_date')
-            ? Carbon::parse($request->input('end_date'))->toDateString()
-            : $today;
+        [$start_date, $end_date] = $this->resolvePeriodicDateRange($request);
 
         $debt = $this->periodicOrderLinesBase($request, $start_date, $end_date)
             ->select('order_details.*')
             ->with('product')
+            ->orderBy('order_details.id')
             ->get();
 
         $total = (float) $this->periodicOrderLinesBase($request, $start_date, $end_date)
@@ -48,7 +45,108 @@ class ReportController extends Controller
         return view('reports.index', compact('start_date', 'end_date', 'debt', 'total'));
     }
 
-    public function periodicprint(Request $request)
+    /**
+     * Same row set and tenancy rules as the on-screen line-items report.
+     */
+    public function periodicExport(Request $request): StreamedResponse
+    {
+        [$start_date, $end_date] = $this->resolvePeriodicDateRange($request);
+
+        ReportAuditLogger::log($request, 'periodic.export', [
+            'start_date' => $start_date,
+            'end_date' => $end_date,
+        ]);
+
+        $filename = sprintf(
+            'line-items-%s-to-%s.csv',
+            preg_replace('/[^0-9-]/', '', $start_date),
+            preg_replace('/[^0-9-]/', '', $end_date)
+        );
+
+        return response()->streamDownload(function () use ($request, $start_date, $end_date) {
+            $out = fopen('php://output', 'w');
+            fprintf($out, chr(0xEF).chr(0xBB).chr(0xBF));
+            fputcsv($out, ['#', 'Product', 'Packaging', 'Amount', 'Line date']);
+
+            $idx = 0;
+            $this->periodicOrderLinesBase($request, $start_date, $end_date)
+                ->select('order_details.*')
+                ->with('product')
+                ->orderBy('order_details.id')
+                ->chunk(500, function ($rows) use ($out, &$idx) {
+                    foreach ($rows as $row) {
+                        $idx++;
+                        $name = $row->product
+                            ? $row->product->product_name.($row->product->alias ? ' ('.$row->product->alias.')' : '')
+                            : 'Name not found';
+                        $pl = $row->packaging_label ?? ($row->product ? ($row->product->packaging_label ?? '') : '');
+                        fputcsv($out, [
+                            $idx,
+                            $name,
+                            $pl,
+                            number_format((float) ($row->amount ?? 0), 2, '.', ''),
+                            $row->created_at ? $row->created_at->format('Y-m-d H:i:s') : '',
+                        ]);
+                    }
+                });
+
+            $total = (float) $this->periodicOrderLinesBase($request, $start_date, $end_date)
+                ->sum('order_details.amount');
+            fputcsv($out, ['', '', 'Total', number_format($total, 2, '.', ''), '']);
+
+            fclose($out);
+        }, $filename, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+        ]);
+    }
+
+    /**
+     * Downloadable PDF of the same line-items report (date range from query string).
+     */
+    public function periodicPdf(Request $request)
+    {
+        [$start_date, $end_date] = $this->resolvePeriodicDateRange($request);
+
+        $debt = $this->periodicOrderLinesBase($request, $start_date, $end_date)
+            ->select('order_details.*')
+            ->with('product')
+            ->orderBy('order_details.id')
+            ->get();
+
+        $total = (float) $this->periodicOrderLinesBase($request, $start_date, $end_date)
+            ->sum('order_details.amount');
+
+        ReportAuditLogger::log($request, 'periodic.pdf', [
+            'start_date' => $start_date,
+            'end_date' => $end_date,
+        ]);
+
+        $options = new Options;
+        $options->set('isRemoteEnabled', false);
+        $options->set('defaultFont', 'DejaVu Sans');
+        $dompdf = new Dompdf($options);
+        $dompdf->loadHtml(view('reports.periodic_pdf', [
+            'start_date' => $start_date,
+            'end_date' => $end_date,
+            'debt' => $debt,
+            'total' => $total,
+        ])->render());
+        $dompdf->setPaper('A4', 'landscape');
+        $dompdf->render();
+
+        $filename = sprintf(
+            'line-items-%s-to-%s.pdf',
+            preg_replace('/[^0-9-]/', '', $start_date),
+            preg_replace('/[^0-9-]/', '', $end_date)
+        );
+
+        return response($dompdf->output(), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
+        ]);
+    }
+
+    private function resolvePeriodicDateRange(Request $request): array
     {
         $today = Carbon::today()->toDateString();
         $start_date = $request->filled('start_date')
@@ -58,20 +156,7 @@ class ReportController extends Controller
             ? Carbon::parse($request->input('end_date'))->toDateString()
             : $today;
 
-        $debt = $this->periodicOrderLinesBase($request, $start_date, $end_date)
-            ->select('order_details.*')
-            ->with('product')
-            ->get();
-
-        $total = (float) $this->periodicOrderLinesBase($request, $start_date, $end_date)
-            ->sum('order_details.amount');
-
-        ReportAuditLogger::log($request, 'periodic.print', [
-            'start_date' => $start_date,
-            'end_date' => $end_date,
-        ]);
-
-        return view('reports.periodic_print', compact('start_date', 'end_date', 'debt', 'total'));
+        return [$start_date, $end_date];
     }
 
     /**

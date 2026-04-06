@@ -25,6 +25,7 @@
          Email 2FA at login writes auth.two_factor.* (email_code_sent, email_send_failed, email_code_failed,
          email_locked_out, email_resend_limit, email_completed) to the audit channel. -->
     <php>
+        <ini name="memory_limit" value="512M"/>
         <server name="APP_ENV" value="testing"/>
         <server name="BCRYPT_ROUNDS" value="4"/>
         <server name="CACHE_DRIVER" value="array"/>

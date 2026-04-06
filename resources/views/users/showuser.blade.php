@@ -50,7 +50,7 @@
                                         
                                         <tr>
                                             <td>{{ $key + 1 }}</td>
-                                            <td><img src="/storage/users/{{ $user->user_img }}" class="user-img" alt=""></td>
+                                            <td><img src="{{ $user->avatarUrl() }}" class="user-img" alt=""></td>
                                             <td>{{ $user->name }}</td>
                                             <td>{{ $user->email }}</td>
                                             <td>{{ $user->mobile }}</td>
@@ -103,7 +103,7 @@
                                 </tfoot> --}}
                                
                             </table>
-                            @include('users.partials.user-modals', ['users' => $users, 'sites' => $sites])
+                            @include('users.partials.user-modals', ['users' => $users, 'sites' => $sites, 'assignableRoles' => $assignableRoles])
                         </div>
                         <nav aria-label="..." class="py-5">
 							<ul class="pagination">

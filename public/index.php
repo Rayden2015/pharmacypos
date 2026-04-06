@@ -22,12 +22,28 @@ if (file_exists(__DIR__.'/../storage/framework/maintenance.php')) {
 
 /*
 |--------------------------------------------------------------------------
+| Early error handling (before Composer / Dotenv)
+|--------------------------------------------------------------------------
+|
+| PHP 8.1+ deprecations in vendor code during .env parsing must never be sent
+| to the browser on shared hosting (display_errors is often On in php.ini).
+| After .env loads: only APP_ENV=local together with APP_DEBUG may show errors
+| in the UI; everywhere else we log (log_errors) with display_errors off.
+|
+*/
+
+ini_set('display_errors', '0');
+ini_set('log_errors', '1');
+error_reporting(E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED);
+
+/*
+|--------------------------------------------------------------------------
 | Register The Auto Loader
 |--------------------------------------------------------------------------
 |
 | Composer provides a convenient, automatically generated class loader for
 | this application. We just need to utilize it! We'll simply require it
-| into the script here so we don't need to manually load our classes.
+| into the script here so that we don't need to manually load our classes.
 |
 */
 
@@ -35,15 +51,10 @@ require __DIR__.'/../vendor/autoload.php';
 
 /*
 |--------------------------------------------------------------------------
-| PHP 8.3+ deprecations in vendor (Laravel 8 / Mockery / Symfony)
+| Load .env before the application container
 |--------------------------------------------------------------------------
-|
-| Without this, implicit nullable parameter deprecations are printed into the
-| HTML response when display_errors is on. Load .env early so APP_DEBUG is
-| honored before the kernel boots. When debugging is off, hide deprecations from
-| output; use APP_DEBUG=true locally if you need to see them.
-|
 */
+
 if (is_file(dirname(__DIR__).'/.env')) {
     try {
         Dotenv\Dotenv::createImmutable(dirname(__DIR__))->safeLoad();
@@ -51,10 +62,19 @@ if (is_file(dirname(__DIR__).'/.env')) {
         // Laravel will report environment problems during bootstrap.
     }
 }
+
 $debugEnv = $_ENV['APP_DEBUG'] ?? getenv('APP_DEBUG');
-if (! filter_var($debugEnv, FILTER_VALIDATE_BOOLEAN)) {
+$appEnv = strtolower((string) ($_ENV['APP_ENV'] ?? getenv('APP_ENV') ?: 'production'));
+$allowBrowserErrors = $appEnv === 'local' && filter_var($debugEnv, FILTER_VALIDATE_BOOLEAN);
+
+if ($allowBrowserErrors) {
+    error_reporting(E_ALL);
+    ini_set('display_errors', '1');
+    ini_set('log_errors', '1');
+} else {
     ini_set('display_errors', '0');
-    error_reporting(E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED);
+    ini_set('log_errors', '1');
+    error_reporting(E_ALL);
 }
 
 /*
@@ -64,7 +84,7 @@ if (! filter_var($debugEnv, FILTER_VALIDATE_BOOLEAN)) {
 |
 | Once we have the application, we can handle the incoming request using
 | the application's HTTP kernel. Then, we will send the response back
-| to this client's browser, allowing them to enjoy our application.
+| to this client's browser, allowing them to enjoy this application.
 |
 */
 

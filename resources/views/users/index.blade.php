@@ -135,15 +135,15 @@
                                             </div>
                                         </div>
                                         <div class="col-6">
-                                            <label for="inputChoosePassword" class="form-label">Employee role
-                                            </label>
-                                            <select name="tenant_role" id="inputTenantRole" class="form-select" required>
-                                                <option value="" disabled {{ old('tenant_role') ? '' : 'selected' }}>Select role</option>
-                                                @foreach (\App\Models\User::HIERARCHY_ROLE_LABELS as $value => $label)
-                                                    <option value="{{ $value }}" {{ old('tenant_role') === $value ? 'selected' : '' }}>{{ $label }}</option>
+                                            <label for="inputRoleId" class="form-label">Employee role</label>
+                                            <select name="role_id" id="inputRoleId" class="form-select @error('role_id') is-invalid @enderror" required>
+                                                <option value="" disabled {{ old('role_id') ? '' : 'selected' }}>Select role</option>
+                                                @foreach ($assignableRoles as $role)
+                                                    <option value="{{ $role->id }}" @selected((string) old('role_id') === (string) $role->id)>{{ $role->name }}</option>
                                                 @endforeach
                                             </select>
-                                            <small class="text-muted">Tenant admin → branch manager → supervisor → cashier.</small>
+                                            @error('role_id')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                                            <small class="text-muted">Includes built-in roles and any custom roles you created under Roles &amp; permissions.</small>
                                         </div>
                                         <div class="col-6">
                                             <label for="inputChoosePassword" class="form-label">Employee Status
@@ -470,7 +470,7 @@
                                         
                                         <tr>
                                             <td>{{ $key + 1 }}</td>
-                                            <td><img src="/storage/users/{{ $user->user_img }}" width="70px" alt=""></td>
+                                            <td><img src="{{ $user->avatarUrl() }}" width="70px" alt=""></td>
                                             <td>{{ $user->name }}</td>
                                             <td>{{ $user->email }}</td>
                                             <td>{{ $user->mobile }}</td>

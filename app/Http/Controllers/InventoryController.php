@@ -155,6 +155,44 @@ class InventoryController extends Controller
         return view('inventory.stock-transfer', compact('products', 'sites'));
     }
 
+    /**
+     * JSON: on-hand quantity for a product at the source branch (for stock transfer form).
+     */
+    public function stockTransferAvailability(Request $request)
+    {
+        $data = $request->validate([
+            'from_site_id' => ['required', 'integer', 'exists:sites,id'],
+            'product_id' => ['required', 'integer', 'exists:products,id'],
+        ]);
+
+        $viewer = $request->user();
+        $fromSite = Site::query()->findOrFail($data['from_site_id']);
+        $this->authorizeInventorySite($viewer, $fromSite);
+
+        $product = Product::query()->forTenantCatalog($viewer)->whereKey($data['product_id'])->first();
+        if (! $product) {
+            return response()->json(['available' => 0, 'message' => 'Product not found in your catalog.'], 404);
+        }
+
+        if ((int) $product->company_id !== (int) $fromSite->company_id) {
+            return response()->json([
+                'available' => 0,
+                'message' => 'This product does not belong to the same organization as the source branch.',
+            ], 422);
+        }
+
+        $available = (int) (ProductSiteStock::query()
+            ->where('product_id', $product->id)
+            ->where('site_id', $fromSite->id)
+            ->value('quantity') ?? 0);
+
+        return response()->json([
+            'available' => $available,
+            'product_name' => $product->product_name,
+            'site_name' => $fromSite->name,
+        ]);
+    }
+
     public function storeStockTransfer(Request $request)
     {
         $data = $request->validate([
@@ -668,6 +706,19 @@ class InventoryController extends Controller
         }
 
         return $q;
+    }
+
+    private function authorizeInventorySite(?User $user, Site $site): void
+    {
+        if (! $user) {
+            abort(403);
+        }
+        if ($user->isSuperAdmin()) {
+            return;
+        }
+        if ((int) $site->company_id !== (int) ($user->company_id ?? 0)) {
+            abort(403, 'That branch does not belong to your organization.');
+        }
     }
 
 }

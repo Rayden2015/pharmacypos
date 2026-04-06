@@ -33,7 +33,7 @@
                         <p class="text-muted small mb-0">{{ __('Queue items for dispensing; link a prescriber when available. Status feeds the dashboard Rx chart.') }}</p>
                     </div>
                     <div class="card-body">
-                        <form action="{{ route('pharmacy.prescriptions.store') }}" method="post" class="row g-3 align-items-end">
+                        <form action="{{ route('pharmacy.prescriptions.store') }}" method="post" enctype="multipart/form-data" class="row g-3 align-items-end">
                             @csrf
                             <div class="col-md-3">
                                 <label class="form-label">Patient name <span class="text-danger">*</span></label>
@@ -58,12 +58,18 @@
                                 <label class="form-label">Rx / file #</label>
                                 <input type="text" name="rx_number" class="form-control" value="{{ old('rx_number') }}" maxlength="100">
                             </div>
-                            <div class="col-md-2">
+                            <div class="col-md-3">
                                 <label class="form-label">Notes</label>
                                 <input type="text" name="notes" class="form-control" value="{{ old('notes') }}" maxlength="5000" placeholder="Optional">
                             </div>
-                            <div class="col-md-1">
-                                <button type="submit" class="btn btn-primary w-100"><i class="bx bx-plus me-1"></i>Add</button>
+                            <div class="col-md-12 col-lg-6 col-xl-5">
+                                <label class="form-label">{{ __('Rx image') }}</label>
+                                <input type="file" name="attachment" class="form-control @error('attachment') is-invalid @enderror" accept="image/*">
+                                @error('attachment')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                <span class="text-muted small">{{ __('Optional scan or photo, max 10 MB.') }}</span>
+                            </div>
+                            <div class="col-md-12 col-lg-4 col-xl-3 d-flex align-items-end">
+                                <button type="submit" class="btn btn-primary"><i class="bx bx-plus me-1"></i>Add</button>
                             </div>
                         </form>
                     </div>

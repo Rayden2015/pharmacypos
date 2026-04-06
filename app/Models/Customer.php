@@ -8,14 +8,25 @@ use Illuminate\Database\Eloquent\Model;
 
 class Customer extends Model
 {
-    /** Strip to digits for comparing phone numbers across formatting differences. */
+    /**
+     * Canonical mobile key for matching: digits only, then last 9 digits (national significant number).
+     * Numbers with 9 or fewer digits are kept in full. E.g. +2333504065214 and 0504065214 → 504065214.
+     */
     public static function normalizeMobile(?string $mobile): string
     {
-        return preg_replace('/\D+/', '', (string) $mobile);
+        $digits = preg_replace('/\D+/', '', (string) $mobile);
+        if ($digits === '') {
+            return '';
+        }
+        if (strlen($digits) <= 9) {
+            return $digits;
+        }
+
+        return substr($digits, -9);
     }
 
     /**
-     * Find a customer in this company (any branch site) whose mobile matches when normalized.
+     * Find a customer in this company (any branch site) whose mobile matches after normalizeMobile().
      */
     public static function findForCompanyByNormalizedMobile(int $companyId, string $rawMobile): ?self
     {
@@ -65,6 +76,24 @@ class Customer extends Model
     public function site()
     {
         return $this->belongsTo(Site::class);
+    }
+
+    /**
+     * Company used to resolve POS orders for this directory entry (any branch in the org).
+     */
+    public function companyIdForSalesHistory(): ?int
+    {
+        if ($this->site_id) {
+            $id = Site::query()->whereKey($this->site_id)->value('company_id');
+
+            return $id !== null ? (int) $id : null;
+        }
+        $user = auth()->user();
+        if ($user && $user->company_id) {
+            return (int) $user->company_id;
+        }
+
+        return null;
     }
 
     /**

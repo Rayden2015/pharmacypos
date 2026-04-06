@@ -85,7 +85,52 @@ class TenantCommunicationsTest extends TestCase
         $this->actingAs($alice)
             ->get(route('messages.show', $bob))
             ->assertOk()
-            ->assertSee('Hello from Alice', false);
+            ->assertSee('Hello from Alice', false)
+            ->assertSee(e($bob->name), false);
+    }
+
+    public function test_thread_poll_returns_new_messages_json(): void
+    {
+        $alice = $this->makeTenantUser(uniqid('pa', true).'@example.test');
+        $bob = $this->makeTenantUser(uniqid('pb', true).'@example.test');
+
+        $dm = DirectMessage::create([
+            'company_id' => $alice->company_id,
+            'sender_id' => $bob->id,
+            'recipient_id' => $alice->id,
+            'body' => 'Hey there',
+        ]);
+
+        $this->actingAs($alice)
+            ->getJson(route('messages.poll', ['user' => $bob->id]).'?after_id=0')
+            ->assertOk()
+            ->assertJsonPath('ok', true);
+
+        $data = $this->actingAs($alice)
+            ->getJson(route('messages.poll', ['user' => $bob->id]).'?after_id='.$dm->id)
+            ->assertOk()
+            ->json();
+
+        $this->assertSame([], $data['messages'] ?? null);
+    }
+
+    public function test_store_accepts_json_and_returns_message_payload(): void
+    {
+        $alice = $this->makeTenantUser(uniqid('ja', true).'@example.test');
+        $bob = $this->makeTenantUser(uniqid('jb', true).'@example.test');
+
+        $this->actingAs($alice)
+            ->postJson(route('messages.store'), [
+                'recipient_id' => $bob->id,
+                'body' => 'Ajax hello',
+            ])
+            ->assertOk()
+            ->assertJsonPath('ok', true)
+            ->assertJsonPath('message.body', 'Ajax hello');
+
+        $this->actingAs($alice)
+            ->get(route('messages.show', $bob))
+            ->assertSee('Ajax hello', false);
     }
 
     public function test_mark_all_messages_read_returns_ok_json(): void
